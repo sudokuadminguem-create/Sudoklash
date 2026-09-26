@@ -5,3 +5,4 @@ components/ui
 drizzle
 package-lock.json
 .openai
+vendor

@@ -4,7 +4,7 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "module": "esnext",
     "moduleResolution": "bundler",
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "strict": true,
     "noEmit": true,
     "noUnusedLocals": true,
@@ -13,8 +13,28 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "types": ["@cloudflare/workers-types", "node"],
-    "paths": { "@/*": ["./*"] }
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "allowJs": true,
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["env.d.ts", "app", "lib", "hooks", "db", "scripts", "tests", "*.ts"],
+  "include": [
+    "env.d.ts",
+    "app",
+    "lib",
+    "hooks",
+    "db",
+    "scripts",
+    "tests",
+    "*.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": ["node_modules", "components/ui", "build"]
 }
