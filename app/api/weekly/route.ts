@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
-import { getChallengeConfig, solvePuzzle } from "@/lib/challenges";
+import { getPeriodChallenge, solvePuzzle } from "@/lib/challenges";
+import {challengeWindow} from "@/lib/challenge-schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -12,17 +13,6 @@ type AttemptRow = {
   last_mistake_id: string | null;
   puzzle: string | null;
 };
-
-function weekWindow(now = new Date()) {
-  const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const daysSinceMonday = (now.getUTCDay() + 6) % 7;
-  const startsAt = midnight - daysSinceMonday * 86_400_000;
-  const nextAt = startsAt + 7 * 86_400_000;
-  return {
-    weekId: new Date(startsAt).toISOString().slice(0, 10),
-    nextAt: new Date(nextAt).toISOString(),
-  };
-}
 
 async function currentAttempt(userId: string, weekId: string) {
   if (!env.DB) throw new Error("database_unavailable");
@@ -55,8 +45,8 @@ export async function GET(request:Request) {
   if (!user) return Response.json({ error: "authentication_required" }, { status: 401 });
   if (!env.DB) return Response.json({ error: "database_unavailable" }, { status: 503 });
 
-  const { weekId, nextAt } = weekWindow();
-  const [attempt,config] = await Promise.all([currentAttempt(user.userId, weekId),getChallengeConfig("weekly")]);
+  const { periodId:weekId, nextAt } = challengeWindow("weekly");
+  const [attempt,config] = await Promise.all([currentAttempt(user.userId, weekId),getPeriodChallenge("weekly",weekId)]);
   return Response.json(payload(attempt, nextAt, config), {
     headers: { "Cache-Control": "no-store" },
   });
@@ -69,9 +59,9 @@ export async function POST(request: Request) {
   if (!db) return Response.json({ error: "database_unavailable" }, { status: 503 });
 
   const body = await request.json().catch(() => null) as { action?: string; grid?: unknown; index?: unknown; number?: unknown; mistakeId?: unknown } | null;
-  const { weekId, nextAt } = weekWindow();
+  const { periodId:weekId, nextAt } = challengeWindow("weekly");
   const now = Date.now();
-  const config = await getChallengeConfig("weekly");
+  const config = await getPeriodChallenge("weekly",weekId);
 
   if (body?.action === "ready") {
     await db.prepare(
