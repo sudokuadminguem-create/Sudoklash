@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
-// Self-hosted build (Docker). The hosting platform builds the app its own way and provides
-// the real "cloudflare:workers" module; here it is replaced by the Node/SQLite adapter.
+// The hosting platform builds this app with vinext, which also reads this file. Everything
+// here is for the self-hosted (Docker) build only, enabled by SUDOKLASH_SELF_HOSTED=1: the
+// platform must keep the real "cloudflare:workers" module (D1), its identity headers and its
+// own response headers.
+const selfHosted = process.env.SUDOKLASH_SELF_HOSTED === "1";
 
 const supabaseOrigin = new URL(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "https://lxppazlcvjfwumtbkibn.supabase.co",
@@ -32,7 +35,7 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
 ];
 
-const nextConfig: NextConfig = {
+const selfHostedConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   turbopack: {
@@ -43,4 +46,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default selfHosted ? selfHostedConfig : {};

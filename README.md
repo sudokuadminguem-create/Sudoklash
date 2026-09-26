@@ -48,5 +48,8 @@ nginx). Dans ce mode :
   appliquées au démarrage) ; sauvegardez ce volume ;
 - seule la connexion Supabase est acceptée : les en-têtes d'identité de la plateforme
   (`oai-authenticated-*`) sont ignorés, car n'importe qui pourrait les envoyer ;
+- la configuration propre à Docker (`next.config.ts`, `postcss.config.mjs`) ne s'active qu'avec
+  `SUDOKLASH_SELF_HOSTED=1`, posé par le Dockerfile : la plateforme, qui lit aussi ces fichiers,
+  garde D1, sa connexion ChatGPT et ses propres en-têtes ;
 - le conteneur tourne sans root, en lecture seule, sans capacités Linux, sans npm ni apk, avec des
   en-têtes de sécurité (CSP, HSTS, anti-framing) et une sonde `/api/health`.

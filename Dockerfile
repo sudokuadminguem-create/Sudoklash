@@ -14,7 +14,8 @@ RUN npm ci --ignore-scripts --no-audit --no-fund
 # ---------- Étape 2 : build Next.js (standalone) ----------
 FROM ${NODE_IMAGE} AS build
 WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    SUDOKLASH_SELF_HOSTED=1
 # Réglages publics Supabase, intégrés au code envoyé au navigateur (valeurs par défaut dans
 # lib/supabase-config.ts). Ce ne sont pas des secrets.
 ARG NEXT_PUBLIC_SUPABASE_URL=""

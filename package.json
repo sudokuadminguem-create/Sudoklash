@@ -4,9 +4,9 @@
   "type": "module",
   "description": "Sudoku Clash. The hosting platform builds its own deployment; `npm run build` makes the self-hosted (Docker) build.",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "SUDOKLASH_SELF_HOSTED=1 next dev",
+    "build": "SUDOKLASH_SELF_HOSTED=1 next build",
+    "start": "SUDOKLASH_SELF_HOSTED=1 next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
