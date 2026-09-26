@@ -73,68 +73,98 @@ export const playerAvatarImages = sqliteTable("player_avatar_images", {
   updatedAt: integer("updated_at").notNull(),
 });
 
-export const cosmeticPurchases = sqliteTable("cosmetic_purchases", {
-  userId: text("user_id").notNull(),
-  itemId: text("item_id").notNull(),
-  price: integer("price").notNull(),
-  purchasedAt: integer("purchased_at").notNull(),
-}, table => [primaryKey({columns:[table.userId,table.itemId]})]);
+export const cosmeticPurchases = sqliteTable(
+  "cosmetic_purchases",
+  {
+    userId: text("user_id").notNull(),
+    itemId: text("item_id").notNull(),
+    price: integer("price").notNull(),
+    purchasedAt: integer("purchased_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.itemId] })],
+);
 
-export const soloResults = sqliteTable("solo_results", {
-  id: text("id").primaryKey(),
-  userId: text("user_id").notNull(),
-  difficulty: text("difficulty").notNull(),
-  elapsedSeconds: integer("elapsed_seconds").notNull(),
-  completedAt: integer("completed_at").notNull(),
-}, table => [index("idx_solo_results_user").on(table.userId, table.completedAt)]);
+export const soloResults = sqliteTable(
+  "solo_results",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    difficulty: text("difficulty").notNull(),
+    elapsedSeconds: integer("elapsed_seconds").notNull(),
+    completedAt: integer("completed_at").notNull(),
+  },
+  (table) => [index("idx_solo_results_user").on(table.userId, table.completedAt)],
+);
 
-export const friendships = sqliteTable("friendships", {
-  id: text("id").primaryKey(),
-  pairKey: text("pair_key").notNull().unique(),
-  requesterId: text("requester_id").notNull(),
-  addresseeId: text("addressee_id").notNull(),
-  status: text("status").notNull(),
-  createdAt: integer("created_at").notNull(),
-}, table => [index("idx_friendships_requester").on(table.requesterId), index("idx_friendships_addressee").on(table.addresseeId)]);
+export const friendships = sqliteTable(
+  "friendships",
+  {
+    id: text("id").primaryKey(),
+    pairKey: text("pair_key").notNull().unique(),
+    requesterId: text("requester_id").notNull(),
+    addresseeId: text("addressee_id").notNull(),
+    status: text("status").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    index("idx_friendships_requester").on(table.requesterId),
+    index("idx_friendships_addressee").on(table.addresseeId),
+  ],
+);
 
-export const rankedQueue = sqliteTable("ranked_queue", {
-  userId: text("user_id").primaryKey(),
-  queuedAt: integer("queued_at").notNull(),
-  heartbeatAt: integer("heartbeat_at").notNull(),
-  matchId: text("match_id"),
-  difficulty: text("difficulty").notNull().default("Intermédiaire"),
-}, table => [index("idx_ranked_queue_waiting").on(table.matchId, table.queuedAt)]);
+export const rankedQueue = sqliteTable(
+  "ranked_queue",
+  {
+    userId: text("user_id").primaryKey(),
+    queuedAt: integer("queued_at").notNull(),
+    heartbeatAt: integer("heartbeat_at").notNull(),
+    matchId: text("match_id"),
+    difficulty: text("difficulty").notNull().default("Intermédiaire"),
+  },
+  (table) => [index("idx_ranked_queue_waiting").on(table.matchId, table.queuedAt)],
+);
 
-export const rankedRatings = sqliteTable("ranked_ratings", {
-  userId: text("user_id").primaryKey(),
-  points: integer("points").notNull().default(0),
-  wins: integer("wins").notNull().default(0),
-  losses: integer("losses").notNull().default(0),
-  updatedAt: integer("updated_at").notNull(),
-}, table => [index("idx_ranked_ratings_points").on(table.points, table.userId)]);
+export const rankedRatings = sqliteTable(
+  "ranked_ratings",
+  {
+    userId: text("user_id").primaryKey(),
+    points: integer("points").notNull().default(0),
+    wins: integer("wins").notNull().default(0),
+    losses: integer("losses").notNull().default(0),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [index("idx_ranked_ratings_points").on(table.points, table.userId)],
+);
 
-export const rankedMatches = sqliteTable("ranked_matches", {
-  id: text("id").primaryKey(),
-  player1Id: text("player1_id").notNull(),
-  player2Id: text("player2_id").notNull(),
-  puzzle: text("puzzle").notNull(),
-  solution: text("solution").notNull(),
-  startedAt: integer("started_at").notNull(),
-  status: text("status").notNull().default("playing"),
-  winnerId: text("winner_id"),
-  player1Progress: integer("player1_progress").notNull().default(0),
-  player2Progress: integer("player2_progress").notNull().default(0),
-  player1Mistakes: integer("player1_mistakes").notNull().default(0),
-  player2Mistakes: integer("player2_mistakes").notNull().default(0),
-  player1LastMistakeId: text("player1_last_mistake_id"),
-  player2LastMistakeId: text("player2_last_mistake_id"),
-  finishedAt: integer("finished_at"),
-  difficulty: text("difficulty").notNull().default("Intermédiaire"),
-  ratedAt: integer("rated_at"),
-  ratingToken: text("rating_token"),
-  player1PointsBefore: integer("player1_points_before"),
-  player2PointsBefore: integer("player2_points_before"),
-  player1PointsChange: integer("player1_points_change"),
-  player2PointsChange: integer("player2_points_change"),
-  finishReason: text("finish_reason"),
-}, table => [index("idx_ranked_matches_player1").on(table.player1Id, table.startedAt), index("idx_ranked_matches_player2").on(table.player2Id, table.startedAt)]);
+export const rankedMatches = sqliteTable(
+  "ranked_matches",
+  {
+    id: text("id").primaryKey(),
+    player1Id: text("player1_id").notNull(),
+    player2Id: text("player2_id").notNull(),
+    puzzle: text("puzzle").notNull(),
+    solution: text("solution").notNull(),
+    startedAt: integer("started_at").notNull(),
+    status: text("status").notNull().default("playing"),
+    winnerId: text("winner_id"),
+    player1Progress: integer("player1_progress").notNull().default(0),
+    player2Progress: integer("player2_progress").notNull().default(0),
+    player1Mistakes: integer("player1_mistakes").notNull().default(0),
+    player2Mistakes: integer("player2_mistakes").notNull().default(0),
+    player1LastMistakeId: text("player1_last_mistake_id"),
+    player2LastMistakeId: text("player2_last_mistake_id"),
+    finishedAt: integer("finished_at"),
+    difficulty: text("difficulty").notNull().default("Intermédiaire"),
+    ratedAt: integer("rated_at"),
+    ratingToken: text("rating_token"),
+    player1PointsBefore: integer("player1_points_before"),
+    player2PointsBefore: integer("player2_points_before"),
+    player1PointsChange: integer("player1_points_change"),
+    player2PointsChange: integer("player2_points_change"),
+    finishReason: text("finish_reason"),
+  },
+  (table) => [
+    index("idx_ranked_matches_player1").on(table.player1Id, table.startedAt),
+    index("idx_ranked_matches_player2").on(table.player2Id, table.startedAt),
+  ],
+);

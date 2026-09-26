@@ -17,20 +17,74 @@ export default function AdminAccess() {
     if (account.loading) return;
     let active = true;
     setAdmin(null);
-    supabase.auth.getSession()
-      .then(({ data }) => fetch("/api/me", {
-        cache: "no-store",
-        headers: data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {},
-      }))
-      .then(response => response.json() as Promise<{ isAdmin: boolean; displayName: string | null }>)
-      .then(value => { if (active) setAdmin(value); })
-      .catch(() => { if (active) setAdmin({ isAdmin: false, displayName: null }); });
-    return () => { active = false; };
+    supabase.auth
+      .getSession()
+      .then(({ data }) =>
+        fetch("/api/me", {
+          cache: "no-store",
+          headers: data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {},
+        }),
+      )
+      .then(
+        (response) => response.json() as Promise<{ isAdmin: boolean; displayName: string | null }>,
+      )
+      .then((value) => {
+        if (active) setAdmin(value);
+      })
+      .catch(() => {
+        if (active) setAdmin({ isAdmin: false, displayName: null });
+      });
+    return () => {
+      active = false;
+    };
   }, [account.loading, account.user?.id]);
 
-  if (admin?.isAdmin) return <AdminPanel displayName={admin.displayName ?? "Administrateur"}/>;
-  return <main className="admin-shell"><header className="admin-header"><Link href="/"><ChevronLeft/>Retour au jeu</Link><div><LockKeyhole/><span>SUDOKU CLASH</span><b>Administration privée</b></div></header>
-    <section className="admin-content"><div className="admin-intro"><span className="admin-pill"><ShieldCheck/>Accès propriétaire uniquement</span><h1>Administration</h1>
-      {account.loading || !admin ? <p>Vérification de votre compte…</p> : account.user ? <><p>Ce compte ne dispose pas des droits d’administration. Connectez-vous avec le compte Sudoku Clash du propriétaire et confirmez son adresse e-mail.</p><button className="admin-access-button" onClick={() => void supabase.auth.signOut()}>Changer de compte</button></> : <><p>Connectez-vous avec le compte Sudoku Clash du propriétaire pour accéder au panneau.</p><button className="admin-access-button" onClick={() => setAuthOpen(true)}>Se connecter</button></>}
-    </div></section>{authOpen && <AuthDialog account={account} onClose={() => setAuthOpen(false)}/>}</main>;
+  if (admin?.isAdmin) return <AdminPanel displayName={admin.displayName ?? "Administrateur"} />;
+  return (
+    <main className="admin-shell">
+      <header className="admin-header">
+        <Link href="/">
+          <ChevronLeft />
+          Retour au jeu
+        </Link>
+        <div>
+          <LockKeyhole />
+          <span>SUDOKU CLASH</span>
+          <b>Administration privée</b>
+        </div>
+      </header>
+      <section className="admin-content">
+        <div className="admin-intro">
+          <span className="admin-pill">
+            <ShieldCheck />
+            Accès propriétaire uniquement
+          </span>
+          <h1>Administration</h1>
+          {account.loading || !admin ? (
+            <p>Vérification de votre compte…</p>
+          ) : account.user ? (
+            <>
+              <p>
+                Ce compte ne dispose pas des droits d’administration. Connectez-vous avec le compte
+                Sudoku Clash du propriétaire et confirmez son adresse e-mail.
+              </p>
+              <button className="admin-access-button" onClick={() => void supabase.auth.signOut()}>
+                Changer de compte
+              </button>
+            </>
+          ) : (
+            <>
+              <p>
+                Connectez-vous avec le compte Sudoku Clash du propriétaire pour accéder au panneau.
+              </p>
+              <button className="admin-access-button" onClick={() => setAuthOpen(true)}>
+                Se connecter
+              </button>
+            </>
+          )}
+        </div>
+      </section>
+      {authOpen && <AuthDialog account={account} onClose={() => setAuthOpen(false)} />}
+    </main>
+  );
 }
