@@ -1,12 +1,13 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
-import { getChallengeConfig, type ChallengeKind } from "@/lib/challenges";
+import { challengeWindow } from "@/lib/challenge-schedule";
+import { getPeriodChallenge, type ChallengeKind } from "@/lib/challenges";
 import { solvePuzzle } from "@/lib/sudoku-solver";
 
-// Daily and weekly challenges share the same rules: one timed attempt per period,
-// three mistakes end it, and the server checks the solution and measures the time.
+// Daily and weekly challenges share the same rules: one timed attempt per period
+// (Paris time, see lib/challenge-schedule.ts), three mistakes end it, and the server
+// checks the solution and measures the time.
 
-const DAY_MS = 86_400_000;
 const MAX_MISTAKES = 3;
 
 type AttemptRow = {
@@ -19,13 +20,11 @@ type AttemptRow = {
 };
 
 type ChallengeConfig = { title: string; puzzle: string };
-type Period = { periodId: string; nextAt: string };
 
 type TimedChallenge = {
   kind: ChallengeKind;
   table: "daily_attempts" | "weekly_attempts";
   periodColumn: "day_id" | "week_id";
-  period: (now?: Date) => Period;
 };
 
 type PostBody = {
@@ -36,40 +35,16 @@ type PostBody = {
   mistakeId?: unknown;
 };
 
-function utcMidnight(now: Date) {
-  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-}
-
-function periodFrom(startsAt: number, lengthMs: number): Period {
-  return {
-    periodId: new Date(startsAt).toISOString().slice(0, 10),
-    nextAt: new Date(startsAt + lengthMs).toISOString(),
-  };
-}
-
-/** The current UTC day. */
-export function dayPeriod(now = new Date()): Period {
-  return periodFrom(utcMidnight(now), DAY_MS);
-}
-
-/** The current UTC week, starting on Monday. */
-export function weekPeriod(now = new Date()): Period {
-  const daysSinceMonday = (now.getUTCDay() + 6) % 7;
-  return periodFrom(utcMidnight(now) - daysSinceMonday * DAY_MS, 7 * DAY_MS);
-}
-
 export const dailyChallenge: TimedChallenge = {
   kind: "daily",
   table: "daily_attempts",
   periodColumn: "day_id",
-  period: dayPeriod,
 };
 
 export const weeklyChallenge: TimedChallenge = {
   kind: "weekly",
   table: "weekly_attempts",
   periodColumn: "week_id",
-  period: weekPeriod,
 };
 
 function isMistakeId(value: unknown): value is string {
@@ -104,7 +79,7 @@ function payload(attempt: AttemptRow | null, nextAt: string, config: ChallengeCo
 }
 
 /** Builds the GET and POST handlers of a timed challenge route. */
-export function timedChallengeRoute({ kind, table, periodColumn, period }: TimedChallenge) {
+export function timedChallengeRoute({ kind, table, periodColumn }: TimedChallenge) {
   async function currentAttempt(userId: string, periodId: string) {
     if (!env.DB) throw new Error("database_unavailable");
     return env.DB.prepare(
@@ -119,10 +94,10 @@ export function timedChallengeRoute({ kind, table, periodColumn, period }: Timed
     if (!user) return Response.json({ error: "authentication_required" }, { status: 401 });
     if (!env.DB) return Response.json({ error: "database_unavailable" }, { status: 503 });
 
-    const { periodId, nextAt } = period();
+    const { periodId, nextAt } = challengeWindow(kind);
     const [attempt, config] = await Promise.all([
       currentAttempt(user.userId, periodId),
-      getChallengeConfig(kind),
+      getPeriodChallenge(kind, periodId),
     ]);
     return Response.json(payload(attempt, nextAt, config), {
       headers: { "Cache-Control": "no-store" },
@@ -136,9 +111,9 @@ export function timedChallengeRoute({ kind, table, periodColumn, period }: Timed
     if (!db) return Response.json({ error: "database_unavailable" }, { status: 503 });
 
     const body = (await request.json().catch(() => null)) as PostBody | null;
-    const { periodId, nextAt } = period();
+    const { periodId, nextAt } = challengeWindow(kind);
     const now = Date.now();
-    const config = await getChallengeConfig(kind);
+    const config = await getPeriodChallenge(kind, periodId);
     const respond = async () =>
       Response.json(payload(await currentAttempt(user.userId, periodId), nextAt, config));
 
