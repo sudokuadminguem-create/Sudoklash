@@ -2,13 +2,12 @@ import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
 import { challengeWindow } from "@/lib/challenge-schedule";
 import { getPeriodChallenge, type ChallengeKind } from "@/lib/challenges";
+import { isCellIndex, isDigit, isEntryId, MAX_MISTAKES } from "@/lib/entry-validation";
 import { solvePuzzle } from "@/lib/sudoku-solver";
 
 // Daily and weekly challenges share the same rules: one timed attempt per period
 // (Paris time, see lib/challenge-schedule.ts), three mistakes end it, and the server
 // checks the solution and measures the time.
-
-const MAX_MISTAKES = 3;
 
 type AttemptRow = {
   started_at: number;
@@ -46,18 +45,6 @@ export const weeklyChallenge: TimedChallenge = {
   table: "weekly_attempts",
   periodColumn: "week_id",
 };
-
-function isMistakeId(value: unknown): value is string {
-  return typeof value === "string" && /^[a-f0-9-]{36}$/.test(value);
-}
-
-function isCellIndex(value: unknown): value is number {
-  return Number.isInteger(value) && (value as number) >= 0 && (value as number) < 81;
-}
-
-function isDigit(value: unknown): value is number {
-  return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= 9;
-}
 
 function payload(attempt: AttemptRow | null, nextAt: string, config: ChallengeConfig) {
   const status = attempt?.completed_at
@@ -127,19 +114,22 @@ export function timedChallengeRoute({ kind, table, periodColumn }: TimedChalleng
       return respond();
     }
 
-    if (body?.action === "mistake") {
+    // The browser never has the solution: it sends each digit and learns whether it is right.
+    if (body?.action === "check") {
       const attempt = await currentAttempt(user.userId, periodId);
       if (!attempt) return Response.json({ error: "not_started" }, { status: 409 });
       if (attempt.completed_at || attempt.mistakes >= MAX_MISTAKES)
-        return Response.json(payload(attempt, nextAt, config));
+        return Response.json({ correct: false, ...payload(attempt, nextAt, config) });
 
       const { index, number, mistakeId } = body;
-      if (!isCellIndex(index) || !isDigit(number) || !isMistakeId(mistakeId))
-        return Response.json({ error: "invalid_mistake" }, { status: 400 });
+      if (!isCellIndex(index) || !isDigit(number) || !isEntryId(mistakeId))
+        return Response.json({ error: "invalid_entry" }, { status: 400 });
       const puzzle = attempt.puzzle ?? config.puzzle;
       const solution = solvePuzzle(puzzle);
-      if (puzzle[index] !== "0" || !solution || solution[index] === number)
-        return Response.json({ error: "invalid_mistake" }, { status: 422 });
+      if (puzzle[index] !== "0" || !solution)
+        return Response.json({ error: "invalid_entry" }, { status: 422 });
+      if (solution[index] === number)
+        return Response.json({ correct: true, ...payload(attempt, nextAt, config) });
 
       await db
         .prepare(
@@ -147,7 +137,8 @@ export function timedChallengeRoute({ kind, table, periodColumn }: TimedChalleng
         )
         .bind(mistakeId, user.userId, periodId, mistakeId)
         .run();
-      return respond();
+      const updated = await currentAttempt(user.userId, periodId);
+      return Response.json({ correct: false, ...payload(updated, nextAt, config) });
     }
 
     if (body?.action === "complete") {

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Eraser,
   Flame,
@@ -13,29 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { formatClock } from "@/app/lib/format-time";
-import { nextSudokuVariant } from "@/app/lib/sudoku-variants";
+import type { Entry, Judge } from "@/app/lib/judge";
 import type { Difficulty } from "@/lib/difficulties";
-import { solveGrid } from "@/lib/sudoku-solver";
-
-// Solo grids; each game shows a shuffled variant with the same clues and difficulty.
-const rawPuzzles: Record<Difficulty, string> = {
-  Débutant: "534678912672195348198342567859761423426853791713924856961537284287419635345286000",
-  Facile: "530070000600195000098000060800060003400803001700020006060000280000419005000080079",
-  Intermédiaire:
-    "000260701680070090190004500820100040004602900050003028009300074040050036703018000",
-  Difficile: "000000907000420180000705026100904000050000040000507009920108000034059000507000000",
-  Expert: "005300000800000020070010500400005300010070006003200080060500009004000030000009700",
-  Maître: "100007090030020008009600500005300900010080002600004000300000010040000007007000300",
-};
-const toGrid = (s: string) => s.split("").map(Number);
-const puzzles = Object.fromEntries(
-  Object.entries(rawPuzzles).map(([difficulty, value]) => {
-    const puzzle = toGrid(value),
-      solution = solveGrid(puzzle);
-    if (!solution) throw new Error(`Grille invalide: ${difficulty}`);
-    return [difficulty, { puzzle, solution, id: `${difficulty.toLowerCase()}-01` }];
-  }),
-) as Record<Difficulty, { puzzle: number[]; solution: number[]; id: string }>;
 
 /** What a solo win reports back: the XP earned, or null when nothing was saved. */
 type SolveResult = { xpGained: number } | null;
@@ -43,6 +22,10 @@ type SolveResult = { xpGained: number } | null;
 type ExperienceState = number | "saving" | "guest" | "error" | null;
 
 type SudokuBoardProps = {
+  /** Grid to play, 0 for empty cells. */
+  puzzle: number[];
+  /** Says whether each placed digit is correct. */
+  judge: Judge;
   difficulty?: Difficulty;
   competitive?: boolean;
   title?: string;
@@ -54,12 +37,12 @@ type SudokuBoardProps = {
     elapsedSeconds: number,
     puzzle: number[],
   ) => void | SolveResult | Promise<void | SolveResult>;
-  onMistake?: (index: number, number: number, id: string, grid: number[]) => Promise<number>;
-  onProgress?: (filled: number, grid: number[]) => void;
-  replayable?: boolean;
+  /** Correct cells (givens included) after each confirmed entry. */
+  onProgress?: (correct: number, grid: number[]) => void;
+  /** Offers a "new grid" button when set. */
+  onNewGame?: () => void;
   onReady?: () => void;
   readyBusy?: boolean;
-  puzzleOverride?: number[];
   challengeLabel?: string;
   race?: { meName: string; opponentName: string; opponentProgress: number; totalToFill?: number };
   storageKey?: string;
@@ -69,6 +52,8 @@ type SudokuBoardProps = {
 };
 
 export function SudokuBoard({
+  puzzle,
+  judge,
   difficulty = "Intermédiaire",
   competitive = false,
   title = "Arène éclair",
@@ -76,12 +61,10 @@ export function SudokuBoard({
   initialSeconds = 0,
   initialMistakes = 0,
   onSolved,
-  onMistake,
   onProgress,
-  replayable = true,
+  onNewGame,
   onReady,
   readyBusy = false,
-  puzzleOverride,
   challengeLabel = "GRILLE HEBDOMADAIRE",
   race,
   storageKey,
@@ -89,15 +72,7 @@ export function SudokuBoard({
   soloExperience = false,
   onConnect,
 }: SudokuBoardProps) {
-  const game = puzzles[difficulty];
-  const [variant, setVariant] = useState(() => ({ puzzle: game.puzzle, solution: game.solution }));
-  const [ready, setReady] = useState(!!puzzleOverride);
-  const puzzle = puzzleOverride ?? variant.puzzle;
-  const overrideSolution = useMemo(
-    () => (puzzleOverride ? solveGrid(puzzleOverride) : null),
-    [puzzleOverride],
-  );
-  const solution = overrideSolution ?? variant.solution;
+  const replayable = !!onNewGame;
   const [cells, setCells] = useState([...puzzle]),
     [selected, setSelected] = useState<number | null>(null),
     [noteMode, setNoteMode] = useState(false),
@@ -108,58 +83,83 @@ export function SudokuBoard({
     [history, setHistory] = useState<{ cells: number[]; notes: Record<number, number[]> }[]>([]),
     [mistakes, setMistakes] = useState(initialMistakes),
     [hintsUsed, setHintsUsed] = useState(0),
-    [pendingMistake, setPendingMistake] = useState<{
-      index: number;
-      number: number;
-      id: string;
-    } | null>(null),
-    [mistakeError, setMistakeError] = useState(false),
-    [mistakeLoaded, setMistakeLoaded] = useState(!storageKey);
+    [pendingEntry, setPendingEntry] = useState<Entry | null>(null),
+    [checkError, setCheckError] = useState(false),
+    [mistakesLoaded, setMistakesLoaded] = useState(!storageKey);
+  // Digits the judge accepted or rejected, by cell. A cell shows as correct or wrong only
+  // while it still holds that digit, so erasing and undoing stay consistent.
+  const [verdicts, setVerdicts] = useState<{
+    correct: Record<number, number>;
+    wrong: Record<number, number>;
+  }>({ correct: {}, wrong: {} });
+  const verdictsRef = useRef(verdicts);
+  const isCorrect = (grid: number[], i: number) =>
+    !!puzzle[i] || (!!grid[i] && verdictsRef.current.correct[i] === grid[i]);
+  const isWrong = (i: number) => !!cells[i] && verdicts.wrong[i] === cells[i];
+  const recordVerdict = (entry: Entry, correct: boolean) => {
+    const key = correct ? "correct" : "wrong";
+    const next = {
+      ...verdictsRef.current,
+      [key]: { ...verdictsRef.current[key], [entry.index]: entry.number },
+    };
+    verdictsRef.current = next;
+    setVerdicts(next);
+  };
   const hintLimit = hintsAllowed ?? (race ? 1 : competitive ? 0 : 3);
-  useEffect(() => {
-    if (puzzleOverride) return;
-    const first = nextSudokuVariant(game.puzzle, game.solution, game.puzzle);
-    setVariant(first);
-    setCells([...first.puzzle]);
-    setReady(true);
-  }, [difficulty, puzzleOverride, game]);
   useEffect(() => {
     if (!storageKey) return;
     const saved = Number(window.localStorage.getItem(storageKey));
     const savedHints = Number(window.localStorage.getItem(`${storageKey}:hints`));
     setMistakes(Number.isInteger(saved) ? Math.max(0, Math.min(3, saved)) : 0);
     setHintsUsed(Number.isInteger(savedHints) ? Math.max(0, Math.min(1, savedHints)) : 0);
-    setMistakeLoaded(true);
+    setMistakesLoaded(true);
   }, [storageKey]);
   useEffect(() => {
-    if (done || !active || !ready || mistakes >= 3) return;
+    if (done || !active || mistakes >= 3) return;
     const t = setInterval(() => setSeconds((v) => v + 1), 1000);
     return () => clearInterval(t);
-  }, [done, active, ready, mistakes]);
-  const confirmMistake = async (
-    value: { index: number; number: number; id: string },
-    grid = cells,
-  ) => {
-    if (!onMistake) return;
-    setMistakeError(false);
+  }, [done, active, mistakes]);
+  const finish = (grid: number[]) => {
+    setDone(true);
+    if (soloExperience) {
+      setExperience("saving");
+      void Promise.resolve()
+        .then(() => onSolved?.(grid, Math.max(1, seconds), puzzle))
+        .then((result) =>
+          setExperience(result && typeof result === "object" ? result.xpGained : "guest"),
+        )
+        .catch(() => setExperience("error"));
+    } else onSolved?.(grid, Math.max(1, seconds), puzzle);
+  };
+  const submit = async (entry: Entry, grid: number[]) => {
+    setPendingEntry(entry);
+    setCheckError(false);
     try {
-      const count = await onMistake(value.index, value.number, value.id, grid);
+      const verdict = await judge.check(entry, grid);
+      setPendingEntry(null);
+      recordVerdict(entry, verdict.correct);
+      if (verdict.correct) {
+        const correctCells = grid.filter((_, i) => isCorrect(grid, i)).length;
+        onProgress?.(correctCells, grid);
+        if (correctCells === 81) finish(grid);
+        return;
+      }
+      const count = verdict.mistakes ?? mistakes + 1;
       setMistakes(count);
-      setPendingMistake(null);
+      if (storageKey) window.localStorage.setItem(storageKey, String(count));
     } catch {
-      setMistakeError(true);
+      setCheckError(true);
     }
   };
   const input = (n: number, index = selected, forceValue = false) => {
     if (
-      !ready ||
-      !mistakeLoaded ||
+      !mistakesLoaded ||
       !active ||
       index === null ||
       puzzle[index] ||
       done ||
       mistakes >= 3 ||
-      pendingMistake ||
+      pendingEntry ||
       cells[index] === n
     )
       return;
@@ -177,33 +177,10 @@ export function SudokuBoard({
     c[index] = n;
     setCells(c);
     setCellNotes((prev) => ({ ...prev, [index]: [] }));
-    onProgress?.(c.filter((value, i) => value === solution[i]).length, c);
-    if (n !== solution[index]) {
-      const count = mistakes + 1;
-      setMistakes(count);
-      if (storageKey) window.localStorage.setItem(storageKey, String(count));
-      if (onMistake) {
-        const value = { index, number: n, id: crypto.randomUUID() };
-        setPendingMistake(value);
-        void confirmMistake(value, c);
-      }
-      return;
-    }
-    if (c.every((v, i) => v === solution[i])) {
-      setDone(true);
-      if (soloExperience) {
-        setExperience("saving");
-        void Promise.resolve()
-          .then(() => onSolved?.(c, Math.max(1, seconds), puzzle))
-          .then((result) =>
-            setExperience(result && typeof result === "object" ? result.xpGained : "guest"),
-          )
-          .catch(() => setExperience("error"));
-      } else onSolved?.(c, Math.max(1, seconds), puzzle);
-    }
+    void submit({ index, number: n, id: crypto.randomUUID() }, c);
   };
   const erase = () => {
-    if (selected === null || puzzle[selected] || mistakes >= 3 || pendingMistake) return;
+    if (selected === null || puzzle[selected] || mistakes >= 3 || pendingEntry) return;
     setHistory((h) => [...h, { cells: [...cells], notes: { ...cellNotes } }]);
     const c = [...cells];
     c[selected] = 0;
@@ -211,7 +188,7 @@ export function SudokuBoard({
     setCellNotes((p) => ({ ...p, [selected]: [] }));
   };
   const undo = () => {
-    if (mistakes >= 3 || pendingMistake) return;
+    if (mistakes >= 3 || pendingEntry) return;
     const last = history.at(-1);
     if (!last) return;
     setCells(last.cells);
@@ -231,8 +208,9 @@ export function SudokuBoard({
   const filled = cells.filter(Boolean).length,
     givens = puzzle.filter(Boolean).length,
     raceProgress = race?.totalToFill
-      ? cells.filter((v, i) => !puzzle[i] && v === solution[i]).length
+      ? cells.filter((_, i) => !puzzle[i] && isCorrect(cells, i)).length
       : filled,
+    unsolved = cells.some((_, i) => !isCorrect(cells, i)),
     raceTotal = race?.totalToFill ?? 81,
     time = formatClock(seconds),
     selectedValue = selected === null ? 0 : cells[selected];
@@ -242,44 +220,24 @@ export function SudokuBoard({
       Math.floor(i / 9) === Math.floor(selected / 9) ||
       (Math.floor(i / 27) === Math.floor(selected / 27) &&
         Math.floor((i % 9) / 3) === Math.floor((selected % 9) / 3)));
-  const useHint = () => {
+  const requestHint = async () => {
     if (
-      !ready ||
-      !mistakeLoaded ||
+      !judge.hint ||
+      !mistakesLoaded ||
       !active ||
       done ||
       mistakes >= 3 ||
-      pendingMistake ||
+      pendingEntry ||
       hintsUsed >= hintLimit
     )
       return;
-    const i = cells.findIndex((v, j) => !puzzle[j] && v !== solution[j]);
-    if (i < 0) return;
+    const hint = await judge.hint(cells).catch(() => null);
+    if (!hint) return;
     setHintsUsed(hintsUsed + 1);
     if (storageKey) window.localStorage.setItem(`${storageKey}:hints`, String(hintsUsed + 1));
-    setSelected(i);
-    input(solution[i], i, true);
+    setSelected(hint.index);
+    input(hint.number, hint.index, true);
   };
-  const newGame = () => {
-    const next = nextSudokuVariant(game.puzzle, game.solution, puzzle);
-    setVariant(next);
-    setCells([...next.puzzle]);
-    setSelected(null);
-    setNoteMode(false);
-    setCellNotes({});
-    setMistakes(0);
-    setHintsUsed(0);
-    setSeconds(0);
-    setDone(false);
-    setExperience(null);
-    setHistory([]);
-  };
-  if (!ready)
-    return (
-      <div className="game-card" role="status">
-        Préparation d’une nouvelle grille {difficulty}…
-      </div>
-    );
   return (
     <div className={`game-card ${!active ? "weekly-gated" : ""} ${mistakes >= 3 ? "lost" : ""}`}>
       <div className="game-top">
@@ -292,8 +250,7 @@ export function SudokuBoard({
                 : competitive
                   ? "DÉFI"
                   : "PARTIE NORMALE"}{" "}
-            · {difficulty.toUpperCase()} ·{" "}
-            {variant.puzzle === game.puzzle ? game.id : "nouvelle grille"}
+            · {difficulty.toUpperCase()}
           </span>
           <h2>{title}</h2>
         </div>
@@ -367,7 +324,8 @@ export function SudokuBoard({
             {cells.slice(row * 9, row * 9 + 9).map((v, col) => {
               const i = row * 9 + col,
                 sameValue = selectedValue > 0 && v === selectedValue,
-                wrong = !!v && !puzzle[i] && v !== solution[i];
+                wrong = isWrong(i),
+                pending = pendingEntry?.index === i;
               return (
                 <button
                   key={i}
@@ -376,9 +334,9 @@ export function SudokuBoard({
                   aria-colindex={col + 1}
                   aria-selected={selected === i}
                   aria-label={`Case ligne ${row + 1}, colonne ${col + 1}${v ? `, chiffre ${v}${wrong ? ", incorrect" : ""}` : ", vide"}`}
-                  disabled={mistakes >= 3 || !!pendingMistake}
+                  disabled={mistakes >= 3 || !!pendingEntry}
                   onClick={() => active && setSelected(i)}
-                  className={`${puzzle[i] ? "given" : "entered"} ${selected === i ? "sel" : ""} ${related(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""}`}
+                  className={`${puzzle[i] ? "given" : "entered"} ${selected === i ? "sel" : ""} ${related(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${pending ? "pending" : ""}`}
                 >
                   {v ||
                     (cellNotes[i]?.length ? (
@@ -402,7 +360,7 @@ export function SudokuBoard({
             key={n}
             aria-label={`Placer le chiffre ${n}`}
             aria-pressed={selectedValue === n}
-            disabled={mistakes >= 3 || !!pendingMistake}
+            disabled={mistakes >= 3 || !!pendingEntry}
             className={selectedValue === n ? "active-number" : ""}
             onClick={() => input(n)}
           >
@@ -413,7 +371,7 @@ export function SudokuBoard({
       <div className="game-actions">
         <button
           aria-label="Activer ou désactiver les notes"
-          disabled={competitive || mistakes >= 3 || !!pendingMistake}
+          disabled={competitive || mistakes >= 3 || !!pendingEntry}
           onClick={() => setNoteMode(!noteMode)}
           className={noteMode ? "active" : ""}
         >
@@ -422,7 +380,7 @@ export function SudokuBoard({
         </button>
         <button
           aria-label="Effacer la case sélectionnée"
-          disabled={mistakes >= 3 || !!pendingMistake}
+          disabled={mistakes >= 3 || !!pendingEntry}
           onClick={erase}
         >
           <Eraser />
@@ -431,7 +389,7 @@ export function SudokuBoard({
         <button
           aria-label="Annuler la dernière action"
           onClick={undo}
-          disabled={!history.length || mistakes >= 3 || !!pendingMistake}
+          disabled={!history.length || mistakes >= 3 || !!pendingEntry}
         >
           <RotateCcw />
           Annuler
@@ -440,21 +398,22 @@ export function SudokuBoard({
           aria-label={`Afficher un indice, ${Math.max(0, hintLimit - hintsUsed)} restant${hintLimit - hintsUsed === 1 ? "" : "s"}`}
           disabled={
             !active ||
-            !mistakeLoaded ||
+            !judge.hint ||
+            !mistakesLoaded ||
             done ||
             hintLimit === 0 ||
             hintsUsed >= hintLimit ||
             mistakes >= 3 ||
-            !!pendingMistake ||
-            !cells.some((v, i) => !puzzle[i] && v !== solution[i])
+            !!pendingEntry ||
+            !unsolved
           }
-          onClick={useHint}
+          onClick={() => void requestHint()}
         >
           <Lightbulb />
           Indice ({Math.max(0, hintLimit - hintsUsed)})
         </button>
         {replayable && (
-          <button aria-label="Nouvelle grille" onClick={newGame}>
+          <button aria-label="Nouvelle grille" onClick={onNewGame}>
             <RotateCcw />
             Nouvelle grille
           </button>
@@ -481,10 +440,10 @@ export function SudokuBoard({
           .
         </p>
       )}
-      {mistakeError && pendingMistake && (
+      {checkError && pendingEntry && (
         <p className="grid-invalid" role="alert">
-          Impossible d’enregistrer l’erreur.{" "}
-          <button className="retry-mistake" onClick={() => void confirmMistake(pendingMistake)}>
+          Impossible de vérifier ce chiffre.{" "}
+          <button className="retry-mistake" onClick={() => void submit(pendingEntry, cells)}>
             Réessayer
           </button>
         </p>
@@ -494,7 +453,7 @@ export function SudokuBoard({
           <X />
           <h3>Grille perdue</h3>
           <p>Tu as utilisé tes trois vies. Cette grille ne peut plus être terminée.</p>
-          {replayable && <button onClick={newGame}>Nouvelle grille</button>}
+          {replayable && <button onClick={onNewGame}>Nouvelle grille</button>}
         </div>
       )}
       {done && (
@@ -531,7 +490,7 @@ export function SudokuBoard({
             </div>
           )}
           {replayable ? (
-            <button onClick={newGame} disabled={soloExperience && experience === "saving"}>
+            <button onClick={onNewGame} disabled={soloExperience && experience === "saving"}>
               Nouvelle grille
             </button>
           ) : (

@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
+import { isCellIndex, isDigit, isEntryId, isGridOf, matchesSolution } from "@/lib/entry-validation";
 import { pickPuzzle } from "@/lib/puzzle-picker";
 import { rankedPosition } from "@/lib/ranked-position";
 import { rankFor, rankedPointChange, type RankedDifficulty } from "@/lib/ranked-rules";
@@ -184,10 +185,10 @@ export async function POST(request: Request) {
   if (!user) return json({ error: "authentication_required" }, 401);
   const body = (await request.json().catch(() => null)) as {
     action?: string;
-    index?: number;
-    number?: number;
-    mistakeId?: string;
-    grid?: number[];
+    index?: unknown;
+    number?: unknown;
+    mistakeId?: unknown;
+    grid?: unknown;
   } | null;
   if (!body) return json({ error: "invalid_request" }, 400);
   const userId = user.userId;
@@ -274,58 +275,43 @@ export async function POST(request: Request) {
     const mistakes = first ? "player1_mistakes" : "player2_mistakes";
     const lastId = first ? "player1_last_mistake_id" : "player2_last_mistake_id";
     const opponentId = first ? match.player2_id : match.player1_id;
-    if (body.action === "progress") {
-      if (!validGrid(body.grid, match)) return json({ error: "invalid_grid" }, 400);
-      const correct = body.grid!.reduce(
-        (count, n, i) =>
-          count + (match.puzzle[i] === "0" && n === Number(match.solution[i]) ? 1 : 0),
-        0,
-      );
-      await env
-        .DB!.prepare(
-          `UPDATE ranked_matches SET ${progress} = MAX(${progress}, ?) WHERE id = ? AND status = 'playing'`,
-        )
-        .bind(correct, match.id)
-        .run();
-      return json(await state(userId));
-    }
-    if (body.action === "mistake") {
-      const i = body.index,
-        n = body.number;
+    // The browser never has the solution: it sends each digit (with its grid, to track
+    // progress) and learns whether it is right. Three wrong digits lose the match.
+    if (body.action === "check") {
+      const { index, number, mistakeId, grid } = body;
       if (
-        !Number.isInteger(i) ||
-        i! < 0 ||
-        i! > 80 ||
-        !Number.isInteger(n) ||
-        n! < 1 ||
-        n! > 9 ||
-        typeof body.mistakeId !== "string" ||
-        !UUID_PATTERN.test(body.mistakeId) ||
-        match.puzzle[i!] !== "0" ||
-        match.solution[i!] === String(n) ||
-        !validGrid(body.grid, match) ||
-        body.grid![i!] !== n
+        !isCellIndex(index) ||
+        !isDigit(number) ||
+        !isEntryId(mistakeId) ||
+        !isGridOf(match.puzzle, grid) ||
+        match.puzzle[index] !== "0" ||
+        grid[index] !== number
       )
-        return json({ error: "invalid_mistake" }, 400);
-      const correct = body.grid!.reduce(
-        (count, value, index) =>
-          count + (match.puzzle[index] === "0" && value === Number(match.solution[index]) ? 1 : 0),
+        return json({ error: "invalid_entry" }, 400);
+      const correctCells = grid.reduce(
+        (count, value, i) =>
+          count + (match.puzzle[i] === "0" && value === Number(match.solution[i]) ? 1 : 0),
         0,
       );
+      if (match.solution[index] === String(number)) {
+        await env
+          .DB!.prepare(
+            `UPDATE ranked_matches SET ${progress} = MAX(${progress}, ?) WHERE id = ? AND status = 'playing'`,
+          )
+          .bind(correctCells, match.id)
+          .run();
+        return json({ ...(await state(userId)), correct: true });
+      }
       await env
         .DB!.prepare(
           `UPDATE ranked_matches SET ${mistakes} = ${mistakes} + 1, ${lastId} = ?, ${progress} = MAX(${progress}, ?), status = CASE WHEN ${mistakes} >= 2 THEN 'finished' ELSE status END, winner_id = CASE WHEN ${mistakes} >= 2 THEN ? ELSE winner_id END, finish_reason = CASE WHEN ${mistakes} >= 2 THEN 'three_mistakes' ELSE finish_reason END, finished_at = CASE WHEN ${mistakes} >= 2 THEN ? ELSE finished_at END WHERE id = ? AND status = 'playing' AND ${mistakes} < 3 AND (${lastId} IS NULL OR ${lastId} != ?)`,
         )
-        .bind(body.mistakeId, correct, opponentId, Date.now(), match.id, body.mistakeId)
+        .bind(mistakeId, correctCells, opponentId, Date.now(), match.id, mistakeId)
         .run();
-      return json(await state(userId));
+      return json({ ...(await state(userId)), correct: false });
     }
     if (body.action === "complete") {
-      if (
-        !validGrid(body.grid, match) ||
-        body.grid!.some((n, i) => n !== Number(match.solution[i]))
-      )
-        return json({ error: "invalid_grid" }, 422);
+      if (!matchesSolution(match.solution, body.grid)) return json({ error: "invalid_grid" }, 422);
       await env
         .DB!.prepare(
           `UPDATE ranked_matches SET status='finished',winner_id=?,finish_reason='completed',finished_at=?,${progress}=? WHERE id=? AND status='playing' AND ${mistakes}<3`,
@@ -339,18 +325,3 @@ export async function POST(request: Request) {
     return json({ error: "matchmaking_unavailable" }, 503);
   }
 }
-
-function validGrid(grid: unknown, match: Match): grid is number[] {
-  return (
-    Array.isArray(grid) &&
-    grid.length === 81 &&
-    grid.every(
-      (n, i) =>
-        Number.isInteger(n) &&
-        n >= 0 &&
-        n <= 9 &&
-        (match.puzzle[i] === "0" || n === Number(match.puzzle[i])),
-    )
-  );
-}
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

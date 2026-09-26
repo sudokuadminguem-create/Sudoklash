@@ -1,10 +1,7 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
-import { isSoloDifficulty } from "@/lib/difficulties";
-import { solvePuzzle } from "@/lib/sudoku-solver";
 import { rankedPosition } from "@/lib/ranked-position";
 import { rankFor } from "@/lib/ranked-rules";
-import { SOLO_WIN_XP } from "@/lib/cosmetics";
 
 export const dynamic = "force-dynamic";
 
@@ -66,53 +63,6 @@ export async function GET(request: Request) {
       },
       { headers: { "Cache-Control": "no-store" } },
     );
-  } catch {
-    return Response.json({ error: "stats_unavailable" }, { status: 503 });
-  }
-}
-
-export async function POST(request: Request) {
-  const user = await getSiteUser(request);
-  if (!user) return Response.json({ error: "authentication_required" }, { status: 401 });
-  const db = env.DB;
-  if (!db) return Response.json({ error: "stats_unavailable" }, { status: 503 });
-  const body = (await request.json().catch(() => null)) as {
-    difficulty?: unknown;
-    elapsedSeconds?: unknown;
-    puzzle?: unknown;
-    grid?: unknown;
-  } | null;
-  if (
-    !body ||
-    !isSoloDifficulty(body.difficulty) ||
-    !Number.isInteger(body.elapsedSeconds) ||
-    (body.elapsedSeconds as number) < 1 ||
-    (body.elapsedSeconds as number) > 86400 ||
-    !Array.isArray(body.puzzle) ||
-    !Array.isArray(body.grid)
-  )
-    return Response.json({ error: "invalid_result" }, { status: 400 });
-  const puzzle = body.puzzle as unknown[],
-    grid = body.grid as unknown[];
-  if (
-    puzzle.length !== 81 ||
-    grid.length !== 81 ||
-    puzzle.some((n) => !Number.isInteger(n) || Number(n) < 0 || Number(n) > 9) ||
-    grid.some((n) => !Number.isInteger(n) || Number(n) < 1 || Number(n) > 9) ||
-    puzzle.filter(Boolean).length < 17
-  )
-    return Response.json({ error: "invalid_grid" }, { status: 400 });
-  const solved = solvePuzzle(puzzle.join(""));
-  if (!solved || grid.some((n, i) => n !== solved[i]))
-    return Response.json({ error: "invalid_grid" }, { status: 422 });
-  try {
-    await db
-      .prepare(
-        "INSERT INTO solo_results (id, user_id, difficulty, elapsed_seconds, completed_at) VALUES (?, ?, ?, ?, ?)",
-      )
-      .bind(crypto.randomUUID(), user.userId, body.difficulty, body.elapsedSeconds, Date.now())
-      .run();
-    return Response.json({ saved: true, xpGained: SOLO_WIN_XP });
   } catch {
     return Response.json({ error: "stats_unavailable" }, { status: 503 });
   }

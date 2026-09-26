@@ -23,6 +23,8 @@ export type RankedState = {
   difference?: number;
   durationSeconds?: number | null;
   mistakes?: number;
+  /** Verdict on the digit sent with a "check" request. */
+  correct?: boolean;
   points?: number;
   pointsBefore?: number | null;
   pointsChange?: number | null;

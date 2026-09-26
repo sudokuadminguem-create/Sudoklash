@@ -168,3 +168,21 @@ export const rankedMatches = sqliteTable(
     index("idx_ranked_matches_player2").on(table.player2Id, table.startedAt),
   ],
 );
+
+// Solo games handed out by the server: it keeps the solution and measures the time.
+export const soloGames = sqliteTable(
+  "solo_games",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    difficulty: text("difficulty").notNull(),
+    puzzle: text("puzzle").notNull(),
+    solution: text("solution").notNull(),
+    startedAt: integer("started_at").notNull(),
+    mistakes: integer("mistakes").notNull().default(0),
+    lastMistakeId: text("last_mistake_id"),
+    hintsUsed: integer("hints_used").notNull().default(0),
+    completedAt: integer("completed_at"),
+  },
+  (table) => [index("idx_solo_games_user").on(table.userId, table.completedAt)],
+);

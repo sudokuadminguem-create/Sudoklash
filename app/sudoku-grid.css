@@ -2221,3 +2221,19 @@ button {
     flex: 1;
   }
 }
+
+/* Digit sent to the server and waiting for its verdict. */
+.sudoku .sudoku-row button.pending {
+  opacity: 0.6;
+  animation: pending-pulse 0.8s ease-in-out infinite alternate;
+}
+@keyframes pending-pulse {
+  to {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sudoku .sudoku-row button.pending {
+    animation: none;
+  }
+}
