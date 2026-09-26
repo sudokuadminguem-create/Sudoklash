@@ -7,6 +7,7 @@ export default tseslint.config(
   { ignores: ["node_modules", ".next", "build", "components/ui", "drizzle"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  { files: ["**/*.{js,mjs}"], languageOptions: { globals: globals.node } },
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: { globals: { ...globals.browser, ...globals.node } },

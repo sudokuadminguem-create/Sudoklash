@@ -33,3 +33,20 @@ Le `package.json` ne sert qu'aux vérifications, il ne change pas le build de la
 npm install
 npm run check   # format, types, lint et tests (exécuté aussi par la CI GitHub)
 ```
+
+## Auto-hébergement (Docker)
+
+```sh
+cp .env.example .env        # facultatif : port, adresse d'écoute, projet Supabase
+docker compose up -d --build
+```
+
+L'application écoute sur `127.0.0.1:3000` ; placez un reverse proxy TLS devant (Caddy, Traefik,
+nginx). Dans ce mode :
+
+- la base D1 est remplacée par un fichier SQLite dans le volume `data` (migrations `drizzle/`
+  appliquées au démarrage) ; sauvegardez ce volume ;
+- seule la connexion Supabase est acceptée : les en-têtes d'identité de la plateforme
+  (`oai-authenticated-*`) sont ignorés, car n'importe qui pourrait les envoyer ;
+- le conteneur tourne sans root, en lecture seule, sans capacités Linux, sans npm ni apk, avec des
+  en-têtes de sécurité (CSP, HSTS, anti-framing) et une sonde `/api/health`.

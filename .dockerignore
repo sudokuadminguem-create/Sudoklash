@@ -1,0 +1,16 @@
+# Allowlist: only what the build needs enters the context (no .git, .env, tests, data...).
+*
+!app/
+!db/
+!drizzle/
+!hooks/
+!lib/
+!public/
+!vendor/
+!docker/
+!package.json
+!package-lock.json
+!next.config.ts
+!postcss.config.mjs
+!tsconfig.json
+!env.d.ts

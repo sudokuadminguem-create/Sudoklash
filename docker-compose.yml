@@ -1,0 +1,39 @@
+# Self-hosted Sudoku Clash. Usage: cp .env.example .env && docker compose up -d --build
+name: sudoklash
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}
+    image: sudoklash:latest
+    restart: unless-stopped
+    # Local interface only by default: put a TLS reverse proxy (Caddy, Traefik, nginx) in
+    # front, or set HOST_BIND=0.0.0.0 knowingly.
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:${HOST_PORT:-3000}:3000"
+    volumes:
+      - data:/app/data
+    # Hardening: read-only filesystem except the database volume and small tmpfs mounts,
+    # no Linux capabilities, no privilege escalation, bounded resources.
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+      - /app/.next/cache:size=64m,uid=1000,gid=1000,mode=0700
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  data:
