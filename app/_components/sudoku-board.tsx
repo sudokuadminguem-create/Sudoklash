@@ -83,8 +83,8 @@ export function SudokuBoard({
     [history, setHistory] = useState<{ cells: number[]; notes: Record<number, number[]> }[]>([]),
     [mistakes, setMistakes] = useState(initialMistakes),
     [hintsUsed, setHintsUsed] = useState(0),
-    [pendingEntry, setPendingEntry] = useState<Entry | null>(null),
-    [checkError, setCheckError] = useState(false),
+    // Digits whose check failed. Checks never block the board: verdicts land when they come back.
+    [failedEntries, setFailedEntries] = useState<Entry[]>([]),
     [mistakesLoaded, setMistakesLoaded] = useState(!storageKey);
   // Digits the judge accepted or rejected, by cell. A cell shows as correct or wrong only
   // while it still holds that digit, so erasing and undoing stay consistent.
@@ -93,6 +93,8 @@ export function SudokuBoard({
     wrong: Record<number, number>;
   }>({ correct: {}, wrong: {} });
   const verdictsRef = useRef(verdicts);
+  const cellsRef = useRef(cells);
+  cellsRef.current = cells;
   const isCorrect = (grid: number[], i: number) =>
     !!puzzle[i] || (!!grid[i] && verdictsRef.current.correct[i] === grid[i]);
   const isWrong = (i: number) => !!cells[i] && verdicts.wrong[i] === cells[i];
@@ -132,24 +134,33 @@ export function SudokuBoard({
     } else onSolved?.(grid, Math.max(1, seconds), puzzle);
   };
   const submit = async (entry: Entry, grid: number[]) => {
-    setPendingEntry(entry);
-    setCheckError(false);
+    setFailedEntries((list) => list.filter((e) => e.id !== entry.id));
     try {
       const verdict = await judge.check(entry, grid);
-      setPendingEntry(null);
       recordVerdict(entry, verdict.correct);
       if (verdict.correct) {
-        const correctCells = grid.filter((_, i) => isCorrect(grid, i)).length;
-        onProgress?.(correctCells, grid);
-        if (correctCells === 81) finish(grid);
+        // Other digits may have been placed since: count against the board as it is now.
+        const current = cellsRef.current;
+        const correctCells = current.filter((_, i) => isCorrect(current, i)).length;
+        onProgress?.(correctCells, current);
+        if (correctCells === 81) finish(current);
         return;
       }
-      const count = verdict.mistakes ?? mistakes + 1;
-      setMistakes(count);
-      if (storageKey) window.localStorage.setItem(storageKey, String(count));
+      // Several checks can be in flight and answer out of order: never let the count go back.
+      setMistakes((previous) => {
+        const count = Math.min(3, Math.max(previous, verdict.mistakes ?? previous + 1));
+        if (storageKey) window.localStorage.setItem(storageKey, String(count));
+        return count;
+      });
     } catch {
-      setCheckError(true);
+      setFailedEntries((list) => [...list, entry]);
     }
+  };
+  // Entries whose check failed and whose digit is still on the board; the others are moot.
+  const unverified = failedEntries.filter((e) => cells[e.index] === e.number);
+  const retryFailed = () => {
+    setFailedEntries([]);
+    for (const entry of unverified) void submit(entry, cells);
   };
   const input = (n: number, index = selected, forceValue = false) => {
     if (
@@ -159,7 +170,6 @@ export function SudokuBoard({
       puzzle[index] ||
       done ||
       mistakes >= 3 ||
-      pendingEntry ||
       cells[index] === n
     )
       return;
@@ -180,7 +190,7 @@ export function SudokuBoard({
     void submit({ index, number: n, id: crypto.randomUUID() }, c);
   };
   const erase = () => {
-    if (selected === null || puzzle[selected] || mistakes >= 3 || pendingEntry) return;
+    if (selected === null || puzzle[selected] || mistakes >= 3) return;
     setHistory((h) => [...h, { cells: [...cells], notes: { ...cellNotes } }]);
     const c = [...cells];
     c[selected] = 0;
@@ -188,7 +198,7 @@ export function SudokuBoard({
     setCellNotes((p) => ({ ...p, [selected]: [] }));
   };
   const undo = () => {
-    if (mistakes >= 3 || pendingEntry) return;
+    if (mistakes >= 3) return;
     const last = history.at(-1);
     if (!last) return;
     setCells(last.cells);
@@ -227,7 +237,6 @@ export function SudokuBoard({
       !active ||
       done ||
       mistakes >= 3 ||
-      pendingEntry ||
       hintsUsed >= hintLimit
     )
       return;
@@ -325,7 +334,7 @@ export function SudokuBoard({
               const i = row * 9 + col,
                 sameValue = selectedValue > 0 && v === selectedValue,
                 wrong = isWrong(i),
-                pending = pendingEntry?.index === i;
+                failed = !!v && unverified.some((e) => e.index === i && e.number === v);
               return (
                 <button
                   key={i}
@@ -334,9 +343,9 @@ export function SudokuBoard({
                   aria-colindex={col + 1}
                   aria-selected={selected === i}
                   aria-label={`Case ligne ${row + 1}, colonne ${col + 1}${v ? `, chiffre ${v}${wrong ? ", incorrect" : ""}` : ", vide"}`}
-                  disabled={mistakes >= 3 || !!pendingEntry}
+                  disabled={mistakes >= 3}
                   onClick={() => active && setSelected(i)}
-                  className={`${puzzle[i] ? "given" : "entered"} ${selected === i ? "sel" : ""} ${related(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${pending ? "pending" : ""}`}
+                  className={`${puzzle[i] ? "given" : "entered"} ${selected === i ? "sel" : ""} ${related(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${failed ? "unverified" : ""}`}
                 >
                   {v ||
                     (cellNotes[i]?.length ? (
@@ -360,7 +369,7 @@ export function SudokuBoard({
             key={n}
             aria-label={`Placer le chiffre ${n}`}
             aria-pressed={selectedValue === n}
-            disabled={mistakes >= 3 || !!pendingEntry}
+            disabled={mistakes >= 3}
             className={selectedValue === n ? "active-number" : ""}
             onClick={() => input(n)}
           >
@@ -371,25 +380,21 @@ export function SudokuBoard({
       <div className="game-actions">
         <button
           aria-label="Activer ou désactiver les notes"
-          disabled={competitive || mistakes >= 3 || !!pendingEntry}
+          disabled={competitive || mistakes >= 3}
           onClick={() => setNoteMode(!noteMode)}
           className={noteMode ? "active" : ""}
         >
           <Pencil />
           Notes <small>N</small>
         </button>
-        <button
-          aria-label="Effacer la case sélectionnée"
-          disabled={mistakes >= 3 || !!pendingEntry}
-          onClick={erase}
-        >
+        <button aria-label="Effacer la case sélectionnée" disabled={mistakes >= 3} onClick={erase}>
           <Eraser />
           Effacer
         </button>
         <button
           aria-label="Annuler la dernière action"
           onClick={undo}
-          disabled={!history.length || mistakes >= 3 || !!pendingEntry}
+          disabled={!history.length || mistakes >= 3}
         >
           <RotateCcw />
           Annuler
@@ -404,7 +409,6 @@ export function SudokuBoard({
             hintLimit === 0 ||
             hintsUsed >= hintLimit ||
             mistakes >= 3 ||
-            !!pendingEntry ||
             !unsolved
           }
           onClick={() => void requestHint()}
@@ -440,10 +444,12 @@ export function SudokuBoard({
           .
         </p>
       )}
-      {checkError && pendingEntry && (
+      {unverified.length > 0 && (
         <p className="grid-invalid" role="alert">
-          Impossible de vérifier ce chiffre.{" "}
-          <button className="retry-mistake" onClick={() => void submit(pendingEntry, cells)}>
+          {unverified.length === 1
+            ? "Impossible de vérifier ce chiffre."
+            : `Impossible de vérifier ${unverified.length} chiffres.`}{" "}
+          <button className="retry-mistake" onClick={retryFailed}>
             Réessayer
           </button>
         </p>
