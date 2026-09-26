@@ -1,14 +1,8 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
-import { solvePuzzle } from "@/lib/sudoku-solver";
-import { makeSudokuVariant } from "@/app/lib/sudoku-variants";
+import { pickPuzzle } from "@/lib/puzzle-picker";
 import { rankedPosition } from "@/lib/ranked-position";
-import {
-  rankFor,
-  rankedPointChange,
-  rankedPuzzles,
-  type RankedDifficulty,
-} from "@/lib/ranked-rules";
+import { rankFor, rankedPointChange, type RankedDifficulty } from "@/lib/ranked-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -242,23 +236,12 @@ export async function POST(request: Request) {
           .all<{ user_id: string }>();
         if (claimed.results.length === 2) {
           try {
-            const base = rankedPuzzles[difficulty],
-              solution = solvePuzzle(base);
-            if (!solution) throw new Error("invalid_ranked_puzzle");
-            const variant = makeSudokuVariant(base.split("").map(Number), solution);
+            const { puzzle, solution } = pickPuzzle(difficulty);
             await env
               .DB!.prepare(
                 "INSERT INTO ranked_matches (id,player1_id,player2_id,puzzle,solution,difficulty,started_at) VALUES (?,?,?,?,?,?,?)",
               )
-              .bind(
-                id,
-                opponent.user_id,
-                userId,
-                variant.puzzle.join(""),
-                variant.solution.join(""),
-                difficulty,
-                Date.now(),
-              )
+              .bind(id, opponent.user_id, userId, puzzle, solution, difficulty, Date.now())
               .run();
           } catch (error) {
             await env
