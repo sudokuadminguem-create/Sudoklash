@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ShieldCheck, Timer, Trophy, X } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import { formatDuration } from "@/app/lib/format-time";
+import type { Judge } from "@/app/lib/judge";
 import { SudokuBoard } from "./sudoku-board";
 
 type ChallengeData = {
@@ -124,20 +125,25 @@ export function TimedChallenge({
       setBusy(false);
     }
   };
-  const reportMistake = async (index: number, number: number, mistakeId: string) => {
-    const response = await fetch(`/api/${kind}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-      body: JSON.stringify({ action: "mistake", index, number, mistakeId }),
-    });
-    if (response.status === 401) {
-      setAuthRequired(true);
-      throw new Error("authentication_required");
-    }
-    if (!response.ok) throw new Error("mistake_save");
-    const updated = (await response.json()) as ChallengeData;
-    setData(updated);
-    return updated.mistakes;
+  // The server holds the solution and counts mistakes; the browser only sends digits.
+  const judge: Judge = {
+    check: async ({ index, number, id }) => {
+      const response = await fetch(`/api/${kind}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+        body: JSON.stringify({ action: "check", index, number, mistakeId: id }),
+      });
+      if (response.status === 401) {
+        setAuthRequired(true);
+        throw new Error("authentication_required");
+      }
+      if (!response.ok) throw new Error("check_failed");
+      const { correct, ...updated } = (await response.json()) as ChallengeData & {
+        correct: boolean;
+      };
+      setData(updated);
+      return { correct, mistakes: updated.mistakes };
+    },
   };
   const remaining =
     data && now ? Math.max(0, Math.ceil((new Date(data.nextAt).getTime() - now) / 1000)) : 0;
@@ -225,14 +231,13 @@ export function TimedChallenge({
         <SudokuBoard
           key={`${kind}-${data.nextAt}-${data.startedAt || "ready"}`}
           difficulty={isDaily ? "Facile" : "Difficile"}
-          puzzleOverride={data.puzzle}
+          puzzle={data.puzzle}
+          judge={judge}
           competitive
           title={`${data.title} — Défi ${isDaily ? "quotidien" : "hebdomadaire"}`}
           active={data.status === "in_progress"}
           initialSeconds={initialSeconds}
           initialMistakes={data.mistakes}
-          onMistake={reportMistake}
-          replayable={false}
           challengeLabel={label}
           onReady={() => request("ready")}
           readyBusy={busy}

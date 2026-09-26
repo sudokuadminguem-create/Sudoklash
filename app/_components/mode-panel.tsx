@@ -1,12 +1,11 @@
 "use client";
 import { useState } from "react";
-import { authHeaders } from "@/app/lib/auth-headers";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
 import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
 import { PrivateLobby } from "./private-lobby";
 import { RoomGame } from "./room-game";
-import { SudokuBoard } from "./sudoku-board";
+import { SoloGame } from "./solo-game";
 import { TimedChallenge } from "./timed-challenge";
 
 export function ModePanel({
@@ -31,24 +30,12 @@ export function ModePanel({
           <b>{chosen}</b>
           <span>Grille valide · solution unique</span>
         </div>
-        <SudokuBoard
+        <SoloGame
           key={chosen}
           difficulty={chosen}
-          title="Entraînement solo"
-          soloExperience
-          onConnect={openAuth}
-          onSolved={async (grid, elapsedSeconds, puzzle) => {
-            if (!account.user) return null;
-            const response = await fetch("/api/account", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-              body: JSON.stringify({ difficulty: chosen, elapsedSeconds, puzzle, grid }),
-            });
-            if (!response.ok) throw new Error("save_failed");
-            const result = (await response.json()) as { xpGained: number };
-            void cosmetics.refresh();
-            return result;
-          }}
+          account={account}
+          cosmetics={cosmetics}
+          openAuth={openAuth}
         />
       </div>
     ) : (

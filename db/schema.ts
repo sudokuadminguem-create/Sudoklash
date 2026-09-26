@@ -162,9 +162,30 @@ export const rankedMatches = sqliteTable(
     player1PointsChange: integer("player1_points_change"),
     player2PointsChange: integer("player2_points_change"),
     finishReason: text("finish_reason"),
+    // Last request from each player during the match, to detect abandons.
+    player1SeenAt: integer("player1_seen_at"),
+    player2SeenAt: integer("player2_seen_at"),
   },
   (table) => [
     index("idx_ranked_matches_player1").on(table.player1Id, table.startedAt),
     index("idx_ranked_matches_player2").on(table.player2Id, table.startedAt),
   ],
+);
+
+// Solo games handed out by the server: it keeps the solution and measures the time.
+export const soloGames = sqliteTable(
+  "solo_games",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    difficulty: text("difficulty").notNull(),
+    puzzle: text("puzzle").notNull(),
+    solution: text("solution").notNull(),
+    startedAt: integer("started_at").notNull(),
+    mistakes: integer("mistakes").notNull().default(0),
+    lastMistakeId: text("last_mistake_id"),
+    hintsUsed: integer("hints_used").notNull().default(0),
+    completedAt: integer("completed_at"),
+  },
+  (table) => [index("idx_solo_games_user").on(table.userId, table.completedAt)],
 );

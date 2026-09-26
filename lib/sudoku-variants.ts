@@ -30,15 +30,3 @@ export function makeSudokuVariant(puzzle: number[], solution: number[]): Variant
     });
   return { puzzle: transform(puzzle), solution: transform(solution) };
 }
-
-export function nextSudokuVariant(
-  puzzle: number[],
-  solution: number[],
-  current: number[],
-): Variant {
-  let next = makeSudokuVariant(puzzle, solution);
-  while (next.puzzle.every((value, index) => value === current[index])) {
-    next = makeSudokuVariant(puzzle, solution);
-  }
-  return next;
-}

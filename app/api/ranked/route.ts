@@ -1,12 +1,12 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
-import { solvePuzzle } from "@/lib/sudoku-solver";
-import { makeSudokuVariant } from "@/app/lib/sudoku-variants";
+import { isCellIndex, isDigit, isEntryId, isGridOf, matchesSolution } from "@/lib/entry-validation";
+import { pickPuzzle } from "@/lib/puzzle-picker";
 import { rankedPosition } from "@/lib/ranked-position";
 import {
+  forfeitingPlayer,
   rankFor,
   rankedPointChange,
-  rankedPuzzles,
   type RankedDifficulty,
 } from "@/lib/ranked-rules";
 
@@ -41,6 +41,8 @@ type Match = {
   player2_points_before: number | null;
   player1_points_change: number | null;
   player2_points_change: number | null;
+  player1_seen_at: number | null;
+  player2_seen_at: number | null;
 };
 const json = (value: unknown, status = 200) =>
   Response.json(value, { status, headers: { "Cache-Control": "no-store" } });
@@ -107,6 +109,39 @@ async function settle(match: Match) {
   ]);
 }
 
+const finishMatch = (matchId: string, winnerId: string, reason: string) =>
+  env
+    .DB!.prepare(
+      "UPDATE ranked_matches SET status='finished', winner_id=?, finish_reason=?, finished_at=? WHERE id=? AND status='playing'",
+    )
+    .bind(winnerId, reason, Date.now(), matchId)
+    .run();
+
+// Ends a match whose player stopped answering (closed tab, lost connection), then records
+// that `userId` is here. The check uses the times seen before this request, so a player
+// coming back after a long absence cannot win against an opponent who left later.
+async function trackPresence(match: Match, userId: string) {
+  const now = Date.now();
+  const forfeiting = forfeitingPlayer(
+    {
+      player1: match.player1_seen_at ?? match.started_at,
+      player2: match.player2_seen_at ?? match.started_at,
+    },
+    now,
+  );
+  if (forfeiting)
+    await finishMatch(
+      match.id,
+      forfeiting === "player1" ? match.player2_id : match.player1_id,
+      "forfeit",
+    );
+  const column = match.player1_id === userId ? "player1_seen_at" : "player2_seen_at";
+  await env
+    .DB!.prepare(`UPDATE ranked_matches SET ${column} = ? WHERE id = ? AND status = 'playing'`)
+    .bind(now, match.id)
+    .run();
+}
+
 async function state(userId: string) {
   const queue = await queueFor(userId),
     ranked = await rankState(userId);
@@ -114,6 +149,10 @@ async function state(userId: string) {
   if (!queue.match_id) return { status: "waiting", queuedAt: queue.queued_at, ...ranked };
   let match = await matchFor(queue.match_id);
   if (!match) return { status: "waiting", queuedAt: queue.queued_at, ...ranked };
+  if (match.status === "playing") {
+    await trackPresence(match, userId);
+    match = (await matchFor(match.id))!;
+  }
   if (match.status === "finished" && !match.rated_at) {
     await settle(match);
     match = (await matchFor(match.id))!;
@@ -190,10 +229,10 @@ export async function POST(request: Request) {
   if (!user) return json({ error: "authentication_required" }, 401);
   const body = (await request.json().catch(() => null)) as {
     action?: string;
-    index?: number;
-    number?: number;
-    mistakeId?: string;
-    grid?: number[];
+    index?: unknown;
+    number?: unknown;
+    mistakeId?: unknown;
+    grid?: unknown;
   } | null;
   if (!body) return json({ error: "invalid_request" }, 400);
   const userId = user.userId;
@@ -210,6 +249,11 @@ export async function POST(request: Request) {
           .run();
       }
       const now = Date.now();
+      // Forget players who left the queue without cancelling.
+      await env
+        .DB!.prepare("DELETE FROM ranked_queue WHERE match_id IS NULL AND heartbeat_at < ?")
+        .bind(now - 60_000)
+        .run();
       await env
         .DB!.prepare(
           "INSERT OR IGNORE INTO ranked_ratings (user_id,points,wins,losses,updated_at) VALUES (?,0,0,0,?)",
@@ -242,23 +286,12 @@ export async function POST(request: Request) {
           .all<{ user_id: string }>();
         if (claimed.results.length === 2) {
           try {
-            const base = rankedPuzzles[difficulty],
-              solution = solvePuzzle(base);
-            if (!solution) throw new Error("invalid_ranked_puzzle");
-            const variant = makeSudokuVariant(base.split("").map(Number), solution);
+            const { puzzle, solution } = pickPuzzle(difficulty);
             await env
               .DB!.prepare(
                 "INSERT INTO ranked_matches (id,player1_id,player2_id,puzzle,solution,difficulty,started_at) VALUES (?,?,?,?,?,?,?)",
               )
-              .bind(
-                id,
-                opponent.user_id,
-                userId,
-                variant.puzzle.join(""),
-                variant.solution.join(""),
-                difficulty,
-                Date.now(),
-              )
+              .bind(id, opponent.user_id, userId, puzzle, solution, difficulty, Date.now())
               .run();
           } catch (error) {
             await env
@@ -291,58 +324,47 @@ export async function POST(request: Request) {
     const mistakes = first ? "player1_mistakes" : "player2_mistakes";
     const lastId = first ? "player1_last_mistake_id" : "player2_last_mistake_id";
     const opponentId = first ? match.player2_id : match.player1_id;
-    if (body.action === "progress") {
-      if (!validGrid(body.grid, match)) return json({ error: "invalid_grid" }, 400);
-      const correct = body.grid!.reduce(
-        (count, n, i) =>
-          count + (match.puzzle[i] === "0" && n === Number(match.solution[i]) ? 1 : 0),
-        0,
-      );
-      await env
-        .DB!.prepare(
-          `UPDATE ranked_matches SET ${progress} = MAX(${progress}, ?) WHERE id = ? AND status = 'playing'`,
-        )
-        .bind(correct, match.id)
-        .run();
-      return json(await state(userId));
-    }
-    if (body.action === "mistake") {
-      const i = body.index,
-        n = body.number;
+    // The browser never has the solution: it sends each digit (with its grid, to track
+    // progress) and learns whether it is right. Three wrong digits lose the match.
+    if (body.action === "check") {
+      const { index, number, mistakeId, grid } = body;
       if (
-        !Number.isInteger(i) ||
-        i! < 0 ||
-        i! > 80 ||
-        !Number.isInteger(n) ||
-        n! < 1 ||
-        n! > 9 ||
-        typeof body.mistakeId !== "string" ||
-        !UUID_PATTERN.test(body.mistakeId) ||
-        match.puzzle[i!] !== "0" ||
-        match.solution[i!] === String(n) ||
-        !validGrid(body.grid, match) ||
-        body.grid![i!] !== n
+        !isCellIndex(index) ||
+        !isDigit(number) ||
+        !isEntryId(mistakeId) ||
+        !isGridOf(match.puzzle, grid) ||
+        match.puzzle[index] !== "0" ||
+        grid[index] !== number
       )
-        return json({ error: "invalid_mistake" }, 400);
-      const correct = body.grid!.reduce(
-        (count, value, index) =>
-          count + (match.puzzle[index] === "0" && value === Number(match.solution[index]) ? 1 : 0),
+        return json({ error: "invalid_entry" }, 400);
+      const correctCells = grid.reduce(
+        (count, value, i) =>
+          count + (match.puzzle[i] === "0" && value === Number(match.solution[i]) ? 1 : 0),
         0,
       );
+      if (match.solution[index] === String(number)) {
+        await env
+          .DB!.prepare(
+            `UPDATE ranked_matches SET ${progress} = MAX(${progress}, ?) WHERE id = ? AND status = 'playing'`,
+          )
+          .bind(correctCells, match.id)
+          .run();
+        return json({ ...(await state(userId)), correct: true });
+      }
       await env
         .DB!.prepare(
           `UPDATE ranked_matches SET ${mistakes} = ${mistakes} + 1, ${lastId} = ?, ${progress} = MAX(${progress}, ?), status = CASE WHEN ${mistakes} >= 2 THEN 'finished' ELSE status END, winner_id = CASE WHEN ${mistakes} >= 2 THEN ? ELSE winner_id END, finish_reason = CASE WHEN ${mistakes} >= 2 THEN 'three_mistakes' ELSE finish_reason END, finished_at = CASE WHEN ${mistakes} >= 2 THEN ? ELSE finished_at END WHERE id = ? AND status = 'playing' AND ${mistakes} < 3 AND (${lastId} IS NULL OR ${lastId} != ?)`,
         )
-        .bind(body.mistakeId, correct, opponentId, Date.now(), match.id, body.mistakeId)
+        .bind(mistakeId, correctCells, opponentId, Date.now(), match.id, mistakeId)
         .run();
+      return json({ ...(await state(userId)), correct: false });
+    }
+    if (body.action === "forfeit") {
+      await finishMatch(match.id, opponentId, "forfeit");
       return json(await state(userId));
     }
     if (body.action === "complete") {
-      if (
-        !validGrid(body.grid, match) ||
-        body.grid!.some((n, i) => n !== Number(match.solution[i]))
-      )
-        return json({ error: "invalid_grid" }, 422);
+      if (!matchesSolution(match.solution, body.grid)) return json({ error: "invalid_grid" }, 422);
       await env
         .DB!.prepare(
           `UPDATE ranked_matches SET status='finished',winner_id=?,finish_reason='completed',finished_at=?,${progress}=? WHERE id=? AND status='playing' AND ${mistakes}<3`,
@@ -356,18 +378,3 @@ export async function POST(request: Request) {
     return json({ error: "matchmaking_unavailable" }, 503);
   }
 }
-
-function validGrid(grid: unknown, match: Match): grid is number[] {
-  return (
-    Array.isArray(grid) &&
-    grid.length === 81 &&
-    grid.every(
-      (n, i) =>
-        Number.isInteger(n) &&
-        n >= 0 &&
-        n <= 9 &&
-        (match.puzzle[i] === "0" || n === Number(match.puzzle[i])),
-    )
-  );
-}
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

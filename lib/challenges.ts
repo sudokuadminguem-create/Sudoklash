@@ -1,4 +1,6 @@
 import { env } from "cloudflare:workers";
+import type { Difficulty } from "@/lib/difficulties";
+import { puzzleForPeriod } from "@/lib/puzzle-picker";
 import { periodPuzzle } from "./challenge-schedule";
 
 export type ChallengeKind = "daily" | "weekly";
@@ -14,16 +16,26 @@ export const challengeDefaults: Record<ChallengeKind, { title: string; puzzle: s
   },
 };
 
-export async function getChallengeConfig(kind: ChallengeKind) {
-  const stored = await env.DB.prepare(
-    "SELECT title, puzzle FROM challenge_settings WHERE challenge_type = ?",
-  )
+/** Difficulty of the bank puzzles used when the admin has not chosen a grid. */
+const bankDifficulty: Record<ChallengeKind, Difficulty> = { daily: "Facile", weekly: "Difficile" };
+
+async function storedChallenge(kind: ChallengeKind) {
+  return env.DB.prepare("SELECT title, puzzle FROM challenge_settings WHERE challenge_type = ?")
     .bind(kind)
     .first<{ title: string; puzzle: string }>();
-  return stored ?? challengeDefaults[kind];
 }
 
+export async function getChallengeConfig(kind: ChallengeKind) {
+  return (await storedChallenge(kind)) ?? challengeDefaults[kind];
+}
+
+/**
+ * Grid of a period: the admin's grid when one is set, otherwise a new bank puzzle for each
+ * period. Either way it is shuffled by symmetry for the period.
+ */
 export async function getPeriodChallenge(kind: ChallengeKind, periodId: string) {
-  const config = await getChallengeConfig(kind);
-  return { ...config, puzzle: periodPuzzle(config.puzzle, kind, periodId) };
+  const stored = await storedChallenge(kind);
+  const title = stored?.title ?? challengeDefaults[kind].title;
+  const base = stored?.puzzle ?? puzzleForPeriod(bankDifficulty[kind], `${kind}:${periodId}`);
+  return { title, puzzle: periodPuzzle(base, kind, periodId) };
 }

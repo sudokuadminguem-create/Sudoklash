@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import type { Judge } from "@/app/lib/judge";
 import type { Account } from "@/hooks/use-account";
 import { rankedRequest, type RankedState } from "./ranked-match";
 import { SudokuBoard } from "./sudoku-board";
@@ -13,7 +14,8 @@ export function RankedGame({
   refresh: () => Promise<void>;
   account: Account;
 }) {
-  const [error, setError] = useState(""),
+  const [forfeiting, setForfeiting] = useState(false),
+    [error, setError] = useState(""),
     [pendingGrid, setPendingGrid] = useState<number[] | null>(null);
   const puzzle = useMemo(() => match.puzzle?.split("").map(Number) ?? [], [match.puzzle]);
   const complete = async (grid: number[]) => {
@@ -27,14 +29,29 @@ export function RankedGame({
       setError("Impossible d’enregistrer le résultat. Réessaie.");
     }
   };
-  const mistake = async (index: number, number: number, mistakeId: string, grid: number[]) => {
-    const result = await rankedRequest("mistake", { index, number, mistakeId, grid });
-    await refresh();
-    return result.mistakes ?? 0;
+  const forfeit = async () => {
+    if (!window.confirm("Abandonner la partie ? Elle sera comptée comme une défaite.")) return;
+    setForfeiting(true);
+    try {
+      await rankedRequest("forfeit");
+      await refresh();
+    } catch {
+      setError("Impossible d’abandonner la partie. Réessaie.");
+    } finally {
+      setForfeiting(false);
+    }
   };
-  const update = (_filled: number, grid: number[]) => {
-    void rankedRequest("progress", { grid }).catch(() => {});
-  };
+  // The server holds the solution: it checks each digit and records progress and mistakes.
+  const judge = useMemo<Judge>(
+    () => ({
+      check: async ({ index, number, id }, grid) => {
+        const result = await rankedRequest("check", { index, number, mistakeId: id, grid });
+        void refresh();
+        return { correct: !!result.correct, mistakes: result.mistakes ?? 0 };
+      },
+    }),
+    [refresh],
+  );
   return (
     <div className="ranked-game">
       <div className="solo-bar">
@@ -42,11 +59,15 @@ export function RankedGame({
           {match.rank?.label ?? "Partie classée"} · Grille {match.difficulty}
         </b>
         <span>Adversaire trouvé : {match.opponentName}</span>
+        <button className="ranked-forfeit" disabled={forfeiting} onClick={() => void forfeit()}>
+          Abandonner
+        </button>
       </div>
       <SudokuBoard
         key={match.id}
         difficulty={match.difficulty ?? "Intermédiaire"}
-        puzzleOverride={puzzle}
+        puzzle={puzzle}
+        judge={judge}
         competitive
         title="Duel classé 1 contre 1"
         active={match.status === "playing"}
@@ -55,10 +76,7 @@ export function RankedGame({
           Math.floor((Date.now() - (match.startedAt ?? Date.now())) / 1000),
         )}
         initialMistakes={match.mistakes ?? 0}
-        replayable={false}
         hintsAllowed={0}
-        onProgress={update}
-        onMistake={mistake}
         onSolved={(grid) => void complete(grid)}
         race={{
           meName: account.profile?.username || "Vous",

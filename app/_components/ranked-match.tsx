@@ -23,6 +23,8 @@ export type RankedState = {
   difference?: number;
   durationSeconds?: number | null;
   mistakes?: number;
+  /** Verdict on the digit sent with a "check" request. */
+  correct?: boolean;
   points?: number;
   pointsBefore?: number | null;
   pointsChange?: number | null;
@@ -117,6 +119,11 @@ export function RankedMatch({
         <p>
           Contre {state.opponentName} · Grille {state.difficulty}
           {state.finishReason === "three_mistakes" ? " · Fin après trois erreurs" : ""}
+          {state.finishReason === "forfeit"
+            ? won
+              ? " · Ton adversaire a abandonné"
+              : " · Partie abandonnée"
+            : ""}
         </p>
         <div className="ranked-summary">
           <div>
