@@ -14,7 +14,8 @@ export function RankedGame({
   refresh: () => Promise<void>;
   account: Account;
 }) {
-  const [error, setError] = useState(""),
+  const [forfeiting, setForfeiting] = useState(false),
+    [error, setError] = useState(""),
     [pendingGrid, setPendingGrid] = useState<number[] | null>(null);
   const puzzle = useMemo(() => match.puzzle?.split("").map(Number) ?? [], [match.puzzle]);
   const complete = async (grid: number[]) => {
@@ -26,6 +27,18 @@ export function RankedGame({
       await refresh();
     } catch {
       setError("Impossible d’enregistrer le résultat. Réessaie.");
+    }
+  };
+  const forfeit = async () => {
+    if (!window.confirm("Abandonner la partie ? Elle sera comptée comme une défaite.")) return;
+    setForfeiting(true);
+    try {
+      await rankedRequest("forfeit");
+      await refresh();
+    } catch {
+      setError("Impossible d’abandonner la partie. Réessaie.");
+    } finally {
+      setForfeiting(false);
     }
   };
   // The server holds the solution: it checks each digit and records progress and mistakes.
@@ -46,6 +59,9 @@ export function RankedGame({
           {match.rank?.label ?? "Partie classée"} · Grille {match.difficulty}
         </b>
         <span>Adversaire trouvé : {match.opponentName}</span>
+        <button className="ranked-forfeit" disabled={forfeiting} onClick={() => void forfeit()}>
+          Abandonner
+        </button>
       </div>
       <SudokuBoard
         key={match.id}

@@ -35,3 +35,18 @@ export function rankedPointChange(winnerFilled: number, loserFilled: number, tot
   const difference = Math.min(totalToFill, Math.max(0, winnerFilled - loserFilled));
   return 18 + Math.round((8 * difference) / Math.max(1, totalToFill));
 }
+
+/** A player silent for this long during a match loses it by forfeit. */
+export const FORFEIT_AFTER_MS = 2 * 60 * 1000;
+
+/**
+ * Who forfeits a match, given when each player was last seen: the one who left first,
+ * once they have been gone for FORFEIT_AFTER_MS. Null while both are still around.
+ */
+export function forfeitingPlayer(
+  seen: { player1: number; player2: number },
+  now: number,
+): "player1" | "player2" | null {
+  const first = seen.player1 <= seen.player2 ? "player1" : "player2";
+  return now - seen[first] > FORFEIT_AFTER_MS ? first : null;
+}

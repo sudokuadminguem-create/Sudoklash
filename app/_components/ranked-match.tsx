@@ -119,6 +119,11 @@ export function RankedMatch({
         <p>
           Contre {state.opponentName} · Grille {state.difficulty}
           {state.finishReason === "three_mistakes" ? " · Fin après trois erreurs" : ""}
+          {state.finishReason === "forfeit"
+            ? won
+              ? " · Ton adversaire a abandonné"
+              : " · Partie abandonnée"
+            : ""}
         </p>
         <div className="ranked-summary">
           <div>

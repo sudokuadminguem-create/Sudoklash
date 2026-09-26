@@ -162,6 +162,9 @@ export const rankedMatches = sqliteTable(
     player1PointsChange: integer("player1_points_change"),
     player2PointsChange: integer("player2_points_change"),
     finishReason: text("finish_reason"),
+    // Last request from each player during the match, to detect abandons.
+    player1SeenAt: integer("player1_seen_at"),
+    player2SeenAt: integer("player2_seen_at"),
   },
   (table) => [
     index("idx_ranked_matches_player1").on(table.player1Id, table.startedAt),

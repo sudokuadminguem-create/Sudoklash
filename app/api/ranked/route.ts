@@ -3,7 +3,12 @@ import { getSiteUser } from "@/app/supabase-auth";
 import { isCellIndex, isDigit, isEntryId, isGridOf, matchesSolution } from "@/lib/entry-validation";
 import { pickPuzzle } from "@/lib/puzzle-picker";
 import { rankedPosition } from "@/lib/ranked-position";
-import { rankFor, rankedPointChange, type RankedDifficulty } from "@/lib/ranked-rules";
+import {
+  forfeitingPlayer,
+  rankFor,
+  rankedPointChange,
+  type RankedDifficulty,
+} from "@/lib/ranked-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +41,8 @@ type Match = {
   player2_points_before: number | null;
   player1_points_change: number | null;
   player2_points_change: number | null;
+  player1_seen_at: number | null;
+  player2_seen_at: number | null;
 };
 const json = (value: unknown, status = 200) =>
   Response.json(value, { status, headers: { "Cache-Control": "no-store" } });
@@ -102,6 +109,39 @@ async function settle(match: Match) {
   ]);
 }
 
+const finishMatch = (matchId: string, winnerId: string, reason: string) =>
+  env
+    .DB!.prepare(
+      "UPDATE ranked_matches SET status='finished', winner_id=?, finish_reason=?, finished_at=? WHERE id=? AND status='playing'",
+    )
+    .bind(winnerId, reason, Date.now(), matchId)
+    .run();
+
+// Ends a match whose player stopped answering (closed tab, lost connection), then records
+// that `userId` is here. The check uses the times seen before this request, so a player
+// coming back after a long absence cannot win against an opponent who left later.
+async function trackPresence(match: Match, userId: string) {
+  const now = Date.now();
+  const forfeiting = forfeitingPlayer(
+    {
+      player1: match.player1_seen_at ?? match.started_at,
+      player2: match.player2_seen_at ?? match.started_at,
+    },
+    now,
+  );
+  if (forfeiting)
+    await finishMatch(
+      match.id,
+      forfeiting === "player1" ? match.player2_id : match.player1_id,
+      "forfeit",
+    );
+  const column = match.player1_id === userId ? "player1_seen_at" : "player2_seen_at";
+  await env
+    .DB!.prepare(`UPDATE ranked_matches SET ${column} = ? WHERE id = ? AND status = 'playing'`)
+    .bind(now, match.id)
+    .run();
+}
+
 async function state(userId: string) {
   const queue = await queueFor(userId),
     ranked = await rankState(userId);
@@ -109,6 +149,10 @@ async function state(userId: string) {
   if (!queue.match_id) return { status: "waiting", queuedAt: queue.queued_at, ...ranked };
   let match = await matchFor(queue.match_id);
   if (!match) return { status: "waiting", queuedAt: queue.queued_at, ...ranked };
+  if (match.status === "playing") {
+    await trackPresence(match, userId);
+    match = (await matchFor(match.id))!;
+  }
   if (match.status === "finished" && !match.rated_at) {
     await settle(match);
     match = (await matchFor(match.id))!;
@@ -205,6 +249,11 @@ export async function POST(request: Request) {
           .run();
       }
       const now = Date.now();
+      // Forget players who left the queue without cancelling.
+      await env
+        .DB!.prepare("DELETE FROM ranked_queue WHERE match_id IS NULL AND heartbeat_at < ?")
+        .bind(now - 60_000)
+        .run();
       await env
         .DB!.prepare(
           "INSERT OR IGNORE INTO ranked_ratings (user_id,points,wins,losses,updated_at) VALUES (?,0,0,0,?)",
@@ -309,6 +358,10 @@ export async function POST(request: Request) {
         .bind(mistakeId, correctCells, opponentId, Date.now(), match.id, mistakeId)
         .run();
       return json({ ...(await state(userId)), correct: false });
+    }
+    if (body.action === "forfeit") {
+      await finishMatch(match.id, opponentId, "forfeit");
+      return json(await state(userId));
     }
     if (body.action === "complete") {
       if (!matchesSolution(match.solution, body.grid)) return json({ error: "invalid_grid" }, 422);

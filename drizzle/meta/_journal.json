@@ -78,6 +78,13 @@
       "when": 1790439040573,
       "tag": "0010_solo_games",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1790439341463,
+      "tag": "0011_ranked_presence",
+      "breakpoints": true
     }
   ]
 }
