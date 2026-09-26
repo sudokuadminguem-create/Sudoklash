@@ -1,7 +1,7 @@
-import { makeSudokuVariant } from "@/app/lib/sudoku-variants";
 import type { Difficulty } from "@/lib/difficulties";
 import { puzzleBank } from "@/lib/puzzle-bank";
 import { solvePuzzle } from "@/lib/sudoku-solver";
+import { makeSudokuVariant } from "@/lib/sudoku-variants";
 
 /** A bank puzzle of the given difficulty, shuffled by symmetry so repeats look different. */
 export function pickPuzzle(difficulty: Difficulty, random: () => number = Math.random) {

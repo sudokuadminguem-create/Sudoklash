@@ -21,6 +21,8 @@ Jeu de sudoku en compétition
 - Un composant par fichier, nommé en kebab-case (`sudoku-board.tsx` exporte `SudokuBoard`).
 - Les appels à l'API passent l'en-tête d'authentification via `authHeaders()` (`app/lib/auth-headers.ts`).
 - La logique pure (sans dépendance au navigateur ni à Cloudflare) va dans `lib/` pour être partagée.
+- En solo (joueur connecté), en classé et dans les défis, le navigateur ne reçoit jamais la solution : chaque chiffre est vérifié par le serveur (action `check`).
+- Les migrations sont générées depuis `db/schema.ts` avec `npm run db:generate`.
 
 ## Vérifications
 
