@@ -5,6 +5,9 @@ import {rankFor} from "@/lib/ranked-rules";
 
 export const dynamic="force-dynamic";
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"Cache-Control":"no-store"}});
+// Uploaded avatars are resized in the browser; this caps what a crafted request can store.
+const MAX_AVATAR_IMAGE_LENGTH=200_000;
+const AVATAR_IMAGE_PATTERN=/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 
 async function counts(userId:string):Promise<ProgressCounts>{
  const db=env.DB!;
@@ -19,14 +22,15 @@ async function counts(userId:string):Promise<ProgressCounts>{
 
 async function state(userId:string){
  const db=env.DB!;
- const [score,selection,purchases,rating]=await Promise.all([
+ const [score,selection,purchases,rating,image]=await Promise.all([
   counts(userId),
   db.prepare("SELECT avatar_id,frame_id,theme_id FROM player_cosmetics WHERE user_id=?").bind(userId).first<{avatar_id:string;frame_id:string;theme_id:string}>(),
   db.prepare("SELECT item_id,price FROM cosmetic_purchases WHERE user_id=?").bind(userId).all<{item_id:string;price:number}>(),
   db.prepare("SELECT points FROM ranked_ratings WHERE user_id=?").bind(userId).first<{points:number}>(),
+  db.prepare("SELECT image_data FROM player_avatar_images WHERE user_id=?").bind(userId).first<{image_data:string}>(),
  ]);
  const progress=progressFor(score);
- const owned=[...freeAvatars.map(a=>a.id),...purchases.results.filter(p=>p.item_id.startsWith("avatar:")).map(a=>a.item_id.slice(7)),...achievementAvatars.filter(a=>a.unlocked(score)).map(a=>a.id)];
+ const owned=[...freeAvatars.map(a=>a.id),...purchases.results.filter(p=>p.item_id.startsWith("avatar:")).map(a=>a.item_id.slice(7)),...achievementAvatars.filter(a=>a.unlocked(score)).map(a=>a.id),...(image?["custom"]:[])];
  const ownedThemes=["ocean",...purchases.results.filter(p=>p.item_id.startsWith("theme:")).map(p=>p.item_id.slice(6))];
  const unlockedFrames=levelFrames.filter(f=>f.level<=progress.level);
  const points=rating?.points??0;
@@ -35,7 +39,7 @@ async function state(userId:string){
  const savedFrame=selection?.frame_id;
  const frameSelection=savedFrame==="rank_auto"||savedFrame==="none"||unlockedFrames.some(f=>f.id===savedFrame)?savedFrame:"rank_auto";
  const frameId=frameSelection==="rank_auto"?`rank-${rank.name}`:frameSelection;
- return {...progress,counts:score,coins:Math.max(0,progress.earnedCoins-purchases.results.reduce((sum,p)=>sum+p.price,0)),ownedAvatars:owned,ownedThemes,unlockedFrames:unlockedFrames.map(f=>f.id),avatarId:owned.includes(selection?.avatar_id??"")?selection!.avatar_id:"nova",frameId,frameSelection,rank:rank.label,rankName:rank.name,rankPoints:points,themeId:ownedThemes.includes(selection?.theme_id??"")?selection!.theme_id:"ocean"};
+ return {...progress,counts:score,coins:Math.max(0,progress.earnedCoins-purchases.results.reduce((sum,p)=>sum+p.price,0)),ownedAvatars:owned,ownedThemes,unlockedFrames:unlockedFrames.map(f=>f.id),avatarId:owned.includes(selection?.avatar_id??"")?selection!.avatar_id:"nova",frameId,frameSelection,rank:rank.label,rankName:rank.name,rankPoints:points,customAvatar:image?.image_data??null,themeId:ownedThemes.includes(selection?.theme_id??"")?selection!.theme_id:"ocean"};
 }
 
 export async function GET(request:Request){
@@ -55,8 +59,19 @@ export async function POST(request:Request){
  try{
   const current=await state(user.userId);
   if(body.action==="equip_avatar"){
-   if(!avatars.some(a=>a.id===body.id)||!current.ownedAvatars.includes(body.id))return json({error:"avatar_locked"},403);
+   if(!(avatars.some(a=>a.id===body.id)||body.id==="custom")||!current.ownedAvatars.includes(body.id))return json({error:"avatar_locked"},403);
    await db.prepare("INSERT INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET avatar_id=excluded.avatar_id").bind(user.userId,body.id,current.frameSelection,current.themeId).run();
+  }else if(body.action==="upload_avatar"){
+   if(body.id.length>MAX_AVATAR_IMAGE_LENGTH||!AVATAR_IMAGE_PATTERN.test(body.id))return json({error:"invalid_image"},400);
+   await db.batch([
+    db.prepare("INSERT INTO player_avatar_images (user_id,image_data,updated_at) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET image_data=excluded.image_data,updated_at=excluded.updated_at").bind(user.userId,body.id,Date.now()),
+    db.prepare("INSERT INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET avatar_id=excluded.avatar_id").bind(user.userId,"custom",current.frameSelection,current.themeId),
+   ]);
+  }else if(body.action==="remove_avatar"){
+   await db.batch([
+    db.prepare("DELETE FROM player_avatar_images WHERE user_id=?").bind(user.userId),
+    db.prepare("UPDATE player_cosmetics SET avatar_id='nova' WHERE user_id=? AND avatar_id='custom'").bind(user.userId),
+   ]);
   }else if(body.action==="equip_frame"){
    if(body.id!=="rank_auto"&&body.id!=="none"&&!current.unlockedFrames.some(id=>id===body.id))return json({error:"frame_locked"},403);
    await db.prepare("INSERT INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET frame_id=excluded.frame_id").bind(user.userId,current.avatarId,body.id,current.themeId).run();

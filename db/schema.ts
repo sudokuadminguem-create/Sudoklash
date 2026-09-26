@@ -67,6 +67,12 @@ export const playerCosmetics = sqliteTable("player_cosmetics", {
   themeId: text("theme_id").notNull().default("ocean"),
 });
 
+export const playerAvatarImages = sqliteTable("player_avatar_images", {
+  userId: text("user_id").primaryKey(),
+  imageData: text("image_data").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
 export const cosmeticPurchases = sqliteTable("cosmetic_purchases", {
   userId: text("user_id").notNull(),
   itemId: text("item_id").notNull(),
