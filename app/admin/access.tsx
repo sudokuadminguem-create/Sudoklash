@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, LockKeyhole, ShieldCheck } from "lucide-react";
-import { AuthDialog, useAccount } from "@/app/real-account";
+import { AuthDialog } from "@/app/_components/auth-dialog";
+import { authHeaders } from "@/app/lib/auth-headers";
 import { supabase } from "@/app/lib/supabase";
+import { useAccount } from "@/hooks/use-account";
 import AdminPanel from "./panel";
 import "../sudoku-grid.css";
 
@@ -17,14 +19,8 @@ export default function AdminAccess() {
     if (account.loading) return;
     let active = true;
     setAdmin(null);
-    supabase.auth
-      .getSession()
-      .then(({ data }) =>
-        fetch("/api/me", {
-          cache: "no-store",
-          headers: data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {},
-        }),
-      )
+    authHeaders()
+      .then((headers) => fetch("/api/me", { cache: "no-store", headers }))
       .then(
         (response) => response.json() as Promise<{ isAdmin: boolean; displayName: string | null }>,
       )

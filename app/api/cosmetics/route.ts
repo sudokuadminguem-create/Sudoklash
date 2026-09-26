@@ -10,6 +10,7 @@ import {
   shopAvatars,
   type ProgressCounts,
 } from "@/lib/cosmetics";
+import { rankedPosition } from "@/lib/ranked-position";
 import { rankFor } from "@/lib/ranked-rules";
 
 export const dynamic = "force-dynamic";
@@ -103,17 +104,7 @@ async function state(userId: string) {
   ];
   const unlockedFrames = levelFrames.filter((f) => f.level <= progress.level);
   const points = rating?.points ?? 0;
-  const position =
-    points >= 1700
-      ? ((
-          await db
-            .prepare(
-              "SELECT COUNT(*) + 1 AS position FROM ranked_ratings WHERE points > ? OR (points = ? AND user_id < ?)",
-            )
-            .bind(points, points, userId)
-            .first<{ position: number }>()
-        )?.position ?? null)
-      : null;
+  const position = await rankedPosition(db, userId, points);
   const rank = rankFor(points, position);
   const savedFrame = selection?.frame_id;
   const frameSelection =

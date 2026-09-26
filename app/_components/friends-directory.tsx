@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Check, Search, Swords, UserPlus, X } from "lucide-react";
-import type { useAccount } from "./real-account";
-import { supabase } from "./lib/supabase";
+import { authHeaders } from "@/app/lib/auth-headers";
+import type { Account } from "@/hooks/use-account";
 
 type Relationship = {
   id: string;
@@ -20,7 +20,7 @@ export default function FriendsDirectory({
   account,
   notify,
 }: {
-  account: ReturnType<typeof useAccount>;
+  account: Account;
   notify: (message: string) => void;
 }) {
   const [tab, setTab] = useState<"players" | "friends" | "requests">("players");
@@ -40,13 +40,9 @@ export default function FriendsDirectory({
       setLoading(true);
       setError("");
       try {
-        const { data: auth } = await supabase.auth.getSession();
         const response = await fetch(
           `/api/friends?search=${encodeURIComponent(search)}&offset=${offset}`,
-          {
-            cache: "no-store",
-            headers: { Authorization: `Bearer ${auth.session?.access_token ?? ""}` },
-          },
+          { cache: "no-store", headers: await authHeaders() },
         );
         if (!response.ok) throw new Error("load_failed");
         const next = (await response.json()) as FriendsData;
@@ -85,13 +81,9 @@ export default function FriendsDirectory({
     setBusy(key);
     setError("");
     try {
-      const { data: auth } = await supabase.auth.getSession();
       const response = await fetch("/api/friends", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${auth.session?.access_token ?? ""}`,
-        },
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify(body),
       });
       if (!response.ok) {

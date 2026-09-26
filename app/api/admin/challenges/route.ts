@@ -1,11 +1,7 @@
 import { env } from "cloudflare:workers";
 import { getAdminUser } from "@/app/admin/auth";
-import {
-  challengeDefaults,
-  getChallengeConfig,
-  hasUniqueSolution,
-  type ChallengeKind,
-} from "@/lib/challenges";
+import { challengeDefaults, getChallengeConfig, type ChallengeKind } from "@/lib/challenges";
+import { hasUniqueSolution } from "@/lib/sudoku-solver";
 
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {

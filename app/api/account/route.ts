@@ -1,10 +1,11 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
-import { solvePuzzle } from "@/lib/challenges";
+import { isSoloDifficulty } from "@/lib/difficulties";
+import { solvePuzzle } from "@/lib/sudoku-solver";
+import { rankedPosition } from "@/lib/ranked-position";
 import { rankFor } from "@/lib/ranked-rules";
 
 export const dynamic = "force-dynamic";
-const difficulties = ["Débutant", "Facile", "Intermédiaire", "Difficile", "Expert", "Maître"];
 
 export async function GET(request: Request) {
   const user = await getSiteUser(request);
@@ -47,17 +48,7 @@ export async function GET(request: Request) {
         .first<{ points: number; wins: number; losses: number }>(),
     ]);
     const points = ranked?.points ?? 0;
-    const position =
-      points >= 1700
-        ? ((
-            await db
-              .prepare(
-                "SELECT COUNT(*) + 1 AS position FROM ranked_ratings WHERE points > ? OR (points = ? AND user_id < ?)",
-              )
-              .bind(points, points, user.userId)
-              .first<{ position: number }>()
-          )?.position ?? null)
-        : null;
+    const position = await rankedPosition(db, user.userId, points);
     return Response.json(
       {
         profile,
@@ -92,7 +83,7 @@ export async function POST(request: Request) {
   } | null;
   if (
     !body ||
-    !difficulties.includes(body.difficulty as string) ||
+    !isSoloDifficulty(body.difficulty) ||
     !Number.isInteger(body.elapsedSeconds) ||
     (body.elapsedSeconds as number) < 1 ||
     (body.elapsedSeconds as number) > 86400 ||

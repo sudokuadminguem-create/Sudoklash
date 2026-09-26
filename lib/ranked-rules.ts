@@ -8,14 +8,23 @@ export const rankedPuzzles = {
 } as const;
 export type RankedDifficulty = keyof typeof rankedPuzzles;
 
+/** Points from which a player leaves the tiered ranks and becomes Challenger. */
+export const CHALLENGER_MIN_POINTS = 1500;
+/** Points required, along with a top-100 place, to reach the Maître rank. */
+export const MASTER_MIN_POINTS = 1700;
+const MASTER_MAX_POSITION = 100;
+
 export function rankFor(points: number, position: number | null = null) {
-  if (points >= 1500) {
-    const name = points >= 1700 && position !== null && position <= 100 ? "Maître" : "Challenger";
+  if (points >= CHALLENGER_MIN_POINTS) {
+    const name =
+      points >= MASTER_MIN_POINTS && position !== null && position <= MASTER_MAX_POSITION
+        ? "Maître"
+        : "Challenger";
     return {
       name,
       label: name,
       difficulty: (name === "Maître" ? "Maître" : "Expert") as RankedDifficulty,
-      progress: points - 1500,
+      progress: points - CHALLENGER_MIN_POINTS,
     };
   }
   const bands = ["Bronze", "Silver", "Gold", "Platine", "Diamant"] as const;

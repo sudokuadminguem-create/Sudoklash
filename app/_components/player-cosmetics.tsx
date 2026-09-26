@@ -1,8 +1,8 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Coins, ImagePlus, Trash2 } from "lucide-react";
-import { supabase } from "./lib/supabase";
-import type { AccountState } from "./real-account";
+import type { AccountState } from "@/hooks/use-account";
+import type { Cosmetics } from "@/hooks/use-cosmetics";
 import {
   achievementAvatars,
   avatars,
@@ -10,80 +10,6 @@ import {
   rankedFrames,
   shopAvatars,
 } from "@/lib/cosmetics";
-
-export type CosmeticState = {
-  xp: number;
-  level: number;
-  levelXp: number;
-  nextLevelXp: number;
-  coins: number;
-  counts: { solo: number; daily: number; weekly: number; wins: number; losses: number };
-  ownedAvatars: string[];
-  ownedThemes: string[];
-  unlockedFrames: string[];
-  avatarId: string;
-  frameId: string;
-  frameSelection: string;
-  rank: string;
-  rankName: string;
-  rankPoints: number;
-  customAvatar: string | null;
-  themeId: string;
-};
-
-export function useCosmetics(account: AccountState) {
-  const [state, setState] = useState<CosmeticState | null>(null),
-    [loading, setLoading] = useState(false);
-  const refresh = useCallback(async () => {
-    if (!account.user) {
-      setState(null);
-      return;
-    }
-    setLoading(true);
-    try {
-      const { data } = await supabase.auth.getSession();
-      const response = await fetch("/api/cosmetics", {
-        cache: "no-store",
-        headers: { Authorization: `Bearer ${data.session?.access_token ?? ""}` },
-      });
-      if (!response.ok) throw Error("load");
-      setState((await response.json()) as CosmeticState);
-    } catch {
-      setState(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [account.user?.id]);
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-  const action = async (
-    action:
-      | "equip_avatar"
-      | "equip_frame"
-      | "buy_avatar"
-      | "equip_theme"
-      | "buy_theme"
-      | "upload_avatar"
-      | "remove_avatar",
-    id: string,
-  ) => {
-    const { data } = await supabase.auth.getSession();
-    const response = await fetch("/api/cosmetics", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${data.session?.access_token ?? ""}`,
-      },
-      body: JSON.stringify({ action, id }),
-    });
-    if (!response.ok) throw Error(((await response.json()) as { error: string }).error);
-    const updated = (await response.json()) as CosmeticState;
-    setState(updated);
-    return updated;
-  };
-  return { state, loading, refresh, action };
-}
 
 export function PlayerAvatar({
   avatarId = "nova",
@@ -167,7 +93,7 @@ function CustomAvatarUpload({
   busy,
   setBusy,
 }: {
-  cosmetics: ReturnType<typeof useCosmetics>;
+  cosmetics: Cosmetics;
   notify: (message: string) => void;
   busy: string;
   setBusy: (id: string) => void;
@@ -267,7 +193,7 @@ export function CosmeticCloset({
   cosmetics,
   notify,
 }: {
-  cosmetics: ReturnType<typeof useCosmetics>;
+  cosmetics: Cosmetics;
   notify: (message: string) => void;
 }) {
   const data = cosmetics.state,
@@ -440,7 +366,7 @@ export function AvatarShop({
   openAuth,
   account,
 }: {
-  cosmetics: ReturnType<typeof useCosmetics>;
+  cosmetics: Cosmetics;
   notify: (message: string) => void;
   openAuth: () => void;
   account: AccountState;

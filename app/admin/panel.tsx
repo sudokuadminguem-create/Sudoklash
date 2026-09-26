@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Check, ChevronLeft, LockKeyhole, Save, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { supabase } from "@/app/lib/supabase";
+import { authHeaders } from "@/app/lib/auth-headers";
 
 type Kind = "daily" | "weekly";
 type Config = { title: string; puzzle: string };
@@ -13,14 +13,8 @@ export default function AdminPanel({ displayName }: { displayName: string }) {
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
   useEffect(() => {
-    supabase.auth
-      .getSession()
-      .then(({ data }) =>
-        fetch("/api/admin/challenges", {
-          cache: "no-store",
-          headers: data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {},
-        }),
-      )
+    authHeaders()
+      .then((headers) => fetch("/api/admin/challenges", { cache: "no-store", headers }))
       .then(async (response) => {
         if (!response.ok) throw new Error();
         return response.json() as Promise<Record<Kind, Config>>;
@@ -38,13 +32,9 @@ export default function AdminPanel({ displayName }: { displayName: string }) {
     setMessage("");
     setError("");
     try {
-      const { data } = await supabase.auth.getSession();
       const response = await fetch("/api/admin/challenges", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify({ kind, ...configs[kind] }),
       });
       const body = (await response.json()) as { error?: string };

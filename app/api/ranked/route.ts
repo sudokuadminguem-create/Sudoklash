@@ -1,8 +1,14 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
-import { solvePuzzle } from "@/lib/challenges";
+import { solvePuzzle } from "@/lib/sudoku-solver";
 import { makeSudokuVariant } from "@/app/lib/sudoku-variants";
-import { rankFor, rankedPointChange, rankedPuzzles, RankedDifficulty } from "@/lib/ranked-rules";
+import { rankedPosition } from "@/lib/ranked-position";
+import {
+  rankFor,
+  rankedPointChange,
+  rankedPuzzles,
+  type RankedDifficulty,
+} from "@/lib/ranked-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -45,20 +51,10 @@ const matchFor = (id: string) =>
 const ratingFor = (userId: string) =>
   env.DB!.prepare("SELECT * FROM ranked_ratings WHERE user_id = ?").bind(userId).first<Rating>();
 const totalToFill = (match: Match) => match.puzzle.split("").filter((c) => c === "0").length;
-async function positionFor(userId: string, points: number) {
-  if (points < 1700) return null;
-  const row = await env
-    .DB!.prepare(
-      "SELECT COUNT(*) + 1 AS position FROM ranked_ratings WHERE points > ? OR (points = ? AND user_id < ?)",
-    )
-    .bind(points, points, userId)
-    .first<{ position: number }>();
-  return row?.position ?? null;
-}
 async function rankState(userId: string) {
   const rating = await ratingFor(userId),
     points = rating?.points ?? 0,
-    position = await positionFor(userId, points);
+    position = await rankedPosition(env.DB!, userId, points);
   return {
     rank: rankFor(points, position),
     points,

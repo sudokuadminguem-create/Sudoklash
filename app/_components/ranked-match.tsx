@@ -1,8 +1,9 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Search, Users, X, Trophy } from "lucide-react";
-import { supabase } from "./lib/supabase";
-import type { AccountState } from "./real-account";
+import { authHeaders } from "@/app/lib/auth-headers";
+import { formatClock } from "@/app/lib/format-time";
+import type { AccountState } from "@/hooks/use-account";
 
 export type RankedState = {
   status: "idle" | "waiting" | "playing" | "finished";
@@ -29,16 +30,13 @@ export type RankedState = {
   wins?: number;
   losses?: number;
 };
-const displayTime = (seconds: number) =>
-  `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 
 export async function rankedRequest(action?: string, fields: Record<string, unknown> = {}) {
-  const { data } = await supabase.auth.getSession();
   const response = await fetch("/api/ranked", {
     method: action ? "POST" : "GET",
     cache: "no-store",
     headers: {
-      ...(data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
+      ...(await authHeaders()),
       ...(action ? { "Content-Type": "application/json" } : {}),
     },
     ...(action ? { body: JSON.stringify({ action, ...fields }) } : {}),
@@ -123,7 +121,7 @@ export function RankedMatch({
         <div className="ranked-summary">
           <div>
             <span>Temps de la partie</span>
-            <strong>{displayTime(state.durationSeconds ?? 0)}</strong>
+            <strong>{formatClock(state.durationSeconds ?? 0)}</strong>
           </div>
           <div>
             <span>Vos cases correctes</span>
