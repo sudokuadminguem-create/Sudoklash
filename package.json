@@ -1,0 +1,44 @@
+{
+  "name": "sudoklash",
+  "private": true,
+  "type": "module",
+  "description": "Checks for the Sudoku Clash code base. The app itself is built and deployed by the hosting platform.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "check": "npm run format:check && npm run typecheck && npm run lint && npm run test",
+    "db:generate": "drizzle-kit generate",
+    "puzzles:generate": "tsx scripts/generate-puzzle-bank.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.3",
+    "lucide-react": "^1.48.0",
+    "next": "^16.3.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "@eslint/js": "^10.0.1",
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "better-sqlite3": "^12.0.0",
+    "drizzle-kit": "^0.31.0",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^16.0.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "~6.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^5.0.2"
+  }
+}
