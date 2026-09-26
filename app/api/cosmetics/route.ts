@@ -8,9 +8,6 @@ const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"Cache
 // Uploaded avatars are resized in the browser; this caps what a crafted request can store.
 const MAX_AVATAR_IMAGE_LENGTH=200_000;
 const AVATAR_IMAGE_PATTERN=/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
-// Mirrors drizzle/0009 so the feature works even if the deployment has not run that migration yet.
-let avatarTableReady:Promise<unknown>|null=null;
-const ensureAvatarTable=()=>avatarTableReady??=env.DB!.prepare("CREATE TABLE IF NOT EXISTS player_avatar_images (user_id text PRIMARY KEY NOT NULL, image_data text NOT NULL, updated_at integer NOT NULL)").run().catch(e=>{avatarTableReady=null;throw e});
 
 async function counts(userId:string):Promise<ProgressCounts>{
  const db=env.DB!;
@@ -25,7 +22,6 @@ async function counts(userId:string):Promise<ProgressCounts>{
 
 async function state(userId:string){
  const db=env.DB!;
- await ensureAvatarTable();
  const [score,selection,purchases,rating,image]=await Promise.all([
   counts(userId),
   db.prepare("SELECT avatar_id,frame_id,theme_id FROM player_cosmetics WHERE user_id=?").bind(userId).first<{avatar_id:string;frame_id:string;theme_id:string}>(),
