@@ -1,22 +1,15 @@
-import { createClient } from "@supabase/supabase-js";
+import { bearerToken, verifySupabaseToken } from "@/lib/supabase-config";
 import { getChatGPTUser } from "./chatgpt-auth";
 
+/** Player behind an API request: a Supabase account first, then the hosting platform identity. */
 export async function getSiteUser(request?: Request) {
-  const bearer = request?.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
-    key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (bearer && url && key) {
-    const client = createClient(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data, error } = await client.auth.getUser(bearer);
-    if (!error && data.user)
-      return {
-        userId: data.user.id,
-        displayName: data.user.user_metadata?.full_name ?? data.user.email ?? "Joueur",
-        email: data.user.email ?? "",
-        fullName: data.user.user_metadata?.full_name ?? null,
-      };
-  }
+  const user = await verifySupabaseToken(bearerToken(request));
+  if (user)
+    return {
+      userId: user.id,
+      displayName: user.user_metadata?.full_name ?? user.email ?? "Joueur",
+      email: user.email ?? "",
+      fullName: user.user_metadata?.full_name ?? null,
+    };
   return getChatGPTUser();
 }
