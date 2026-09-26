@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
-import { getChallengeConfig, solvePuzzle } from "@/lib/challenges";
+import { getPeriodChallenge, solvePuzzle } from "@/lib/challenges";
+import {challengeWindow} from "@/lib/challenge-schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +13,6 @@ type AttemptRow = {
   last_mistake_id: string | null;
   puzzle: string;
 };
-
-function dayWindow(now = new Date()) {
-  const startsAt = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  return {
-    dayId: new Date(startsAt).toISOString().slice(0, 10),
-    nextAt: new Date(startsAt + 86_400_000).toISOString(),
-  };
-}
 
 async function currentAttempt(userId: string, dayId: string) {
   if (!env.DB) throw new Error("database_unavailable");
@@ -45,8 +38,8 @@ export async function GET(request:Request) {
   const user = await getSiteUser(request);
   if (!user) return Response.json({ error: "authentication_required" }, { status: 401 });
   if (!env.DB) return Response.json({ error: "database_unavailable" }, { status: 503 });
-  const { dayId, nextAt } = dayWindow();
-  const [attempt,config] = await Promise.all([currentAttempt(user.userId, dayId),getChallengeConfig("daily")]);
+  const { periodId:dayId, nextAt } = challengeWindow("daily");
+  const [attempt,config] = await Promise.all([currentAttempt(user.userId, dayId),getPeriodChallenge("daily",dayId)]);
   return Response.json(payload(attempt, nextAt, config), { headers: { "Cache-Control": "no-store" } });
 }
 
@@ -56,9 +49,9 @@ export async function POST(request: Request) {
   const db = env.DB;
   if (!db) return Response.json({ error: "database_unavailable" }, { status: 503 });
   const body = await request.json().catch(() => null) as { action?: string; grid?: unknown; index?: unknown; number?: unknown; mistakeId?: unknown } | null;
-  const { dayId, nextAt } = dayWindow();
+  const { periodId:dayId, nextAt } = challengeWindow("daily");
   const now = Date.now();
-  const config = await getChallengeConfig("daily");
+  const config = await getPeriodChallenge("daily",dayId);
 
   if (body?.action === "ready") {
     await db.prepare(
