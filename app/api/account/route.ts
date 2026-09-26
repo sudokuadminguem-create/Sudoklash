@@ -2,6 +2,7 @@ import {env} from "cloudflare:workers";
 import {getSiteUser} from "@/app/supabase-auth";
 import {solvePuzzle} from "@/lib/challenges";
 import {rankFor} from "@/lib/ranked-rules";
+import {SOLO_WIN_XP} from "@/lib/cosmetics";
 
 export const dynamic = "force-dynamic";
 const difficulties = ["Débutant", "Facile", "Intermédiaire", "Difficile", "Expert", "Maître"];
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   if (!solved || grid.some((n,i)=>n!==solved[i])) return Response.json({error:"invalid_grid"}, {status:422});
   try {
     await db.prepare("INSERT INTO solo_results (id, user_id, difficulty, elapsed_seconds, completed_at) VALUES (?, ?, ?, ?, ?)").bind(crypto.randomUUID(),user.userId,body.difficulty,body.elapsedSeconds,Date.now()).run();
-    return Response.json({saved:true});
+    return Response.json({saved:true,xpGained:SOLO_WIN_XP});
   } catch {
     return Response.json({error:"stats_unavailable"}, {status:503});
   }
