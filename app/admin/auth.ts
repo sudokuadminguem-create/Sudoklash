@@ -8,9 +8,12 @@ export async function getAdminUser(request: Request): Promise<{ displayName: str
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!token || !url || !key) return null;
 
-  const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const client = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   const { data, error } = await client.auth.getUser(token);
   const user = data.user;
-  if (error || !user || !user.email_confirmed_at || user.email?.toLowerCase() !== OWNER_EMAIL) return null;
+  if (error || !user || !user.email_confirmed_at || user.email?.toLowerCase() !== OWNER_EMAIL)
+    return null;
   return { displayName: user.user_metadata?.full_name ?? user.email ?? "Administrateur" };
 }
