@@ -6,6 +6,7 @@ import {
   Coins,
   Flame,
   Gamepad2,
+  Medal,
   LockKeyhole,
   Menu,
   Settings,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import "./sudoku-grid.css";
 import { AccountButton } from "./_components/account-button";
+import { AchievementBoard } from "./_components/achievement-board";
 import { AccountOverview } from "./_components/account-overview";
 import { AuthDialog } from "./_components/auth-dialog";
 import { Leaderboard } from "./_components/leaderboard";
@@ -35,9 +37,11 @@ import { useAccount } from "@/hooks/use-account";
 import { useCosmetics } from "@/hooks/use-cosmetics";
 import { gridThemes } from "@/lib/cosmetics";
 
-type View = "jouer" | "compte" | "tournois" | "classement" | "amis" | "stats" | "boutique";
+type View =
+  "jouer" | "compte" | "tournois" | "classement" | "amis" | "stats" | "boutique" | "defis";
 const nav = [
   ["jouer", "Jouer", Gamepad2],
+  ["defis", "Défis", Medal],
   ["classement", "Classement", Trophy],
   ["amis", "Amis", Users],
   ["compte", "Compte", UserRound],
@@ -67,7 +71,8 @@ export default function Home() {
   const account = useAccount();
   const cosmetics = useCosmetics(account);
   useEffect(() => {
-    if (account.user && (view === "compte" || view === "boutique")) void cosmetics.refresh();
+    if (account.user && (view === "compte" || view === "boutique" || view === "defis"))
+      void cosmetics.refresh();
   }, [view, account.user?.id]);
   useEffect(() => {
     document.body.classList.toggle("menu-open", mobile);
@@ -141,9 +146,10 @@ export default function Home() {
           compte: "Mon compte",
           tournois: "Tournois",
           classement: "Classement mondial",
-          amis: "Amis & défis",
+          amis: "Amis",
           stats: "Mes statistiques",
           boutique: "Boutique cosmétique",
+          defis: "Défis",
         })[view],
       [view],
     );
@@ -308,6 +314,14 @@ export default function Home() {
           )}
           {view === "compte" && (
             <AccountOverview
+              account={account}
+              cosmetics={cosmetics}
+              notify={notify}
+              openAuth={() => setAuthOpen(true)}
+            />
+          )}
+          {view === "defis" && (
+            <AchievementBoard
               account={account}
               cosmetics={cosmetics}
               notify={notify}
