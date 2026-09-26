@@ -4,6 +4,7 @@ import { isSoloDifficulty } from "@/lib/difficulties";
 import { solvePuzzle } from "@/lib/sudoku-solver";
 import { rankedPosition } from "@/lib/ranked-position";
 import { rankFor } from "@/lib/ranked-rules";
+import { SOLO_WIN_XP } from "@/lib/cosmetics";
 
 export const dynamic = "force-dynamic";
 
@@ -111,7 +112,7 @@ export async function POST(request: Request) {
       )
       .bind(crypto.randomUUID(), user.userId, body.difficulty, body.elapsedSeconds, Date.now())
       .run();
-    return Response.json({ saved: true });
+    return Response.json({ saved: true, xpGained: SOLO_WIN_XP });
   } catch {
     return Response.json({ error: "stats_unavailable" }, { status: 503 });
   }

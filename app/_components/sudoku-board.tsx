@@ -37,6 +37,11 @@ const puzzles = Object.fromEntries(
   }),
 ) as Record<Difficulty, { puzzle: number[]; solution: number[]; id: string }>;
 
+/** What a solo win reports back: the XP earned, or null when nothing was saved. */
+type SolveResult = { xpGained: number } | null;
+/** XP shown after a solo win, or where saving it stands. */
+type ExperienceState = number | "saving" | "guest" | "error" | null;
+
 type SudokuBoardProps = {
   difficulty?: Difficulty;
   competitive?: boolean;
@@ -44,7 +49,11 @@ type SudokuBoardProps = {
   active?: boolean;
   initialSeconds?: number;
   initialMistakes?: number;
-  onSolved?: (grid: number[], elapsedSeconds: number, puzzle: number[]) => void;
+  onSolved?: (
+    grid: number[],
+    elapsedSeconds: number,
+    puzzle: number[],
+  ) => void | SolveResult | Promise<void | SolveResult>;
   onMistake?: (index: number, number: number, id: string, grid: number[]) => Promise<number>;
   onProgress?: (filled: number, grid: number[]) => void;
   replayable?: boolean;
@@ -55,6 +64,8 @@ type SudokuBoardProps = {
   race?: { meName: string; opponentName: string; opponentProgress: number; totalToFill?: number };
   storageKey?: string;
   hintsAllowed?: number;
+  soloExperience?: boolean;
+  onConnect?: () => void;
 };
 
 export function SudokuBoard({
@@ -75,6 +86,8 @@ export function SudokuBoard({
   race,
   storageKey,
   hintsAllowed,
+  soloExperience = false,
+  onConnect,
 }: SudokuBoardProps) {
   const game = puzzles[difficulty];
   const [variant, setVariant] = useState(() => ({ puzzle: game.puzzle, solution: game.solution }));
@@ -91,6 +104,7 @@ export function SudokuBoard({
     [cellNotes, setCellNotes] = useState<Record<number, number[]>>({}),
     [seconds, setSeconds] = useState(initialSeconds),
     [done, setDone] = useState(false),
+    [experience, setExperience] = useState<ExperienceState>(null),
     [history, setHistory] = useState<{ cells: number[]; notes: Record<number, number[]> }[]>([]),
     [mistakes, setMistakes] = useState(initialMistakes),
     [hintsUsed, setHintsUsed] = useState(0),
@@ -177,7 +191,15 @@ export function SudokuBoard({
     }
     if (c.every((v, i) => v === solution[i])) {
       setDone(true);
-      onSolved?.(c, Math.max(1, seconds), puzzle);
+      if (soloExperience) {
+        setExperience("saving");
+        void Promise.resolve()
+          .then(() => onSolved?.(c, Math.max(1, seconds), puzzle))
+          .then((result) =>
+            setExperience(result && typeof result === "object" ? result.xpGained : "guest"),
+          )
+          .catch(() => setExperience("error"));
+      } else onSolved?.(c, Math.max(1, seconds), puzzle);
     }
   };
   const erase = () => {
@@ -249,6 +271,7 @@ export function SudokuBoard({
     setHintsUsed(0);
     setSeconds(0);
     setDone(false);
+    setExperience(null);
     setHistory([]);
   };
   if (!ready)
@@ -475,14 +498,42 @@ export function SudokuBoard({
         </div>
       )}
       {done && (
-        <div className="victory">
+        <div className={`victory${typeof experience === "number" ? " reward-ready" : ""}`}>
           <Trophy />
-          <h3>Victoire !</h3>
+          <h3>{soloExperience && experience === "saving" ? "Grille terminée !" : "Victoire !"}</h3>
           <p>
             Grille {difficulty} terminée en {time}
           </p>
+          {soloExperience && (
+            <div className="solo-xp" role="status" aria-live="polite">
+              {typeof experience === "number" ? (
+                <>
+                  <span className="solo-xp-burst" aria-hidden="true">
+                    ✦
+                  </span>
+                  <strong key={experience}>+{experience} XP</strong>
+                  <small>Expérience ajoutée à ton compte</small>
+                </>
+              ) : experience === "saving" ? (
+                <small>Enregistrement de ton expérience…</small>
+              ) : experience === "guest" ? (
+                <>
+                  <small>Connecte-toi pour gagner de l’XP sur les prochaines grilles.</small>
+                  {onConnect && (
+                    <button className="solo-xp-connect" onClick={onConnect}>
+                      Se connecter
+                    </button>
+                  )}
+                </>
+              ) : experience === "error" ? (
+                <small>Résultat non enregistré : aucun XP ajouté.</small>
+              ) : null}
+            </div>
+          )}
           {replayable ? (
-            <button onClick={newGame}>Nouvelle grille</button>
+            <button onClick={newGame} disabled={soloExperience && experience === "saving"}>
+              Nouvelle grille
+            </button>
           ) : (
             <small>Enregistrement du temps…</small>
           )}

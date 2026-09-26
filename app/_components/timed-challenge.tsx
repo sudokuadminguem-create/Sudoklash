@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ShieldCheck, Timer, Trophy, X } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import { formatDuration } from "@/app/lib/format-time";
@@ -29,6 +29,8 @@ export function TimedChallenge({
     [error, setError] = useState(""),
     [now, setNow] = useState(0),
     [pendingGrid, setPendingGrid] = useState<number[] | null>(null);
+  const refreshInFlight = useRef(false),
+    retryAt = useRef(0);
   const isDaily = kind === "daily",
     label = isDaily ? "GRILLE DU JOUR" : "GRILLE HEBDOMADAIRE",
     frequency = isDaily ? "jour" : "semaine";
@@ -69,6 +71,37 @@ export function TimedChallenge({
       clearInterval(timer);
     };
   }, [data]);
+  // Once the period is over, load the next grid (retrying every few seconds on failure).
+  useEffect(() => {
+    if (
+      !data ||
+      !now ||
+      now < new Date(data.nextAt).getTime() ||
+      refreshInFlight.current ||
+      now < retryAt.current
+    )
+      return;
+    refreshInFlight.current = true;
+    void authHeaders()
+      .then((headers) => fetch(`/api/${kind}`, { cache: "no-store", headers }))
+      .then(async (response) => {
+        if (!response.ok) throw new Error("refresh_failed");
+        return response.json() as Promise<ChallengeData>;
+      })
+      .then((value) => {
+        setData(value);
+        setPendingGrid(null);
+        setError("");
+        retryAt.current = 0;
+      })
+      .catch(() => {
+        setError("Nouvelle grille indisponible. Nouvelle tentative dans quelques secondes.");
+        retryAt.current = Date.now() + 5000;
+      })
+      .finally(() => {
+        refreshInFlight.current = false;
+      });
+  }, [kind, data?.nextAt, now]);
   const request = async (action: "ready" | "complete", grid?: number[]) => {
     setBusy(true);
     setError("");
@@ -148,6 +181,14 @@ export function TimedChallenge({
         <h2>Préparation de la grille…</h2>
       </div>
     );
+  if (now >= new Date(data.nextAt).getTime())
+    return (
+      <div className="panel weekly-state">
+        <Timer />
+        <h2>Chargement de la nouvelle grille…</h2>
+        {error && <p>{error}</p>}
+      </div>
+    );
   if (data.status === "completed")
     return (
       <div className="panel weekly-state weekly-complete">
@@ -182,7 +223,7 @@ export function TimedChallenge({
     <div className="play-layout">
       <div>
         <SudokuBoard
-          key={data.startedAt || `${kind}-ready`}
+          key={`${kind}-${data.nextAt}-${data.startedAt || "ready"}`}
           difficulty={isDaily ? "Facile" : "Difficile"}
           puzzleOverride={data.puzzle}
           competitive

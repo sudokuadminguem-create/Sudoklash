@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { periodPuzzle } from "./challenge-schedule";
 
 export type ChallengeKind = "daily" | "weekly";
 
@@ -20,4 +21,9 @@ export async function getChallengeConfig(kind: ChallengeKind) {
     .bind(kind)
     .first<{ title: string; puzzle: string }>();
   return stored ?? challengeDefaults[kind];
+}
+
+export async function getPeriodChallenge(kind: ChallengeKind, periodId: string) {
+  const config = await getChallengeConfig(kind);
+  return { ...config, puzzle: periodPuzzle(config.puzzle, kind, periodId) };
 }

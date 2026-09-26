@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import type { Account } from "@/hooks/use-account";
+import type { Cosmetics } from "@/hooks/use-cosmetics";
 import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
 import { PrivateLobby } from "./private-lobby";
 import { RoomGame } from "./room-game";
@@ -12,11 +13,13 @@ export function ModePanel({
   mode,
   notify,
   account,
+  cosmetics,
   openAuth,
 }: {
   mode: string;
   notify: (s: string) => void;
   account: Account;
+  cosmetics: Cosmetics;
   openAuth: () => void;
 }) {
   const [chosen, setChosen] = useState<Difficulty | null>(null);
@@ -32,19 +35,19 @@ export function ModePanel({
           key={chosen}
           difficulty={chosen}
           title="Entraînement solo"
+          soloExperience
+          onConnect={openAuth}
           onSolved={async (grid, elapsedSeconds, puzzle) => {
-            if (!account.user) return;
-            try {
-              const response = await fetch("/api/account", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-                body: JSON.stringify({ difficulty: chosen, elapsedSeconds, puzzle, grid }),
-              });
-              if (!response.ok) throw new Error("save_failed");
-              notify("Résultat enregistré sur votre compte");
-            } catch {
-              notify("Résultat non enregistré. Vérifiez votre connexion.");
-            }
+            if (!account.user) return null;
+            const response = await fetch("/api/account", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+              body: JSON.stringify({ difficulty: chosen, elapsedSeconds, puzzle, grid }),
+            });
+            if (!response.ok) throw new Error("save_failed");
+            const result = (await response.json()) as { xpGained: number };
+            void cosmetics.refresh();
+            return result;
           }}
         />
       </div>

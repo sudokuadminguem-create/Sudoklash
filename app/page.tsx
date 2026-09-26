@@ -300,6 +300,7 @@ export default function Home() {
                   mode={mode}
                   notify={notify}
                   account={account}
+                  cosmetics={cosmetics}
                   openAuth={() => setAuthOpen(true)}
                 />
               )}

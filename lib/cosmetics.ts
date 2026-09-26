@@ -68,6 +68,7 @@ export type ProgressCounts = {
   wins: number;
   losses: number;
 };
+export const SOLO_WIN_XP = 35;
 export const levelFrames = [
   { level: 1, id: "starter", name: "Initial", color: "#526688" },
   { level: 5, id: "azure", name: "Azur", color: "#4b93ff" },
@@ -97,7 +98,7 @@ export const rankedFrames = [
 
 // Only completed results saved by the server contribute. Existing results count too.
 export function progressFor(s: ProgressCounts) {
-  const xp = s.solo * 35 + s.daily * 100 + s.weekly * 250 + s.wins * 120 + s.losses * 40;
+  const xp = s.solo * SOLO_WIN_XP + s.daily * 100 + s.weekly * 250 + s.wins * 120 + s.losses * 40;
   const level = Math.floor(Math.sqrt(xp / 100)) + 1;
   const current = 100 * (level - 1) ** 2,
     next = 100 * level ** 2;
