@@ -238,3 +238,65 @@ export function solveLogically(puzzle: readonly number[]) {
 export function gradePuzzle(puzzle: readonly number[]): TechniqueLevel | null {
   return solveLogically(puzzle)?.level ?? null;
 }
+
+/** Row, column or box (numbered from 1) that forces a hidden single. */
+export type HintUnit = { kind: "row" | "column" | "box"; number: number; cells: number[] };
+
+/** The next digit a player can deduce, and how. */
+export type LogicalStep = {
+  index: number;
+  digit: number;
+  /** NakedSingle: the only candidate of its cell. HiddenSingle: the only place in `unit`. */
+  technique: typeof Technique.NakedSingle | typeof Technique.HiddenSingle;
+  unit?: HintUnit;
+  /** Hardest elimination technique needed before the single shows up, if any. */
+  eliminatedWith?: TechniqueLevel;
+};
+
+const unitOrder = [...Array(27).keys()].map((i) => (i + 18) % 27);
+const unitOf = (index: number): HintUnit => {
+  const kind = index < 9 ? "row" : index < 18 ? "column" : "box";
+  return { kind, number: (index % 9) + 1, cells: units[index] };
+};
+
+/**
+ * Next cell a human can fill by logic from `grid` (0 for empty), trying the easiest
+ * techniques first. `grid` must only hold correct digits. Null when the techniques above
+ * are not enough.
+ */
+export function nextLogicalStep(grid: readonly number[]): LogicalStep | null {
+  const board = new Board(grid);
+  let eliminatedWith: TechniqueLevel | undefined;
+  while (!board.solved && !board.stuck) {
+    const extra = eliminatedWith ? { eliminatedWith } : {};
+    for (let cell = 0; cell < 81; cell++) {
+      const mask = board.candidates[cell];
+      if (!board.values[cell] && count(mask) === 1)
+        return {
+          index: cell,
+          digit: digitsOf(mask)[0],
+          technique: Technique.NakedSingle,
+          ...extra,
+        };
+    }
+    // Boxes first: that is where most players look for a hidden single.
+    for (const u of unitOrder) {
+      const unit = units[u];
+      for (let digit = 1; digit <= 9; digit++) {
+        const spots = unit.filter((cell) => board.candidates[cell] & bit(digit));
+        if (spots.length === 1)
+          return {
+            index: spots[0],
+            digit,
+            technique: Technique.HiddenSingle,
+            unit: unitOf(u),
+            ...extra,
+          };
+      }
+    }
+    const step = steps.slice(2).find(([, apply]) => apply(board));
+    if (!step) return null;
+    if (!eliminatedWith || step[0] > eliminatedWith) eliminatedWith = step[0];
+  }
+  return null;
+}

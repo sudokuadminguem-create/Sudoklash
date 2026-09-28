@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   Eraser,
   Flame,
@@ -7,15 +7,20 @@ import {
   Lightbulb,
   Pencil,
   RotateCcw,
+  Share2,
   ShieldCheck,
   Timer,
   Trophy,
   X,
 } from "lucide-react";
 import { formatClock } from "@/app/lib/format-time";
+import { hintText } from "@/app/lib/hint-text";
 import type { Entry, Judge } from "@/app/lib/judge";
+import { useSettings } from "@/app/lib/settings";
 import type { BoardSnapshot } from "@/app/lib/solo-save";
 import type { Difficulty } from "@/lib/difficulties";
+import { nextLogicalStep, type LogicalStep } from "@/lib/sudoku-grader";
+import { ConfirmDialog } from "./confirm-dialog";
 
 /** What a solo win reports back: the XP earned, or null when nothing was saved. */
 type SolveResult = { xpGained: number } | null;
@@ -54,7 +59,12 @@ type SudokuBoardProps = {
   resume?: BoardSnapshot;
   /** Called as the game changes so it can be saved; null once it is won or lost. */
   onSnapshot?: (snapshot: BoardSnapshot | null) => void;
+  /** Best time on this difficulty before this game: null before a first win, unset to hide. */
+  previousBest?: number | null;
 };
+
+/** A hint on screen: where the digit goes and why, the digit itself shown on request. */
+type ShownHint = { index: number; number: number; step: LogicalStep | null };
 
 /** Whether two cells share a row, a column or a 3×3 box. */
 const sameUnit = (a: number, b: number) =>
@@ -85,7 +95,9 @@ export function SudokuBoard({
   onConnect,
   resume,
   onSnapshot,
+  previousBest,
 }: SudokuBoardProps) {
+  const { settings } = useSettings();
   const replayable = !!onNewGame;
   const [cells, setCells] = useState(() => [...(resume?.cells ?? puzzle)]),
     [selected, setSelected] = useState<number | null>(null),
@@ -99,7 +111,10 @@ export function SudokuBoard({
     [hintsUsed, setHintsUsed] = useState(resume?.hintsUsed ?? 0),
     // Digits whose check failed. Checks never block the board: verdicts land when they come back.
     [failedEntries, setFailedEntries] = useState<Entry[]>([]),
-    [mistakesLoaded, setMistakesLoaded] = useState(!storageKey);
+    [mistakesLoaded, setMistakesLoaded] = useState(!storageKey),
+    [shownHint, setShownHint] = useState<ShownHint | null>(null),
+    [confirmingNewGame, setConfirmingNewGame] = useState(false),
+    [shared, setShared] = useState(false);
   // Digits the judge accepted or rejected, by cell. A cell shows as correct or wrong only
   // while it still holds that digit, so erasing and undoing stay consistent.
   const [verdicts, setVerdicts] = useState<{
@@ -169,6 +184,7 @@ export function SudokuBoard({
         if (correctCells === 81) finish(current);
         return;
       }
+      if (settings.vibrate) navigator.vibrate?.(180);
       // Several checks can be in flight and answer out of order: never let the count go back.
       setMistakes((previous) => {
         const count = Math.min(3, Math.max(previous, verdict.mistakes ?? previous + 1));
@@ -224,7 +240,8 @@ export function SudokuBoard({
         Object.entries(prev).map(([key, notes]) => {
           const i = Number(key);
           if (i === index) return [key, []];
-          return [key, sameUnit(i, index) ? notes.filter((x) => x !== n) : notes];
+          const drop = settings.autoRemoveNotes && sameUnit(i, index);
+          return [key, drop ? notes.filter((x) => x !== n) : notes];
         }),
       ),
     );
@@ -287,7 +304,18 @@ export function SudokuBoard({
     raceTotal = race?.totalToFill ?? 81,
     time = formatClock(seconds),
     selectedValue = selected === null ? 0 : cells[selected];
-  const related = (i: number) => selected !== null && sameUnit(i, selected);
+  const related = (i: number) =>
+    settings.highlightUnits && selected !== null && sameUnit(i, selected);
+  // A hint is over once its digit is on the board, or the game is.
+  const hint =
+    shownHint && cells[shownHint.index] !== shownHint.number && !done && mistakes < 3
+      ? shownHint
+      : null;
+  const hintCells = new Set(
+    hint
+      ? (hint.step?.unit?.cells ?? cells.map((_, i) => i).filter((i) => sameUnit(i, hint.index)))
+      : [],
+  );
   const requestHint = async () => {
     if (
       !judge.hint ||
@@ -298,15 +326,54 @@ export function SudokuBoard({
       hintsUsed >= hintLimit
     )
       return;
-    const hint = await judge.hint(cells).catch(() => null);
-    if (!hint) return;
+    // Reason from the digits known to be right only: a wrong one would mislead the logic.
+    const known = cells.map((v, i) => (isCorrect(cells, i) ? v : 0));
+    const step = nextLogicalStep(known);
+    const given = await judge.hint(cells, step?.index).catch(() => null);
+    if (!given) return;
     setHintsUsed(hintsUsed + 1);
     if (storageKey) window.localStorage.setItem(`${storageKey}:hints`, String(hintsUsed + 1));
+    setSelected(given.index);
+    setShownHint({ ...given, step: step?.index === given.index ? step : null });
+  };
+  const revealHint = () => {
+    if (!hint) return;
     setSelected(hint.index);
     input(hint.number, hint.index, true);
+    setShownHint(null);
   };
+  // A grid with digits of the player's own is not thrown away without asking.
+  const started =
+    cells.some((v, i) => v && !puzzle[i]) || Object.values(cellNotes).some((n) => n.length);
+  const newGame = () => {
+    if (settings.confirmNewGrid && started && !done && mistakes < 3) setConfirmingNewGame(true);
+    else onNewGame?.();
+  };
+  const share = async () => {
+    const lives = "❤️".repeat(Math.max(0, 3 - mistakes)) + "🤍".repeat(Math.min(3, mistakes));
+    const text = `Sudoku Clash · ${title} ${difficulty}\n⏱ ${time} ${lives} 💡 ${hintsUsed}`;
+    try {
+      if (navigator.share) await navigator.share({ text });
+      else {
+        await navigator.clipboard.writeText(text);
+        setShared(true);
+      }
+    } catch {
+      // Sharing cancelled or not allowed: nothing to do.
+    }
+  };
+  const record =
+    previousBest === undefined
+      ? null
+      : previousBest === null
+        ? { label: "Premier record établi", best: true }
+        : seconds < previousBest
+          ? { label: `Nouveau record · −${formatClock(previousBest - seconds)}`, best: true }
+          : { label: `Record : ${formatClock(previousBest)}`, best: false };
   return (
-    <div className={`game-card ${!active ? "weekly-gated" : ""} ${mistakes >= 3 ? "lost" : ""}`}>
+    <div
+      className={`game-card ${!active ? "weekly-gated" : ""} ${mistakes >= 3 ? "lost" : ""} ${done ? "solved" : ""} ${settings.largeDigits ? "large-digits" : ""}`}
+    >
       <div className="game-top">
         <div>
           <span className="eyebrow">
@@ -335,10 +402,12 @@ export function SudokuBoard({
               />
             ))}
           </div>
-          <div className="timer">
-            <Timer />
-            {time}
-          </div>
+          {settings.showTimer && (
+            <div className="timer">
+              <Timer />
+              {time}
+            </div>
+          )}
         </div>
       </div>
       {!active && onReady && (
@@ -390,7 +459,7 @@ export function SudokuBoard({
           >
             {cells.slice(row * 9, row * 9 + 9).map((v, col) => {
               const i = row * 9 + col,
-                sameValue = selectedValue > 0 && v === selectedValue,
+                sameValue = settings.highlightSame && selectedValue > 0 && v === selectedValue,
                 wrong = isWrong(i),
                 failed = !!v && unverified.some((e) => e.index === i && e.number === v);
               return (
@@ -403,7 +472,8 @@ export function SudokuBoard({
                   aria-label={`Case ligne ${row + 1}, colonne ${col + 1}${v ? `, chiffre ${v}${wrong ? ", incorrect" : ""}` : ", vide"}`}
                   disabled={mistakes >= 3}
                   onClick={() => active && setSelected(i)}
-                  className={`${puzzle[i] ? "given" : "entered"} ${selected === i ? "sel" : ""} ${related(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${failed ? "unverified" : ""}`}
+                  className={`${puzzle[i] ? "given" : "entered"} ${selected === i ? "sel" : ""} ${related(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${failed ? "unverified" : ""} ${hint?.index === i ? "hint-target" : hintCells.has(i) ? "hint-unit" : ""}`}
+                  style={done ? ({ "--wave": row + col } as CSSProperties) : undefined}
                 >
                   {v ||
                     (cellNotes[i]?.length ? (
@@ -475,12 +545,27 @@ export function SudokuBoard({
           Indice ({Math.max(0, hintLimit - hintsUsed)})
         </button>
         {replayable && (
-          <button aria-label="Nouvelle grille" onClick={onNewGame}>
+          <button aria-label="Nouvelle grille" onClick={newGame}>
             <RotateCcw />
             Nouvelle grille
           </button>
         )}
       </div>
+      {hint && (
+        <div className="hint-panel" role="status" aria-live="polite">
+          <Lightbulb />
+          <div>
+            <b>{hintText(hint.index, hint.step).title}</b>
+            <p>{hintText(hint.index, hint.step).text}</p>
+            <div className="hint-actions">
+              <button onClick={revealHint}>Révéler le chiffre</button>
+              <button className="hint-dismiss" onClick={() => setShownHint(null)}>
+                J’ai compris
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="game-footer">
         <span>
           3 vies par grille ·{" "}
@@ -524,9 +609,27 @@ export function SudokuBoard({
         <div className={`victory${typeof experience === "number" ? " reward-ready" : ""}`}>
           <Trophy />
           <h3>{soloExperience && experience === "saving" ? "Grille terminée !" : "Victoire !"}</h3>
-          <p>
-            Grille {difficulty} terminée en {time}
-          </p>
+          <p>Grille {difficulty} terminée</p>
+          <dl className="victory-stats">
+            <div>
+              <dt>Temps</dt>
+              <dd>{time}</dd>
+            </div>
+            <div>
+              <dt>Erreurs</dt>
+              <dd>{mistakes}/3</dd>
+            </div>
+            <div>
+              <dt>Indices</dt>
+              <dd>{hintsUsed}</dd>
+            </div>
+          </dl>
+          {record && (
+            <span className={`victory-record ${record.best ? "best" : ""}`}>
+              {record.best && <Trophy />}
+              {record.label}
+            </span>
+          )}
           {soloExperience && (
             <div className="solo-xp" role="status" aria-live="polite">
               {typeof experience === "number" ? (
@@ -553,14 +656,33 @@ export function SudokuBoard({
               ) : null}
             </div>
           )}
-          {replayable ? (
-            <button onClick={onNewGame} disabled={soloExperience && experience === "saving"}>
-              Nouvelle grille
+          <div className="victory-actions">
+            <button className="victory-share" onClick={() => void share()}>
+              <Share2 />
+              {shared ? "Copié !" : "Partager"}
             </button>
-          ) : (
-            <small>Enregistrement du temps…</small>
-          )}
+            {replayable ? (
+              <button onClick={onNewGame} disabled={soloExperience && experience === "saving"}>
+                Nouvelle grille
+              </button>
+            ) : (
+              <small>Enregistrement du temps…</small>
+            )}
+          </div>
         </div>
+      )}
+      {confirmingNewGame && (
+        <ConfirmDialog
+          title="Abandonner cette grille ?"
+          message="Ta progression sur la grille en cours sera perdue."
+          confirmLabel="Nouvelle grille"
+          cancelLabel="Continuer la partie"
+          onCancel={() => setConfirmingNewGame(false)}
+          onConfirm={() => {
+            setConfirmingNewGame(false);
+            onNewGame?.();
+          }}
+        />
       )}
     </div>
   );

@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react";
 import { History } from "lucide-react";
 import { formatClock } from "@/app/lib/format-time";
+import { useSettings } from "@/app/lib/settings";
 import { loadSoloSave, saveProgress, type SoloSave } from "@/app/lib/solo-save";
+import { ConfirmDialog } from "./confirm-dialog";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
 import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
@@ -26,7 +28,13 @@ export function ModePanel({
 }) {
   const [chosen, setChosen] = useState<Difficulty | null>(null),
     [resuming, setResuming] = useState<SoloSave | undefined>(),
-    [saved, setSaved] = useState<SoloSave | null>(null);
+    [saved, setSaved] = useState<SoloSave | null>(null),
+    [replacing, setReplacing] = useState<Difficulty | null>(null);
+  const { settings } = useSettings();
+  const pick = (d: Difficulty) => {
+    setChosen(d);
+    notify(`Grille ${d} chargée`);
+  };
   const userId = account.user?.id ?? null;
   // Look for a game to resume each time the difficulty picker shows up.
   useEffect(() => {
@@ -88,10 +96,8 @@ export function ModePanel({
         <div className="difficulty-grid">
           {soloDifficulties.map((d, i) => (
             <button
-              onClick={() => {
-                setChosen(d);
-                notify(`Grille ${d} chargée`);
-              }}
+              // A new grid replaces the saved one: ask first.
+              onClick={() => (saved && settings.confirmNewGrid ? setReplacing(d) : pick(d))}
               key={d}
             >
               <span>{["🌱", "●", "◆", "▲", "⬢", "♛"][i]}</span>
@@ -111,6 +117,19 @@ export function ModePanel({
             </button>
           ))}
         </div>
+        {replacing && saved && (
+          <ConfirmDialog
+            title="Remplacer ta partie en cours ?"
+            message={`Ta partie ${saved.difficulty} commencée sera perdue si tu lances une nouvelle grille ${replacing}.`}
+            confirmLabel="Nouvelle grille"
+            cancelLabel="Garder ma partie"
+            onCancel={() => setReplacing(null)}
+            onConfirm={() => {
+              setReplacing(null);
+              pick(replacing);
+            }}
+          />
+        )}
       </div>
     );
   if (mode === "daily") return <TimedChallenge kind="daily" openAuth={openAuth} />;

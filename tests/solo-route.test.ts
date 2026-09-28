@@ -84,6 +84,18 @@ describe("solo games", () => {
     expect((await callRoute(POST, { action: "hint", gameId, grid: puzzle })).status).toBe(409);
   });
 
+  it("gives the hint in the cell asked for when it still needs a digit", async () => {
+    const { gameId, puzzle, solution } = await startGame();
+    const empty = puzzle.map((v: number, i: number) => (v ? -1 : i)).filter((i: number) => i >= 0);
+    const wanted = empty[empty.length - 1];
+    const { body } = await callRoute(POST, { action: "hint", gameId, grid: puzzle, index: wanted });
+    expect(body.hint).toEqual({ index: wanted, number: solution[wanted] });
+    // A given cell needs nothing: the first open cell is used instead.
+    const given = puzzle.findIndex((v: number) => v);
+    const other = await callRoute(POST, { action: "hint", gameId, grid: puzzle, index: given });
+    expect(other.body.hint.index).toBe(empty[0]);
+  });
+
   it("records a win timed by the server, not too fast", async () => {
     const { gameId, solution } = await startGame();
     const complete = { action: "complete", gameId, grid: solution };
