@@ -74,6 +74,39 @@ describe("sudoku board", () => {
     expect(cellButtons()[empties[0]].className).not.toContain("wrong");
   });
 
+  it("keeps the board playable while checks are in flight", async () => {
+    const onSolved = vi.fn();
+    const answers: (() => void)[] = [];
+    const judge: Judge = {
+      check: (entry) =>
+        new Promise((resolve) =>
+          answers.push(() => resolve({ correct: solution[entry.index] === entry.number })),
+        ),
+    };
+    await render(judge, { onSolved });
+    for (const index of empties) await play(index, solution[index]);
+    expect(answers).toHaveLength(empties.length);
+    expect(cellButtons()[empties.at(-1)!].textContent).toBe(String(solution[empties.at(-1)!]));
+    expect(onSolved).not.toHaveBeenCalled();
+    // Verdicts arrive late and out of order.
+    for (const answer of answers.reverse()) await act(async () => answer());
+    expect(onSolved).toHaveBeenCalledWith(solution, expect.any(Number), puzzle);
+  });
+
+  it("never lowers the mistake count when verdicts arrive out of order", async () => {
+    const answers: ((mistakes: number) => void)[] = [];
+    const judge: Judge = {
+      check: () =>
+        new Promise((resolve) => answers.push((mistakes) => resolve({ correct: false, mistakes }))),
+    };
+    await render(judge);
+    await play(empties[0], (solution[empties[0]] % 9) + 1);
+    await play(empties[1], (solution[empties[1]] % 9) + 1);
+    await act(async () => answers[1](2));
+    await act(async () => answers[0](1));
+    expect(container.querySelectorAll(".lives .full")).toHaveLength(1);
+  });
+
   it("places the judge's hint", async () => {
     await render(localJudge(puzzle, solution));
     const hintButton = [...container.querySelectorAll("button")].find((b) =>
