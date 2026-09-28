@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { DatabaseSync, type StatementSync } from "node:sqlite";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { env } from "./workers";
@@ -8,7 +8,7 @@ const migrations = fileURLToPath(new URL("../../drizzle", import.meta.url));
 // Minimal D1 API over an in-memory SQLite database, with every migration applied.
 class Statement {
   constructor(
-    private db: Database.Database,
+    private db: DatabaseSync,
     private sql: string,
     private args: unknown[] = [],
   ) {}
@@ -16,13 +16,14 @@ class Statement {
     return new Statement(this.db, this.sql, args);
   }
   execute() {
-    const statement = this.db.prepare(this.sql);
-    if (statement.reader) {
-      const results = statement.all(...this.args);
+    const statement: StatementSync = this.db.prepare(this.sql);
+    const args = this.args as Parameters<StatementSync["run"]>;
+    if (statement.columns().length) {
+      const results = statement.all(...args);
       return { results, meta: { changes: 0 } };
     }
-    const info = statement.run(...this.args);
-    return { results: [], meta: { changes: info.changes } };
+    const info = statement.run(...args);
+    return { results: [], meta: { changes: Number(info.changes) } };
   }
   async first<T>() {
     return (this.execute().results[0] as T | undefined) ?? null;
@@ -36,7 +37,7 @@ class Statement {
 }
 
 export function installTestDatabase() {
-  const db = new Database(":memory:");
+  const db = new DatabaseSync(":memory:");
   for (const file of readdirSync(migrations)
     .filter((name) => name.endsWith(".sql"))
     .sort()) {
@@ -47,8 +48,17 @@ export function installTestDatabase() {
   }
   const d1 = {
     prepare: (sql: string) => new Statement(db, sql),
-    batch: async (statements: Statement[]) =>
-      db.transaction(() => statements.map((statement) => statement.execute()))(),
+    batch: async (statements: Statement[]) => {
+      db.exec("BEGIN");
+      try {
+        const results = statements.map((statement) => statement.execute());
+        db.exec("COMMIT");
+        return results;
+      } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+      }
+    },
   };
   (env as { DB: unknown }).DB = d1;
   return db;

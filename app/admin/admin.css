@@ -211,3 +211,70 @@
   font-weight: 800;
   cursor: pointer;
 }
+.admin-section-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 27px;
+}
+.admin-section-tabs button {
+  min-height: 46px;
+  padding: 10px 17px;
+  border: 1px solid #384565;
+  border-radius: 12px;
+  background: #111c32;
+  color: #d9e3f6;
+  font-size: 14px;
+  font-weight: 800;
+}
+.admin-section-tabs button.active {
+  border-color: #f7d78d;
+  background: #453723;
+  color: #fff3d0;
+}
+.admin-majestic {
+  margin-top: 24px;
+}
+.admin-majestic-heading {
+  padding: 25px;
+  border: 1px solid #9b7a48;
+  border-radius: 19px;
+  background: radial-gradient(circle at 88% 10%, #b98a4e44, transparent 48%), linear-gradient(125deg, #272037, #151d35);
+}
+.admin-majestic-heading > span,
+.admin-majestic-card small {
+  color: #f4d697;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+.admin-majestic-heading h2 { margin: 6px 0 9px; font-size: 30px; }
+.admin-majestic-heading p { max-width: 680px; color: #d4d9e9; line-height: 1.5; }
+.admin-majestic-heading strong { color: #ffdf9c; }
+.admin-majestic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+.admin-majestic-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 19px;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #6d5d66;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #22203a, #121c31);
+}
+.admin-majestic-card > .player-avatar { margin: 12px 2px 0; }
+.admin-majestic-card > div { flex: 1; min-width: 0; }
+.admin-majestic-card h3 { margin: 5px 0 7px; font-size: 19px; }
+.admin-majestic-card p { margin: 0 0 14px; color: #c1cce0; font-size: 14px; line-height: 1.45; }
+.admin-majestic-card b { display: block; margin-top: 7px; color: #f1d898; font-size: 13px; }
+.admin-majestic-progress { height: 7px; border-radius: 10px; background: #34405e; overflow: hidden; }
+.admin-majestic-progress span { display: block; height: 100%; background: linear-gradient(90deg, #ab83e8, #ffda83); }
+@media (max-width: 650px) {
+  .admin-section-tabs button { flex: 1 1 100%; }
+  .admin-majestic-grid { grid-template-columns: 1fr; }
+}

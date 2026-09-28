@@ -85,6 +85,20 @@
       "when": 1790439341463,
       "tag": "0011_ranked_presence",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1790446395631,
+      "tag": "0012_condemned_doctor_strange",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1790611543771,
+      "tag": "0013_regular_captain_cross",
+      "breakpoints": true
     }
   ]
 }

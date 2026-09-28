@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { ChevronLeft, LockKeyhole, ShieldCheck } from "lucide-react";
 import { AuthDialog } from "@/app/_components/auth-dialog";
 import { authHeaders } from "@/app/lib/auth-headers";
@@ -39,10 +38,10 @@ export default function AdminAccess() {
   return (
     <main className="admin-shell">
       <header className="admin-header">
-        <Link href="/">
+        <a href="/">
           <ChevronLeft />
           Retour au jeu
-        </Link>
+        </a>
         <div>
           <LockKeyhole />
           <span>SUDOKU CLASH</span>
