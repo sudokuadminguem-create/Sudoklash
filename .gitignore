@@ -45,3 +45,7 @@ next-env.d.ts
 /outputs/
 /work/
 *.tsbuildinfo
+
+# Self-hosted SQLite database (Docker volume when run outside a container)
+/data/
+!.env.example

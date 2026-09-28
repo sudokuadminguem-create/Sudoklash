@@ -19,3 +19,24 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm run lint
       - run: pnpm test
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t sudoklash:ci .
+      - name: Start it hardened and wait for the health check
+        run: |
+          docker run -d --name sudoklash --read-only --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            --tmpfs /tmp --tmpfs /app/.next/cache:uid=1000,gid=1000 \
+            -p 3000:3000 sudoklash:ci
+          for i in $(seq 1 30); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' sudoklash)
+            [ "$status" = healthy ] && break
+            sleep 2
+          done
+          docker logs sudoklash
+          test "$status" = healthy
+          curl -fsS http://127.0.0.1:3000/api/health

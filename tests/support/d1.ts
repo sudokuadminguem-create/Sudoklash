@@ -1,67 +1,14 @@
-import { DatabaseSync, type StatementSync } from "node:sqlite";
-import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { openSqliteD1 } from "@/lib/runtime/sqlite-d1";
 import { env } from "./workers";
 
 const migrations = fileURLToPath(new URL("../../drizzle", import.meta.url));
 
-// Minimal D1 API over an in-memory SQLite database, with every migration applied.
-class Statement {
-  constructor(
-    private db: DatabaseSync,
-    private sql: string,
-    private args: unknown[] = [],
-  ) {}
-  bind(...args: unknown[]) {
-    return new Statement(this.db, this.sql, args);
-  }
-  execute() {
-    const statement: StatementSync = this.db.prepare(this.sql);
-    const args = this.args as Parameters<StatementSync["run"]>;
-    if (statement.columns().length) {
-      const results = statement.all(...args);
-      return { results, meta: { changes: 0 } };
-    }
-    const info = statement.run(...args);
-    return { results: [], meta: { changes: Number(info.changes) } };
-  }
-  async first<T>() {
-    return (this.execute().results[0] as T | undefined) ?? null;
-  }
-  async all<T>() {
-    return this.execute() as { results: T[]; meta: { changes: number } };
-  }
-  async run() {
-    return this.execute();
-  }
-}
-
+/** Fresh in-memory database with every migration, installed as the D1 binding. */
 export function installTestDatabase() {
-  const db = new DatabaseSync(":memory:");
-  for (const file of readdirSync(migrations)
-    .filter((name) => name.endsWith(".sql"))
-    .sort()) {
-    for (const sql of readFileSync(`${migrations}/${file}`, "utf8").split(
-      "--> statement-breakpoint",
-    ))
-      if (sql.trim()) db.exec(sql);
-  }
-  const d1 = {
-    prepare: (sql: string) => new Statement(db, sql),
-    batch: async (statements: Statement[]) => {
-      db.exec("BEGIN");
-      try {
-        const results = statements.map((statement) => statement.execute());
-        db.exec("COMMIT");
-        return results;
-      } catch (error) {
-        db.exec("ROLLBACK");
-        throw error;
-      }
-    },
-  };
-  (env as { DB: unknown }).DB = d1;
-  return db;
+  const { d1, sqlite } = openSqliteD1(":memory:", migrations);
+  (env as { DB: D1Database }).DB = d1;
+  return sqlite;
 }
 
 /** Calls a route handler with a JSON body (POST) or none (GET). */

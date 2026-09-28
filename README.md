@@ -124,3 +124,23 @@ The portable build runs Vinext directly without a host `timeout` command. The ma
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+
+## Auto-hébergement (Docker)
+
+```sh
+cp .env.example .env        # facultatif : port, adresse d'écoute, projet Supabase
+docker compose up -d --build
+```
+
+L'application écoute sur `127.0.0.1:3000` ; placez un reverse proxy TLS devant (Caddy, Traefik,
+nginx). Dans ce mode :
+
+- la base D1 est remplacée par un fichier SQLite dans le volume `data` (migrations `drizzle/`
+  appliquées au démarrage) ; sauvegardez ce volume ;
+- seule la connexion Supabase est acceptée : les en-têtes d'identité de la plateforme
+  (`oai-authenticated-*`) sont ignorés, car n'importe qui pourrait les envoyer ;
+- la configuration propre à Docker (`next.config.ts`) ne s'active qu'avec
+  `SUDOKLASH_SELF_HOSTED=1`, posé par le script `build:standalone` qu'appelle le Dockerfile : la
+  plateforme, qui lit aussi ce fichier, garde D1, sa connexion ChatGPT et ses propres en-têtes ;
+- le conteneur tourne sans root, en lecture seule, sans capacités Linux, sans npm ni apk, avec des
+  en-têtes de sécurité (CSP, HSTS, anti-framing) et une sonde `/api/health`.
