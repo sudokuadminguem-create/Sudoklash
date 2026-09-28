@@ -1,5 +1,7 @@
 // Public appearance only; secret challenge titles and conditions stay on the server.
 export const elementLabels: Record<string, string> = {
+  angel: "Ange", demon: "Démon", warrior: "Guerrier", samurai: "Samouraï", ninja: "Ninja",
+  pirate: "Pirate", dragon: "Dragon", phoenix: "Phénix", mage: "Mage", guardian: "Gardien",
   leaf: "Feuillage", fire: "Feu", water: "Eau", steel: "Acier", frost: "Givre",
   lightning: "Éclair", splash: "Éclaboussure", meteor: "Météore", aurora: "Aurore", solar: "Soleil",
   crown: "Couronne", lotus: "Lotus", nebula: "Nébuleuse", onyx: "Onyx", prism: "Prisme",
@@ -15,11 +17,13 @@ export function challengeFrameStyle(id: string) {
   const hue = (families[index % 10] + Math.floor(index / 10) * 5) % 360;
   const light = rarity === "majestic" ? 80 : rarity === "legendary" ? 76 : rarity === "epic" ? 70 : 64;
   const symbols = ["✦", "◆", "✧", "✳", "◇", "❖", "✺", "◈", "✵", "⬡"];
-  const epicThemes = ["leaf", "fire", "water", "steel", "frost"] as const;
-  const legendaryThemes = ["lightning", "splash", "meteor", "aurora", "solar"] as const;
+  const epicThemes = ["angel", "demon", "warrior", "samurai", "ninja"] as const;
+  const legendaryThemes = ["pirate", "dragon", "phoenix", "mage", "guardian"] as const;
   const majesticThemes = ["crown", "lotus", "nebula", "onyx", "prism"] as const;
   const element = rarity === "epic" ? epicThemes[index % 5] : rarity === "legendary" ? legendaryThemes[index % 5] : rarity === "majestic" ? majesticThemes[index % 5] : null;
   const elementHues: Record<string, number> = {
+    angel: 48, demon: 349, warrior: 32, samurai: 8, ninja: 257,
+    pirate: 185, dragon: 132, phoenix: 22, mage: 274, guardian: 210,
     leaf: 132, fire: 19, water: 194, steel: 216, frost: 187,
     lightning: 53, splash: 198, meteor: 11, aurora: 279, solar: 40,
     crown: 44, lotus: 319, nebula: 257, onyx: 209, prism: 166,

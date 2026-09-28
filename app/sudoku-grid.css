@@ -2370,6 +2370,30 @@ button {
 .player-avatar.achievement-frame .element-inner {
   opacity: .88;
 }
+.player-avatar.achievement-frame .archetype-art {
+  inset: -16px;
+  width: calc(100% + 32px);
+  height: calc(100% + 32px);
+  filter: drop-shadow(0 0 3px var(--frame-color));
+}
+.player-avatar.achievement-frame .archetype-art .archetype-crown {
+  filter: drop-shadow(0 0 3px var(--frame-color));
+}
+.player-avatar.achievement-frame .archetype-art .element-signature {
+  filter: drop-shadow(0 0 3px var(--frame-color));
+}
+.player-avatar.achievement-frame .element-angel .element-halo,
+.player-avatar.achievement-frame .element-guardian .element-halo {
+  stroke-dasharray: 9 3;
+}
+.player-avatar.achievement-frame .element-demon .element-base,
+.player-avatar.achievement-frame .element-dragon .element-base {
+  stroke-linejoin: miter;
+}
+.player-avatar.achievement-frame .element-ninja .element-metal,
+.player-avatar.achievement-frame .element-samurai .element-metal {
+  stroke-dasharray: 7 9;
+}
 .player-avatar.achievement-frame.epic-frame .element-ornament {
   filter: drop-shadow(0 0 2px var(--frame-color));
 }

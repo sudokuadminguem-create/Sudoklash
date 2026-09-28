@@ -1,7 +1,17 @@
-type Element = "leaf" | "fire" | "water" | "steel" | "frost" | "lightning" | "splash" | "meteor" | "aurora" | "solar" | "crown" | "lotus" | "nebula" | "onyx" | "prism";
+type Element = "angel" | "demon" | "warrior" | "samurai" | "ninja" | "pirate" | "dragon" | "phoenix" | "mage" | "guardian" | "leaf" | "fire" | "water" | "steel" | "frost" | "lightning" | "splash" | "meteor" | "aurora" | "solar" | "crown" | "lotus" | "nebula" | "onyx" | "prism";
 
 // Vector ornaments stay crisp from the account button to the collection preview.
 const motifs: Record<Element, string> = {
+  angel: "M-12 4 Q-7 -6 -2 0 L0 4 L2 0 Q7 -6 12 4 Q7 2 5 8 L0 5 L-5 8 Q-7 2 -12 4 Z M-7 -6 Q0 -10 7 -6",
+  demon: "M-10 7 Q-12 -6 -6 -11 L-4 -4 Q0 -7 4 -4 L6 -11 Q12 -6 10 7 L5 3 L0 10 L-5 3 Z",
+  warrior: "M0 -11 L9 -7 L8 4 L0 11 L-8 4 L-9 -7 Z M-5 -4 L5 -4 M0 -7 V7 M-5 2 L5 2",
+  samurai: "M-10 -4 Q0 -11 10 -4 L7 2 Q0 -2 -7 2 Z M-9 4 L9 4 M-7 8 L7 8 M-7 -7 L-11 -10 M7 -7 L11 -10",
+  ninja: "M0 -11 L3 -3 L11 0 L3 3 L0 11 L-3 3 L-11 0 L-3 -3 Z M0 -5 V5 M-5 0 H5",
+  pirate: "M-10 1 Q0 -11 10 1 L7 6 H-7 Z M-7 -1 L-10 -6 M7 -1 L10 -6 M-3 4 H3 M0 6 V10",
+  dragon: "M-9 6 Q-9 -7 -3 -6 L0 -11 L3 -6 Q9 -7 9 6 L4 2 L0 10 L-4 2 Z M-4 -2 L-2 0 M4 -2 L2 0",
+  phoenix: "M0 -11 Q5 -3 9 -8 Q7 0 3 2 L11 6 Q4 10 0 5 Q-4 10 -11 6 L-3 2 Q-7 0 -9 -8 Q-5 -3 0 -11 Z",
+  mage: "M0 -11 L3 -4 L11 -3 L5 2 L7 10 L0 6 L-7 10 L-5 2 L-11 -3 L-3 -4 Z M0 -4 V3 M-3 0 H3",
+  guardian: "M0 -11 L9 -7 L9 2 Q6 9 0 11 Q-6 9 -9 2 L-9 -7 Z M-5 -5 V2 L0 6 L5 2 V-5 M0 -8 V6",
   leaf: "M0 -9 C8 -8 9 0 0 9 C-8 4 -8 -5 0 -9 Z M0 8 C0 0 3 -4 6 -6",
   fire: "M0 -10 C4 -6 2 -4 5 -2 C9 3 5 9 0 9 C-7 9 -9 3 -5 -2 C-4 2 -1 2 0 -10 Z",
   water: "M0 -10 C3 -4 8 1 8 4 A8 8 0 0 1 -8 4 C-8 1 -3 -4 0 -10 Z",
@@ -17,6 +27,19 @@ const motifs: Record<Element, string> = {
   nebula: "M-10 3 Q-1 -12 7 -6 Q12 -1 2 5 Q-5 10 -8 5 M1 -2 L2 -2 M-5 4 L-4 4",
   onyx: "M0 -11 L9 -5 L7 6 L0 11 L-7 6 L-9 -5 Z M0 -11 L0 11 M-9 -5 L7 6 M9 -5 L-7 6",
   prism: "M0 -11 L10 4 L0 10 L-10 4 Z M0 -11 L0 10 M-10 4 H10",
+};
+
+const archetypeCrowns: Partial<Record<Element, string>> = {
+  angel: "M-43 -6 Q-52 -24 -46 -34 Q-37 -26 -35 -16 M43 -6 Q52 -24 46 -34 Q37 -26 35 -16 M-19 -42 Q0 -53 19 -42",
+  demon: "M-39 -19 L-49 -43 L-27 -34 M39 -19 L49 -43 L27 -34 M-8 -43 L0 -50 L8 -43",
+  warrior: "M-42 -19 L-51 -28 L-37 -33 M42 -19 L51 -28 L37 -33 M-13 -42 L0 -50 L13 -42",
+  samurai: "M-42 -21 Q0 -59 42 -21 M-34 -33 Q0 -43 34 -33 M-48 9 L-41 -6 M48 9 L41 -6",
+  ninja: "M-43 -30 L-34 -28 M43 -30 L34 -28 M-8 -43 L0 -52 L8 -43 M-48 0 L-40 -8 M48 0 L40 -8",
+  pirate: "M-37 -30 Q0 -55 37 -30 L46 -23 L34 -23 M-46 -23 L-34 -23 M-12 -45 L0 -52 L12 -45",
+  dragon: "M-36 -31 L-48 -47 L-43 -25 M36 -31 L48 -47 L43 -25 M-16 -40 L-9 -50 L0 -42 L9 -50 L16 -40",
+  phoenix: "M-39 -20 Q-55 -35 -46 -49 L-30 -35 M39 -20 Q55 -35 46 -49 L30 -35 M-9 -43 L0 -55 L9 -43",
+  mage: "M-42 -16 L-51 -18 M42 -16 L51 -18 M-18 -41 L-23 -49 M18 -41 L23 -49 M0 -44 V-53",
+  guardian: "M-42 -26 L-49 -35 L-40 -42 M42 -26 L49 -35 L40 -42 M-12 -43 L0 -52 L12 -43",
 };
 
 // Twenty recognisable engravings for the hundred classic frames. Each engraving
@@ -61,8 +84,10 @@ export function ElementalFrame({ element, variant, motif, legendary }: { element
   const ornaments = [3, 4, 6, 8, 10][variant];
   const simple = element === null;
   const engraving = element ? motifs[element] : classicMotifs[motif];
+  const archetype = element && archetypeCrowns[element];
   return (
-    <svg className={`elemental-art ${simple ? "element-classic" : `element-${element}`} crown-${variant}`} viewBox="-52 -52 104 104" aria-hidden="true" focusable="false">
+    <svg className={`elemental-art ${simple ? "element-classic" : `element-${element}`} ${archetype ? "archetype-art" : ""} crown-${variant}`} viewBox="-56 -56 112 112" aria-hidden="true" focusable="false">
+      {archetype && <path className="archetype-crown" d={archetype} fill="none" stroke="var(--frame-highlight)" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />}
       {!simple && <circle className="element-halo" r="47" fill="none" stroke="currentColor" strokeWidth="1" />}
       <path className="element-base" d={crownPath(variant)} fill="none" stroke="var(--frame-accent)" strokeWidth={simple ? 5 : 7} strokeLinejoin="round" />
       <path className="element-metal" d={crownPath(variant)} fill="none" stroke="var(--frame-highlight)" strokeWidth="1.6" strokeLinejoin="round" strokeDasharray={`${3 + variant} ${14 - variant}`} />
@@ -78,7 +103,7 @@ export function ElementalFrame({ element, variant, motif, legendary }: { element
           );
         })}
       </g>
-      {!simple && <path className="element-signature" d={engraving} transform={`translate(0 -43) scale(${legendary ? 1.15 : 0.9})`} fill="var(--frame-accent)" stroke="var(--frame-highlight)" strokeWidth="1.5" strokeLinejoin="round" />}
+      {!simple && <path className="element-signature" d={engraving} transform={`translate(0 -43) scale(${archetype ? 0.85 : legendary ? 1.15 : 0.9})`} fill="var(--frame-accent)" stroke="var(--frame-highlight)" strokeWidth="1.5" strokeLinejoin="round" />}
       {legendary && <g className="element-particles">
         {Array.from({ length: 8 }, (_, i) => {
           const angle = (i * Math.PI) / 4;
