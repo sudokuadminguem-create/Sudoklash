@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatClock } from "@/app/lib/format-time";
 import type { Entry, Judge } from "@/app/lib/judge";
+import type { BoardSnapshot } from "@/app/lib/solo-save";
 import type { Difficulty } from "@/lib/difficulties";
 
 /** What a solo win reports back: the XP earned, or null when nothing was saved. */
@@ -49,6 +50,10 @@ type SudokuBoardProps = {
   hintsAllowed?: number;
   soloExperience?: boolean;
   onConnect?: () => void;
+  /** State of a game saved earlier, to carry on from. */
+  resume?: BoardSnapshot;
+  /** Called as the game changes so it can be saved; null once it is won or lost. */
+  onSnapshot?: (snapshot: BoardSnapshot | null) => void;
 };
 
 /** Whether two cells share a row, a column or a 3×3 box. */
@@ -78,18 +83,20 @@ export function SudokuBoard({
   hintsAllowed,
   soloExperience = false,
   onConnect,
+  resume,
+  onSnapshot,
 }: SudokuBoardProps) {
   const replayable = !!onNewGame;
-  const [cells, setCells] = useState([...puzzle]),
+  const [cells, setCells] = useState(() => [...(resume?.cells ?? puzzle)]),
     [selected, setSelected] = useState<number | null>(null),
     [noteMode, setNoteMode] = useState(false),
-    [cellNotes, setCellNotes] = useState<Record<number, number[]>>({}),
-    [seconds, setSeconds] = useState(initialSeconds),
+    [cellNotes, setCellNotes] = useState<Record<number, number[]>>(() => resume?.notes ?? {}),
+    [seconds, setSeconds] = useState(resume?.seconds ?? initialSeconds),
     [done, setDone] = useState(false),
     [experience, setExperience] = useState<ExperienceState>(null),
     [history, setHistory] = useState<{ cells: number[]; notes: Record<number, number[]> }[]>([]),
-    [mistakes, setMistakes] = useState(initialMistakes),
-    [hintsUsed, setHintsUsed] = useState(0),
+    [mistakes, setMistakes] = useState(resume?.mistakes ?? initialMistakes),
+    [hintsUsed, setHintsUsed] = useState(resume?.hintsUsed ?? 0),
     // Digits whose check failed. Checks never block the board: verdicts land when they come back.
     [failedEntries, setFailedEntries] = useState<Entry[]>([]),
     [mistakesLoaded, setMistakesLoaded] = useState(!storageKey);
@@ -98,8 +105,10 @@ export function SudokuBoard({
   const [verdicts, setVerdicts] = useState<{
     correct: Record<number, number>;
     wrong: Record<number, number>;
-  }>({ correct: {}, wrong: {} });
+  }>(() => resume?.verdicts ?? { correct: {}, wrong: {} });
   const verdictsRef = useRef(verdicts);
+  // Entries sent to the judge whose verdict has not come back yet, by id.
+  const pendingRef = useRef<Record<string, Entry>>({});
   // Latest grid, for verdicts that come back after other digits were placed.
   const cellsRef = useRef(cells);
   const updateCells = (grid: number[]) => {
@@ -146,8 +155,11 @@ export function SudokuBoard({
   };
   const submit = async (entry: Entry, grid: number[]) => {
     setFailedEntries((list) => list.filter((e) => e.id !== entry.id));
+    pendingRef.current[entry.id] = entry;
     try {
-      const verdict = await judge.check(entry, grid);
+      const verdict = await judge.check(entry, grid).finally(() => {
+        delete pendingRef.current[entry.id];
+      });
       recordVerdict(entry, verdict.correct);
       if (verdict.correct) {
         // Other digits may have been placed since: count against the board as it is now.
@@ -169,12 +181,21 @@ export function SudokuBoard({
   };
   // Entries whose check failed and whose digit is still on the board; the others are moot.
   const unverified = failedEntries.filter((e) => cells[e.index] === e.number);
+  // Digits confirmed in all nine places: there is nowhere left to put them.
+  const completedDigits = new Set(
+    [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(
+      (n) =>
+        cells.filter((v, i) => v === n && (puzzle[i] === n || verdicts.correct[i] === n)).length ===
+        9,
+    ),
+  );
   const retryFailed = () => {
     setFailedEntries([]);
     for (const entry of unverified) void submit(entry, cells);
   };
   const input = (n: number, index = selected, forceValue = false) => {
     if (
+      completedDigits.has(n) ||
       !mistakesLoaded ||
       !active ||
       index === null ||
@@ -225,6 +246,28 @@ export function SudokuBoard({
     setCellNotes(last.notes);
     setHistory((h) => h.slice(0, -1));
   };
+  // Digits restored from a save whose check never came back: ask again, with the same ids
+  // so a mistake the server already counted is not counted twice.
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (resumedRef.current || !resume) return;
+    resumedRef.current = true;
+    for (const entry of resume.pending)
+      if (cellsRef.current[entry.index] === entry.number) void submit(entry, cellsRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!onSnapshot) return;
+    if (done || mistakes >= 3) {
+      onSnapshot(null);
+      return;
+    }
+    const pending = [...Object.values(pendingRef.current), ...failedEntries].filter(
+      (e) => cells[e.index] === e.number,
+    );
+    onSnapshot({ cells, notes: cellNotes, seconds, mistakes, hintsUsed, verdicts, pending });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cells, cellNotes, seconds, mistakes, hintsUsed, verdicts, failedEntries, done]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key >= "1" && e.key <= "9") input(Number(e.key));
@@ -382,10 +425,10 @@ export function SudokuBoard({
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
           <button
             key={n}
-            aria-label={`Placer le chiffre ${n}`}
+            aria-label={completedDigits.has(n) ? `Chiffre ${n} complété` : `Placer le chiffre ${n}`}
             aria-pressed={selectedValue === n}
-            disabled={mistakes >= 3}
-            className={selectedValue === n ? "active-number" : ""}
+            disabled={mistakes >= 3 || completedDigits.has(n)}
+            className={`${selectedValue === n ? "active-number" : ""} ${completedDigits.has(n) ? "completed-digit" : ""}`}
             onClick={() => input(n)}
           >
             {n}

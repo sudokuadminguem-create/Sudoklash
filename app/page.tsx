@@ -9,7 +9,6 @@ import {
   Medal,
   LockKeyhole,
   Menu,
-  Settings,
   Swords,
   Trophy,
   UserRound,
@@ -29,16 +28,13 @@ import { RankedGame } from "./_components/ranked-game";
 import { RankedMatch } from "./_components/ranked-match";
 import { RealFriends } from "./_components/real-friends";
 import { Shop } from "./_components/shop";
-import { Stats } from "./_components/stats";
-import { Tournaments } from "./_components/tournaments";
 import { authHeaders } from "./lib/auth-headers";
 import { supabase } from "./lib/supabase";
 import { useAccount } from "@/hooks/use-account";
 import { useCosmetics } from "@/hooks/use-cosmetics";
 import { gridThemes } from "@/lib/cosmetics";
 
-type View =
-  "jouer" | "compte" | "tournois" | "classement" | "amis" | "stats" | "boutique" | "defis";
+type View = "jouer" | "compte" | "classement" | "amis" | "boutique" | "defis";
 const nav = [
   ["jouer", "Jouer", Gamepad2],
   ["defis", "Défis", Medal],
@@ -144,10 +140,8 @@ export default function Home() {
         ({
           jouer: "Centre de jeu",
           compte: "Mon compte",
-          tournois: "Tournois",
           classement: "Classement mondial",
           amis: "Amis",
-          stats: "Mes statistiques",
           boutique: "Boutique cosmétique",
           defis: "Défis",
         })[view],
@@ -203,10 +197,6 @@ export default function Home() {
           </div>
           <small>Progression enregistrée et protégée</small>
         </div>
-        <button className="settings">
-          <Settings />
-          Paramètres
-        </button>
       </aside>
       <button
         className={mobile ? "scrim show" : "scrim"}
@@ -328,12 +318,10 @@ export default function Home() {
               openAuth={() => setAuthOpen(true)}
             />
           )}
-          {view === "tournois" && <Tournaments notify={notify} />}{" "}
-          {view === "classement" && <Leaderboard />}{" "}
+          {view === "classement" && <Leaderboard />}
           {view === "amis" && (
             <RealFriends account={account} notify={notify} openAuth={() => setAuthOpen(true)} />
-          )}{" "}
-          {view === "stats" && <Stats />}{" "}
+          )}
           {view === "boutique" && (
             <Shop
               notify={notify}

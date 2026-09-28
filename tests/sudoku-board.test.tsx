@@ -137,4 +137,55 @@ describe("sudoku board", () => {
     await act(async () => hintButton.click());
     expect(cellButtons()[empties[0]].textContent).toBe(String(solution[empties[0]]));
   });
+
+  it("disables a digit once it is confirmed in all nine places", async () => {
+    await render(localJudge(puzzle, solution));
+    const keyFor = (n: number) =>
+      container.querySelectorAll<HTMLButtonElement>(".keypad button")[n - 1];
+    const digit = solution[empties[0]];
+    const missing = empties.filter((i) => solution[i] === digit);
+    for (const index of missing.slice(0, -1)) await play(index, digit);
+    expect(keyFor(digit).disabled).toBe(false);
+    await play(missing.at(-1)!, digit);
+    expect(keyFor(digit).disabled).toBe(true);
+    // The keyboard can no longer place it either.
+    const free = empties.find((i) => solution[i] !== digit)!;
+    await play(free, digit);
+    expect(cellButtons()[free].textContent).toBe("");
+  });
+
+  it("saves the game as it goes and resumes it where it was left", async () => {
+    const onSnapshot = vi.fn();
+    const check = vi.fn(localJudge(puzzle, solution).check);
+    await render({ check }, { onSnapshot });
+    await play(empties[0], solution[empties[0]]);
+    await play(empties[1], (solution[empties[1]] % 9) + 1);
+    const snapshot = onSnapshot.mock.lastCall![0];
+    expect(snapshot.cells[empties[0]]).toBe(solution[empties[0]]);
+    expect(snapshot.mistakes).toBe(1);
+    expect(snapshot.verdicts.correct[empties[0]]).toBe(solution[empties[0]]);
+    expect(snapshot.pending).toEqual([]);
+
+    act(() => root.unmount());
+    root = createRoot(container);
+    check.mockClear();
+    const pending = { index: empties[2], number: solution[empties[2]], id: "pending-entry" };
+    const resumed = { ...snapshot, cells: [...snapshot.cells], seconds: 125, pending: [pending] };
+    resumed.cells[pending.index] = pending.number;
+    await render({ check }, { resume: resumed });
+    expect(cellButtons()[empties[0]].textContent).toBe(String(solution[empties[0]]));
+    expect(cellButtons()[empties[1]].className).toContain("wrong");
+    expect(container.querySelectorAll(".lives .full")).toHaveLength(2);
+    expect(container.querySelector(".timer")!.textContent).toBe("02:05");
+    // The digit whose verdict never came back is checked again, under the same id.
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(check.mock.calls[0][0]).toEqual(pending);
+  });
+
+  it("stops saving once the game is lost", async () => {
+    const onSnapshot = vi.fn();
+    await render(localJudge(puzzle, solution), { onSnapshot });
+    for (const index of empties.slice(0, 3)) await play(index, (solution[index] % 9) + 1);
+    expect(onSnapshot).toHaveBeenLastCalledWith(null);
+  });
 });
