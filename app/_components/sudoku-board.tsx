@@ -51,6 +51,13 @@ type SudokuBoardProps = {
   onConnect?: () => void;
 };
 
+/** Whether two cells share a row, a column or a 3×3 box. */
+const sameUnit = (a: number, b: number) =>
+  a % 9 === b % 9 ||
+  Math.floor(a / 9) === Math.floor(b / 9) ||
+  (Math.floor(a / 27) === Math.floor(b / 27) &&
+    Math.floor((a % 9) / 3) === Math.floor((b % 9) / 3));
+
 export function SudokuBoard({
   puzzle,
   judge,
@@ -190,7 +197,16 @@ export function SudokuBoard({
     const c = [...cells];
     c[index] = n;
     updateCells(c);
-    setCellNotes((prev) => ({ ...prev, [index]: [] }));
+    // The placed digit is no longer a candidate in its row, column and box.
+    setCellNotes((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([key, notes]) => {
+          const i = Number(key);
+          if (i === index) return [key, []];
+          return [key, sameUnit(i, index) ? notes.filter((x) => x !== n) : notes];
+        }),
+      ),
+    );
     void submit({ index, number: n, id: crypto.randomUUID() }, c);
   };
   const erase = () => {
@@ -228,12 +244,7 @@ export function SudokuBoard({
     raceTotal = race?.totalToFill ?? 81,
     time = formatClock(seconds),
     selectedValue = selected === null ? 0 : cells[selected];
-  const related = (i: number) =>
-    selected !== null &&
-    (i % 9 === selected % 9 ||
-      Math.floor(i / 9) === Math.floor(selected / 9) ||
-      (Math.floor(i / 27) === Math.floor(selected / 27) &&
-        Math.floor((i % 9) / 3) === Math.floor((selected % 9) / 3)));
+  const related = (i: number) => selected !== null && sameUnit(i, selected);
   const requestHint = async () => {
     if (
       !judge.hint ||
