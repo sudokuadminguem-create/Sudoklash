@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SudokuBoard } from "@/app/_components/sudoku-board";
 import { localJudge, type Judge } from "@/app/lib/judge";
+import { SettingsProvider } from "@/app/lib/settings";
 import { solveGrid } from "@/lib/sudoku-solver";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -129,13 +130,27 @@ describe("sudoku board", () => {
     expect(notesOf(elsewhere)).toEqual([String(digit)]);
   });
 
-  it("places the judge's hint", async () => {
-    await render(localJudge(puzzle, solution));
+  it("explains a hint before revealing its digit", async () => {
+    const hint = vi.fn(localJudge(puzzle, solution).hint!);
+    await render({ check: localJudge(puzzle, solution).check, hint });
     const hintButton = [...container.querySelectorAll("button")].find((b) =>
       b.textContent?.startsWith("Indice"),
     )!;
     await act(async () => hintButton.click());
-    expect(cellButtons()[empties[0]].textContent).toBe(String(solution[empties[0]]));
+    const target = cellButtons().findIndex((b) => b.className.includes("hint-target"));
+    // The judge is asked about the cell logic points to, and the digit stays hidden.
+    expect(hint.mock.calls[0][1]).toBe(target);
+    expect(cellButtons()[target].textContent).toBe("");
+    const panel = container.querySelector(".hint-panel")!;
+    expect(panel.textContent).toContain(`ligne ${Math.floor(target / 9) + 1}`);
+    expect(container.querySelectorAll(".hint-unit").length).toBeGreaterThan(0);
+    const reveal = [...panel.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Révéler"),
+    )!;
+    await act(async () => reveal.click());
+    expect(cellButtons()[target].textContent).toBe(String(solution[target]));
+    expect(container.querySelector(".hint-panel")).toBeNull();
+    expect(hintButton.textContent).toContain("(2)");
   });
 
   it("disables a digit once it is confirmed in all nine places", async () => {
@@ -187,5 +202,68 @@ describe("sudoku board", () => {
     await render(localJudge(puzzle, solution), { onSnapshot });
     for (const index of empties.slice(0, 3)) await play(index, (solution[index] % 9) + 1);
     expect(onSnapshot).toHaveBeenLastCalledWith(null);
+  });
+
+  it("asks before a new grid throws away a started one", async () => {
+    const onNewGame = vi.fn();
+    await render(localJudge(puzzle, solution), { onNewGame });
+    const newGrid = () =>
+      [...container.querySelectorAll<HTMLButtonElement>(".game-actions button")].find(
+        (b) => b.textContent === "Nouvelle grille",
+      )!;
+    const dialog = () => document.querySelector("[role=alertdialog]");
+    // Nothing played yet: nothing to lose.
+    await act(async () => newGrid().click());
+    expect(onNewGame).toHaveBeenCalledTimes(1);
+    await play(empties[0], solution[empties[0]]);
+    await act(async () => newGrid().click());
+    expect(onNewGame).toHaveBeenCalledTimes(1);
+    expect(dialog()).not.toBeNull();
+    const choose = async (label: string) => {
+      const button = [...dialog()!.querySelectorAll("button")].find(
+        (b) => b.textContent === label,
+      )!;
+      await act(async () => button.click());
+    };
+    await choose("Continuer la partie");
+    expect(dialog()).toBeNull();
+    expect(onNewGame).toHaveBeenCalledTimes(1);
+    await act(async () => newGrid().click());
+    await choose("Nouvelle grille");
+    expect(onNewGame).toHaveBeenCalledTimes(2);
+  });
+
+  it("follows the player's settings", async () => {
+    window.localStorage.setItem(
+      "sudoklash:settings",
+      JSON.stringify({ highlightUnits: false, showTimer: false, confirmNewGrid: false }),
+    );
+    const onNewGame = vi.fn();
+    await act(async () =>
+      root.render(
+        <SettingsProvider>
+          <SudokuBoard puzzle={puzzle} judge={localJudge(puzzle, solution)} onNewGame={onNewGame} />
+        </SettingsProvider>,
+      ),
+    );
+    await play(empties[0], solution[empties[0]]);
+    expect(container.querySelector(".timer")).toBeNull();
+    expect(container.querySelectorAll(".sudoku button.line")).toHaveLength(0);
+    const newGrid = [...container.querySelectorAll<HTMLButtonElement>(".game-actions button")].find(
+      (b) => b.textContent === "Nouvelle grille",
+    )!;
+    await act(async () => newGrid.click());
+    expect(onNewGame).toHaveBeenCalledTimes(1);
+    window.localStorage.removeItem("sudoklash:settings");
+  });
+
+  it("sums the game up on the victory screen", async () => {
+    await render(localJudge(puzzle, solution), { previousBest: 3600 });
+    await play(empties[0], (solution[empties[0]] % 9) + 1);
+    for (const index of empties) await play(index, solution[index]);
+    const victory = container.querySelector(".victory")!;
+    expect(victory.querySelector(".victory-stats")!.textContent).toContain("1/3");
+    expect(victory.querySelector(".victory-record")!.textContent).toContain("Nouveau record");
+    expect(victory.textContent).toContain("Partager");
   });
 });

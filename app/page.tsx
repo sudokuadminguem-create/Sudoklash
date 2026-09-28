@@ -9,6 +9,7 @@ import {
   Medal,
   LockKeyhole,
   Menu,
+  Settings,
   Swords,
   Trophy,
   UserRound,
@@ -27,14 +28,16 @@ import { PlayerAvatar } from "./_components/player-cosmetics";
 import { RankedGame } from "./_components/ranked-game";
 import { RankedMatch } from "./_components/ranked-match";
 import { RealFriends } from "./_components/real-friends";
+import { SettingsPanel } from "./_components/settings-panel";
 import { Shop } from "./_components/shop";
 import { authHeaders } from "./lib/auth-headers";
+import { SettingsProvider } from "./lib/settings";
 import { supabase } from "./lib/supabase";
 import { useAccount } from "@/hooks/use-account";
 import { useCosmetics } from "@/hooks/use-cosmetics";
 import { gridThemes } from "@/lib/cosmetics";
 
-type View = "jouer" | "compte" | "classement" | "amis" | "boutique" | "defis";
+type View = "jouer" | "compte" | "classement" | "amis" | "boutique" | "defis" | "parametres";
 const nav = [
   ["jouer", "Jouer", Gamepad2],
   ["defis", "Défis", Medal],
@@ -42,6 +45,7 @@ const nav = [
   ["amis", "Amis", Users],
   ["compte", "Compte", UserRound],
   ["boutique", "Boutique", Coins],
+  ["parametres", "Paramètres", Settings],
 ] as const;
 const modeTabs = [
   ["classée", "Partie classée", Swords],
@@ -144,214 +148,218 @@ export default function Home() {
           amis: "Amis",
           boutique: "Boutique cosmétique",
           defis: "Défis",
+          parametres: "Paramètres",
         })[view],
       [view],
     );
   const activeTheme = gridThemes.find((t) => t.id === cosmetics.state?.themeId) ?? gridThemes[0];
   return (
-    <main
-      className="shell"
-      style={
-        {
-          "--grid-one": activeTheme.colors[0],
-          "--grid-two": activeTheme.colors[1],
-        } as CSSProperties
-      }
-    >
-      <aside id="main-menu" className={mobile ? "side open" : "side"}>
-        <div className="brand">
-          <div className="brandmark">9</div>
-          <div>
-            SUDOKU <b>CLASH</b>
-          </div>
-          <button className="close" aria-label="Fermer le menu" onClick={() => setMobile(false)}>
-            <X />
-          </button>
-        </div>
-        <nav>
-          {nav.map(([id, label, I]) => (
-            <button
-              key={id}
-              className={view === id ? "active" : ""}
-              onClick={() => {
-                setView(id);
-                setMobile(false);
-              }}
-            >
-              <I />
-              <span>{label}</span>
+    <SettingsProvider>
+      <main
+        className="shell"
+        style={
+          {
+            "--grid-one": activeTheme.colors[0],
+            "--grid-two": activeTheme.colors[1],
+          } as CSSProperties
+        }
+      >
+        <aside id="main-menu" className={mobile ? "side open" : "side"}>
+          <div className="brand">
+            <div className="brandmark">9</div>
+            <div>
+              SUDOKU <b>CLASH</b>
+            </div>
+            <button className="close" aria-label="Fermer le menu" onClick={() => setMobile(false)}>
+              <X />
             </button>
-          ))}
-          {me.isAdmin && (
-            <a className="admin-link" href="/admin">
-              <LockKeyhole />
-              <span>Administration</span>
-            </a>
-          )}
-        </nav>
-        <div className="season">
-          <span>BÊTA PUBLIQUE</span>
-          <b>Comptes et salons en ligne</b>
-          <div>
-            <i style={{ width: "100%" }} />
           </div>
-          <small>Progression enregistrée et protégée</small>
-        </div>
-      </aside>
-      <button
-        className={mobile ? "scrim show" : "scrim"}
-        aria-label="Fermer le menu"
-        tabIndex={mobile ? 0 : -1}
-        onClick={() => setMobile(false)}
-      />
-      <section className="app">
-        <header>
-          <button
-            className="menub"
-            aria-label="Ouvrir le menu"
-            aria-expanded={mobile}
-            aria-controls="main-menu"
-            onClick={() => setMobile(true)}
-          >
-            <Menu />
-          </button>
-          <div className="page-title">
-            <span className="crumb">SUDOKU CLASH /</span>
-            <h1>{title}</h1>
+          <nav>
+            {nav.map(([id, label, I]) => (
+              <button
+                key={id}
+                className={view === id ? "active" : ""}
+                onClick={() => {
+                  setView(id);
+                  setMobile(false);
+                }}
+              >
+                <I />
+                <span>{label}</span>
+              </button>
+            ))}
+            {me.isAdmin && (
+              <a className="admin-link" href="/admin">
+                <LockKeyhole />
+                <span>Administration</span>
+              </a>
+            )}
+          </nav>
+          <div className="season">
+            <span>BÊTA PUBLIQUE</span>
+            <b>Comptes et salons en ligne</b>
+            <div>
+              <i style={{ width: "100%" }} />
+            </div>
+            <small>Progression enregistrée et protégée</small>
           </div>
-          <div className="header-actions">
-            <AccountButton
-              account={account}
-              cosmetics={cosmetics}
-              onAccount={() => setView("compte")}
-              onOpen={() => setAuthOpen(true)}
-            />
-          </div>
-        </header>
-        <div className="content">
-          {view === "jouer" && (
-            <>
-              <section className="welcome">
-                <div>
-                  <span className="live">
-                    <i />
-                    BÊTA PUBLIQUE · COMPTES RÉELS
-                  </span>
-                  <h2>Prêt pour le prochain clash ?</h2>
-                  <p>Joue en solo, trouve un duel classé ou crée un salon privé.</p>
-                </div>
-                <button
-                  className="rank-card beta-account home-account-button"
-                  onClick={() => (account.user ? setView("compte") : setAuthOpen(true))}
-                  aria-label={
-                    account.user
-                      ? "Voir mon compte et personnaliser mon avatar"
-                      : "Se connecter au compte"
-                  }
-                >
-                  <PlayerAvatar
-                    avatarId={cosmetics.state?.avatarId}
-                    image={cosmetics.state?.customAvatar}
-                    frameId={cosmetics.state?.frameId}
-                    size="large"
-                    fallback={account.user ? undefined : "?"}
-                  />
-                  <span className="home-account-text">
-                    <small>
-                      MON COMPTE ·{" "}
-                      {account.user ? `NIVEAU ${cosmetics.state?.level ?? 1}` : "NON CONNECTÉ"}
-                    </small>
-                    <b>{account.profile?.username || "Choisir mon avatar"}</b>
-                    <span>
-                      {account.user
-                        ? "Voir le profil et les cadres"
-                        : "Se connecter pour personnaliser"}
-                    </span>
-                  </span>
-                </button>
-              </section>
-              <div className="mode-tabs">
-                {modeTabs.map(([id, label, I]) => (
-                  <button
-                    key={id}
-                    onClick={() => setMode(id)}
-                    className={mode === id ? "active" : ""}
-                  >
-                    <I />
-                    {label}
-                    {id === "hebdo" && <small>+500</small>}
-                  </button>
-                ))}
-              </div>
-              {mode === "classée" ? (
-                <RankedMatch
-                  account={account}
-                  openAuth={() => setAuthOpen(true)}
-                  renderGame={(match, refresh) => (
-                    <RankedGame match={match} refresh={refresh} account={account} />
-                  )}
-                />
-              ) : (
-                <ModePanel
-                  mode={mode}
-                  notify={notify}
-                  account={account}
-                  cosmetics={cosmetics}
-                  openAuth={() => setAuthOpen(true)}
-                />
-              )}
-            </>
-          )}
-          {view === "compte" && (
-            <AccountOverview
-              account={account}
-              cosmetics={cosmetics}
-              notify={notify}
-              openAuth={() => setAuthOpen(true)}
-            />
-          )}
-          {view === "defis" && (
-            <AchievementBoard
-              account={account}
-              cosmetics={cosmetics}
-              notify={notify}
-              openAuth={() => setAuthOpen(true)}
-            />
-          )}
-          {view === "classement" && <Leaderboard />}
-          {view === "amis" && (
-            <RealFriends account={account} notify={notify} openAuth={() => setAuthOpen(true)} />
-          )}
-          {view === "boutique" && (
-            <Shop
-              notify={notify}
-              cosmetics={cosmetics}
-              account={account}
-              openAuth={() => setAuthOpen(true)}
-            />
-          )}
-        </div>
-      </section>
-      {toast && (
-        <div className="toast">
-          <Check />
-          {toast}
-        </div>
-      )}
-      {authOpen && (
-        <AuthDialog
-          account={account}
-          recovery={recovery}
-          recoveryStatus={recoveryStatus}
-          onRecovered={() => {
-            setRecovery(false);
-            window.history.replaceState({}, "", window.location.pathname);
-            setAuthOpen(false);
-            notify("Mot de passe mis à jour");
-          }}
-          onClose={() => setAuthOpen(false)}
+        </aside>
+        <button
+          className={mobile ? "scrim show" : "scrim"}
+          aria-label="Fermer le menu"
+          tabIndex={mobile ? 0 : -1}
+          onClick={() => setMobile(false)}
         />
-      )}
-    </main>
+        <section className="app">
+          <header>
+            <button
+              className="menub"
+              aria-label="Ouvrir le menu"
+              aria-expanded={mobile}
+              aria-controls="main-menu"
+              onClick={() => setMobile(true)}
+            >
+              <Menu />
+            </button>
+            <div className="page-title">
+              <span className="crumb">SUDOKU CLASH /</span>
+              <h1>{title}</h1>
+            </div>
+            <div className="header-actions">
+              <AccountButton
+                account={account}
+                cosmetics={cosmetics}
+                onAccount={() => setView("compte")}
+                onOpen={() => setAuthOpen(true)}
+              />
+            </div>
+          </header>
+          <div className="content">
+            {view === "jouer" && (
+              <>
+                <section className="welcome">
+                  <div>
+                    <span className="live">
+                      <i />
+                      BÊTA PUBLIQUE · COMPTES RÉELS
+                    </span>
+                    <h2>Prêt pour le prochain clash ?</h2>
+                    <p>Joue en solo, trouve un duel classé ou crée un salon privé.</p>
+                  </div>
+                  <button
+                    className="rank-card beta-account home-account-button"
+                    onClick={() => (account.user ? setView("compte") : setAuthOpen(true))}
+                    aria-label={
+                      account.user
+                        ? "Voir mon compte et personnaliser mon avatar"
+                        : "Se connecter au compte"
+                    }
+                  >
+                    <PlayerAvatar
+                      avatarId={cosmetics.state?.avatarId}
+                      image={cosmetics.state?.customAvatar}
+                      frameId={cosmetics.state?.frameId}
+                      size="large"
+                      fallback={account.user ? undefined : "?"}
+                    />
+                    <span className="home-account-text">
+                      <small>
+                        MON COMPTE ·{" "}
+                        {account.user ? `NIVEAU ${cosmetics.state?.level ?? 1}` : "NON CONNECTÉ"}
+                      </small>
+                      <b>{account.profile?.username || "Choisir mon avatar"}</b>
+                      <span>
+                        {account.user
+                          ? "Voir le profil et les cadres"
+                          : "Se connecter pour personnaliser"}
+                      </span>
+                    </span>
+                  </button>
+                </section>
+                <div className="mode-tabs">
+                  {modeTabs.map(([id, label, I]) => (
+                    <button
+                      key={id}
+                      onClick={() => setMode(id)}
+                      className={mode === id ? "active" : ""}
+                    >
+                      <I />
+                      {label}
+                      {id === "hebdo" && <small>+500</small>}
+                    </button>
+                  ))}
+                </div>
+                {mode === "classée" ? (
+                  <RankedMatch
+                    account={account}
+                    openAuth={() => setAuthOpen(true)}
+                    renderGame={(match, refresh) => (
+                      <RankedGame match={match} refresh={refresh} account={account} />
+                    )}
+                  />
+                ) : (
+                  <ModePanel
+                    mode={mode}
+                    notify={notify}
+                    account={account}
+                    cosmetics={cosmetics}
+                    openAuth={() => setAuthOpen(true)}
+                  />
+                )}
+              </>
+            )}
+            {view === "compte" && (
+              <AccountOverview
+                account={account}
+                cosmetics={cosmetics}
+                notify={notify}
+                openAuth={() => setAuthOpen(true)}
+              />
+            )}
+            {view === "defis" && (
+              <AchievementBoard
+                account={account}
+                cosmetics={cosmetics}
+                notify={notify}
+                openAuth={() => setAuthOpen(true)}
+              />
+            )}
+            {view === "classement" && <Leaderboard />}
+            {view === "amis" && (
+              <RealFriends account={account} notify={notify} openAuth={() => setAuthOpen(true)} />
+            )}
+            {view === "parametres" && <SettingsPanel notify={notify} />}
+            {view === "boutique" && (
+              <Shop
+                notify={notify}
+                cosmetics={cosmetics}
+                account={account}
+                openAuth={() => setAuthOpen(true)}
+              />
+            )}
+          </div>
+        </section>
+        {toast && (
+          <div className="toast">
+            <Check />
+            {toast}
+          </div>
+        )}
+        {authOpen && (
+          <AuthDialog
+            account={account}
+            recovery={recovery}
+            recoveryStatus={recoveryStatus}
+            onRecovered={() => {
+              setRecovery(false);
+              window.history.replaceState({}, "", window.location.pathname);
+              setAuthOpen(false);
+              notify("Mot de passe mis à jour");
+            }}
+            onClose={() => setAuthOpen(false)}
+          />
+        )}
+      </main>
+    </SettingsProvider>
   );
 }

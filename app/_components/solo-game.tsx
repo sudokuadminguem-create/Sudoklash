@@ -9,6 +9,7 @@ import {
   type SoloSave,
   type StartedGame,
 } from "@/app/lib/solo-save";
+import { recordSoloWin, soloRecord } from "@/app/lib/solo-records";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
 import type { Difficulty } from "@/lib/difficulties";
@@ -91,16 +92,23 @@ export function SoloGame({
           }
           throw e;
         }),
-      hint: async (grid) =>
+      hint: async (grid, preferred) =>
         (
           await soloRequest<{ hint: { index: number; number: number } | null }>({
             action: "hint",
             gameId,
             grid,
+            index: preferred,
           })
         ).hint,
     };
   }, [game, userId]);
+
+  // Records are per player, like saves: a guest game stays the guest's.
+  const owner = game && !game.guest ? userId : null;
+  // Read once per game, so the victory screen compares with the record before this win.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const previousBest = useMemo(() => (game ? soloRecord(owner, difficulty) : null), [game]);
 
   if (expired)
     return (
@@ -136,14 +144,15 @@ export function SoloGame({
       soloExperience
       onConnect={openAuth}
       resume={board}
+      previousBest={previousBest}
       onSnapshot={(snapshot) => {
         // Guest games stay with the guest, even if the player signs in meanwhile.
-        const owner = game.guest ? null : userId;
         if (snapshot) storeSoloSave(owner, { difficulty, game, board: snapshot });
         else clearSoloSave(owner);
       }}
       onNewGame={() => void start()}
-      onSolved={async (grid) => {
+      onSolved={async (grid, seconds) => {
+        recordSoloWin(owner, difficulty, seconds);
         if (game.guest) return null;
         const result = await soloRequest<{ xpGained: number }>({
           action: "complete",
