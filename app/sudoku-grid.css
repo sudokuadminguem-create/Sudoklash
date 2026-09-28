@@ -741,6 +741,20 @@ button {
 .player-entry .avatar {
   flex: none;
 }
+.player-entry > .player-avatar { flex: none; }
+.friend-profile-detail {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 20px;
+  padding: 16px;
+  border: 1px solid #456a9b;
+  border-radius: 15px;
+  background: #101d34;
+}
+.friend-profile-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.friend-profile-heading h3 { margin: 0; }
+.friend-profile-heading button { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 8px 10px; border: 1px solid #435c7e; border-radius: 9px; background: #172743; color: #e5efff; }
+.friend-profile-heading svg { width: 16px; height: 16px; }
 .player-entry > div:nth-child(2) {
   flex: 1;
   min-width: 0;
@@ -814,6 +828,7 @@ button {
   .player-entry button + button {
     margin-left: 0;
   }
+  .friend-profile-detail { padding: 10px; }
 }
 .account-overview {
   display: grid;
