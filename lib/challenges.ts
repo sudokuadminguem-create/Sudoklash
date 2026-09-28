@@ -20,7 +20,7 @@ export const challengeDefaults: Record<ChallengeKind, { title: string; puzzle: s
 const bankDifficulty: Record<ChallengeKind, Difficulty> = { daily: "Facile", weekly: "Difficile" };
 
 async function storedChallenge(kind: ChallengeKind) {
-  return env.DB.prepare("SELECT title, puzzle FROM challenge_settings WHERE challenge_type = ?")
+  return env.DB!.prepare("SELECT title, puzzle FROM challenge_settings WHERE challenge_type = ?")
     .bind(kind)
     .first<{ title: string; puzzle: string }>();
 }

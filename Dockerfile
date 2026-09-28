@@ -5,17 +5,22 @@
 ARG NODE_IMAGE=node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1
 
 # ---------- Étape 1 : dépendances ----------
-FROM ${NODE_IMAGE} AS deps
+# pnpm, à la version fixée par "packageManager" dans package.json, via corepack.
+FROM ${NODE_IMAGE} AS pnpm
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    COREPACK_ENABLE_AUTO_PIN=0
+RUN corepack enable pnpm
+
+FROM pnpm AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 # --ignore-scripts : aucun script d'installation de paquet tiers n'est exécuté.
-RUN npm ci --ignore-scripts --no-audit --no-fund
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # ---------- Étape 2 : build Next.js (standalone) ----------
-FROM ${NODE_IMAGE} AS build
+FROM pnpm AS build
 WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1 \
-    SUDOKLASH_SELF_HOSTED=1
+ENV NEXT_TELEMETRY_DISABLED=1
 # Réglages publics Supabase, intégrés au code envoyé au navigateur (valeurs par défaut dans
 # lib/supabase-config.ts). Ce ne sont pas des secrets.
 ARG NEXT_PUBLIC_SUPABASE_URL=""
@@ -24,7 +29,8 @@ ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL} \
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# build:standalone pose SUDOKLASH_SELF_HOSTED=1, qui active la configuration de next.config.ts.
+RUN pnpm run build:standalone
 
 # ---------- Étape 3 : image d'exécution ----------
 FROM ${NODE_IMAGE} AS runtime

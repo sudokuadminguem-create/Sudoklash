@@ -6,6 +6,7 @@ import { formatClock } from "@/app/lib/format-time";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
 import { CosmeticCloset, PlayerAvatar } from "./player-cosmetics";
+import { ProfileCardStudio } from "./profile-card";
 
 type AccountStats = {
   profile: { username: string; created_at: number } | null;
@@ -14,6 +15,7 @@ type AccountStats = {
   weekly: number;
   ranked: { points: number; wins: number; losses: number; rank: string };
   recent: { difficulty: string; elapsed_seconds: number; completed_at: number }[];
+  bestByDifficulty: { difficulty: string; best: number }[];
 };
 
 export function AccountOverview({
@@ -67,7 +69,7 @@ export function AccountOverview({
   const joined = stats?.profile?.created_at ?? Date.parse(account.user.created_at);
   return (
     <div className="account-overview">
-      <section className="panel account-identity">
+      {(!stats || !cosmetics.state) && <section className="panel account-identity">
         <PlayerAvatar
           avatarId={cosmetics.state?.avatarId}
           image={cosmetics.state?.customAvatar}
@@ -80,7 +82,16 @@ export function AccountOverview({
           <p>{account.user.email}</p>
           <small>Inscrit depuis le {new Date(joined).toLocaleDateString("fr-FR")}</small>
         </div>
-      </section>
+      </section>}
+      {stats && cosmetics.state && (
+        <ProfileCardStudio
+          username={stats.profile?.username ?? account.profile?.username ?? "Joueur"}
+          stats={stats}
+          cosmetics={cosmetics}
+          notify={notify}
+        />
+      )}
+      {stats && cosmetics.state && <p className="account-private-meta">Compte : {account.user.email} · Inscrit depuis le {new Date(joined).toLocaleDateString("fr-FR")}</p>}
       <CosmeticCloset cosmetics={cosmetics} notify={notify} />
       {loading ? (
         <div className="panel">Chargement des statistiques…</div>

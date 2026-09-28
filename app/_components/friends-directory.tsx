@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Search, Swords, UserPlus, X } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import type { Account } from "@/hooks/use-account";
+import { PlayerAvatar } from "./player-cosmetics";
+import { ProfileCardDisplay, type CardStats, type ProfileLook } from "./profile-card";
 
 type Relationship = {
   id: string;
@@ -11,8 +13,13 @@ type Relationship = {
   addressee_id: string;
   status: "pending" | "accepted" | "declined";
   username: string;
+  otherUserId: string;
+  avatarId: string;
+  frameId: string;
+  image: string | null;
 };
-type Player = { id: string; username: string };
+type Player = { id: string; username: string; avatarId: string; frameId: string };
+type FriendProfile = CardStats & ProfileLook & { username: string };
 type FriendsData = { players: Player[]; nextOffset: number | null; relationships: Relationship[] };
 const emptyData: FriendsData = { players: [], nextOffset: null, relationships: [] };
 
@@ -30,6 +37,9 @@ export default function FriendsDirectory({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [selectedFriend, setSelectedFriend] = useState<FriendProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(query.trim()), 250);
@@ -74,6 +84,33 @@ export default function FriendsDirectory({
   const relationFor = (id: string) =>
     data.relationships.find((row) => row.requester_id === id || row.addressee_id === id);
 
+  const showProfile = async (friendId: string) => {
+    setTab("friends");
+    setProfileLoading(true);
+    setProfileError("");
+    setSelectedFriend(null);
+    try {
+      const response = await fetch(`/api/friends/profile?id=${encodeURIComponent(friendId)}`, {
+        cache: "no-store", headers: await authHeaders(),
+      });
+      if (!response.ok) throw new Error("profile_unavailable");
+      setSelectedFriend((await response.json()) as FriendProfile);
+    } catch {
+      setProfileError("Impossible de charger ce profil. Réessayez.");
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const avatar = (person: { username: string; avatarId: string; frameId: string; image?: string | null }) => (
+    <PlayerAvatar
+      avatarId={person.avatarId}
+      frameId={person.frameId}
+      image={person.image}
+      fallback={person.avatarId === "custom" && !person.image ? person.username.slice(0, 2).toUpperCase() : undefined}
+    />
+  );
+
   const action = async (
     body: { action: "send" | "accept" | "decline"; username?: string; id?: string },
     key: string,
@@ -115,7 +152,7 @@ export default function FriendsDirectory({
     const relation = relationFor(player.id);
     return (
       <div className="friend player-entry" key={player.id}>
-        <div className="avatar">{player.username.slice(0, 2).toUpperCase()}</div>
+        {avatar({ ...player, image: relation?.image })}
         <div>
           <b>{player.username}</b>
           <small>
@@ -145,6 +182,9 @@ export default function FriendsDirectory({
             <Check />
             Accepter
           </button>
+        )}
+        {relation?.status === "accepted" && (
+          <button onClick={() => void showProfile(player.id)}>Voir profil</button>
         )}
       </div>
     );
@@ -214,6 +254,21 @@ export default function FriendsDirectory({
       )}
       {tab === "friends" && (
         <>
+          {(profileLoading || selectedFriend || profileError) && (
+            <section className="friend-profile-detail" aria-label="Profil de l’ami">
+              {profileLoading && <p>Chargement du profil…</p>}
+              {profileError && <p role="alert">{profileError}</p>}
+              {selectedFriend && (
+                <>
+                  <div className="friend-profile-heading">
+                    <h3>Profil de {selectedFriend.username}</h3>
+                    <button className="subtle" onClick={() => setSelectedFriend(null)} aria-label="Fermer le profil"><X /> Fermer</button>
+                  </div>
+                  <ProfileCardDisplay username={selectedFriend.username} stats={selectedFriend} look={selectedFriend} />
+                </>
+              )}
+            </section>
+          )}
           {!mine.length && (
             <p className="empty-real">
               Vous n’avez pas encore d’amis. Ajoutez un joueur depuis « Tous les joueurs ».
@@ -221,11 +276,12 @@ export default function FriendsDirectory({
           )}
           {mine.map((row) => (
             <div className="friend player-entry" key={row.id}>
-              <div className="avatar">{row.username.slice(0, 2).toUpperCase()}</div>
+              {avatar(row)}
               <div>
                 <b>{row.username}</b>
                 <small>Ami Sudoku Clash</small>
               </div>
+              <button onClick={() => void showProfile(row.otherUserId)}>Voir profil</button>
               <button
                 onClick={() => notify(`Invitez ${row.username} avec le code de votre salon privé`)}
               >
@@ -243,7 +299,7 @@ export default function FriendsDirectory({
           )}
           {incoming.map((row) => (
             <div className="friend player-entry" key={row.id}>
-              <div className="avatar">{row.username.slice(0, 2).toUpperCase()}</div>
+              {avatar(row)}
               <div>
                 <b>{row.username}</b>
                 <small>Souhaite devenir votre ami</small>
@@ -267,7 +323,7 @@ export default function FriendsDirectory({
           ))}
           {outgoing.map((row) => (
             <div className="friend player-entry" key={row.id}>
-              <div className="avatar">{row.username.slice(0, 2).toUpperCase()}</div>
+              {avatar(row)}
               <div>
                 <b>{row.username}</b>
                 <small>En attente de réponse</small>

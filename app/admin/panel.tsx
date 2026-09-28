@@ -1,14 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Check, ChevronLeft, LockKeyhole, Save, ShieldCheck } from "lucide-react";
-import Link from "next/link";
 import { authHeaders } from "@/app/lib/auth-headers";
+import MajesticCollection from "./majestic-collection";
 
 type Kind = "daily" | "weekly";
 type Config = { title: string; puzzle: string };
 
 export default function AdminPanel({ displayName }: { displayName: string }) {
   const [configs, setConfigs] = useState<Record<Kind, Config> | null>(null),
+    [section, setSection] = useState<"grids" | "majestic">("grids"),
     [saving, setSaving] = useState<Kind | null>(null),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
@@ -56,10 +57,10 @@ export default function AdminPanel({ displayName }: { displayName: string }) {
   return (
     <main className="admin-shell">
       <header className="admin-header">
-        <Link href="/">
+        <a href="/">
           <ChevronLeft />
           Retour au jeu
-        </Link>
+        </a>
         <div>
           <LockKeyhole />
           <span>SUDOKU CLASH</span>
@@ -75,12 +76,14 @@ export default function AdminPanel({ displayName }: { displayName: string }) {
               Accès propriétaire uniquement
             </span>
             <h1>Panneau d’administration</h1>
-            <p>
-              Modifiez les défis actifs. Les changements sont appliqués immédiatement aux joueurs
-              qui n’ont pas encore commencé.
-            </p>
+            <p>Gère les grilles quotidiennes et hebdomadaires, et consulte ta collection privée de défis Majestueux.</p>
           </div>
         </div>
+        <nav className="admin-section-tabs" aria-label="Rubriques d’administration">
+          <button className={section === "grids" ? "active" : ""} aria-current={section === "grids" ? "page" : undefined} onClick={() => setSection("grids")}>Grilles du jour et de la semaine</button>
+          <button className={section === "majestic" ? "active" : ""} aria-current={section === "majestic" ? "page" : undefined} onClick={() => setSection("majestic")}>Majestueux · 25 défis cachés</button>
+        </nav>
+        {section === "majestic" ? <MajesticCollection /> : <>
         {error && <div className="admin-alert error">{error}</div>}
         {message && (
           <div className="admin-alert success">
@@ -126,6 +129,7 @@ export default function AdminPanel({ displayName }: { displayName: string }) {
             ))}
           </div>
         )}
+        </>}
       </section>
     </main>
   );

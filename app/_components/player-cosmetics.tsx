@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Coins, ImagePlus, Trash2 } from "lucide-react";
 import type { AccountState } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
+import { challengeFrameStyle, elementLabels } from "@/lib/achievement-styles";
+import { ElementalFrame } from "./elemental-frame";
 import {
   achievementAvatars,
   avatars,
@@ -27,22 +29,25 @@ export function PlayerAvatar({
   const custom = avatarId === "custom" && !!image && fallback === undefined;
   const avatar = avatars.find((a) => a.id === avatarId) ?? avatars[0],
     frame = levelFrames.find((f) => f.id === frameId) ?? levelFrames[0],
-    rankFrame = rankedFrames.find((f) => `rank-${f.id}` === frameId);
+    rankFrame = rankedFrames.find((f) => `rank-${f.id}` === frameId),
+    achievement = challengeFrameStyle(frameId);
   return (
     <span
-      className={`player-avatar ${size}${rankFrame ? " ranked-avatar" : ""}${frameId === "none" ? " frameless-avatar" : ""}`}
+      className={`player-avatar ${size}${rankFrame ? " ranked-avatar" : ""}${achievement ? " achievement-frame" : ""}${achievement?.rarity === "epic" ? " epic-frame" : ""}${achievement?.rarity === "legendary" ? " legendary-frame" : ""}${achievement?.rarity === "majestic" ? " majestic-frame" : ""}${frameId === "none" ? " frameless-avatar" : ""}`}
       data-rank={rankFrame?.id}
+      data-frame-pattern={achievement?.pattern}
       style={
         {
           "--avatar-one": avatar.colors[0],
           "--avatar-two": avatar.colors[1],
-          "--frame-color": rankFrame?.color ?? frame.color,
-          "--frame-accent": rankFrame?.accent ?? frame.color,
-          "--rank-symbol": `"${rankFrame?.symbol ?? ""}"`,
+          "--frame-color": rankFrame?.color ?? achievement?.color ?? frame.color,
+          "--frame-accent": rankFrame?.accent ?? achievement?.accent ?? frame.color,
+          "--frame-highlight": achievement?.highlight ?? "#ffffff",
+          "--rank-symbol": `"${rankFrame?.symbol ?? achievement?.symbol ?? ""}"`,
         } as React.CSSProperties
       }
       role="img"
-      aria-label={`Avatar ${custom ? "personnalisé" : avatar.name}, ${frameId === "none" ? "sans cadre" : rankFrame ? `cadre ${rankFrame.name}` : `cadre ${frame.name}`}`}
+      aria-label={`Avatar ${custom ? "personnalisé" : avatar.name}, ${frameId === "none" ? "sans cadre" : rankFrame ? `cadre ${rankFrame.name}` : achievement?.element ? `cadre ${elementLabels[achievement.element]}` : achievement ? "cadre de défi" : `cadre ${frame.name}`}`}
     >
       {custom ? (
         <span className="avatar-image">
@@ -51,6 +56,7 @@ export function PlayerAvatar({
       ) : (
         <span>{fallback ?? avatar.symbol}</span>
       )}
+      {achievement && <ElementalFrame element={achievement.element} variant={achievement.variant} motif={achievement.motif} legendary={achievement.rarity === "legendary" || achievement.rarity === "majestic"} />}
     </span>
   );
 }
@@ -351,6 +357,35 @@ export function CosmeticCloset({
                     ? "Équipé"
                     : "Choisir"
                   : `Niveau ${f.level}`}
+              </small>
+            </span>
+          </button>
+        ))}
+      </div>
+      <h4>Cadres gagnés avec les défis</h4>
+      <p>Retrouve la progression des défis dans la rubrique Défis.</p>
+      <div className="frame-grid">
+        {data.achievementFrames.map((f) => (
+          <button
+            key={f.id}
+            disabled={!!busy}
+            className={data.frameSelection === f.id ? "selected" : ""}
+            aria-pressed={data.frameSelection === f.id}
+            onClick={() => void choose("equip_frame", f.id)}
+          >
+            <PlayerAvatar avatarId={data.avatarId} image={data.customAvatar} frameId={f.id} />
+            <span>
+              <b>{f.name}</b>
+              <small>
+                {data.frameSelection === f.id
+                  ? "Équipé"
+                  : f.rarity === "simple"
+                    ? "Thématique"
+                    : f.rarity === "epic"
+                      ? "Épique"
+                      : f.rarity === "majestic"
+                        ? "Majestueux"
+                        : "Légendaire"}
               </small>
             </span>
           </button>

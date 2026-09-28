@@ -3,6 +3,9 @@ node_modules
 build
 components/ui
 drizzle
-package-lock.json
+pnpm-lock.yaml
+.sites-runtime
+dist
+vendor
 .openai
 vendor

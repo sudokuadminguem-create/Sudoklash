@@ -65,6 +65,8 @@ export const playerCosmetics = sqliteTable("player_cosmetics", {
   avatarId: text("avatar_id").notNull().default("nova"),
   frameId: text("frame_id").notNull().default("starter"),
   themeId: text("theme_id").notNull().default("ocean"),
+  profileCardId: text("profile_card_id").notNull().default("origin"),
+  profileTitleId: text("profile_title_id").notNull().default("none"),
 });
 
 export const playerAvatarImages = sqliteTable("player_avatar_images", {
@@ -82,6 +84,16 @@ export const cosmeticPurchases = sqliteTable(
     purchasedAt: integer("purchased_at").notNull(),
   },
   (table) => [primaryKey({ columns: [table.userId, table.itemId] })],
+);
+
+export const achievementUnlocks = sqliteTable(
+  "achievement_unlocks",
+  {
+    userId: text("user_id").notNull(),
+    achievementId: text("achievement_id").notNull(),
+    unlockedAt: integer("unlocked_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.achievementId] })],
 );
 
 export const soloResults = sqliteTable(

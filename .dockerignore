@@ -9,8 +9,11 @@
 !vendor/
 !docker/
 !package.json
-!package-lock.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!.npmrc
 !next.config.ts
 !postcss.config.mjs
 !tsconfig.json
-!env.d.ts
+!cloudflare-env.d.ts
+!self-hosted-env.d.ts
