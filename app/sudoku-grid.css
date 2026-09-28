@@ -160,6 +160,11 @@
     0 0 18px #26ddda33;
 }
 
+.keypad button.completed-digit {
+  opacity: 0.3;
+  box-shadow: none;
+}
+
 html {
   width: 100%;
   overflow-x: hidden;
@@ -741,7 +746,9 @@ button {
 .player-entry .avatar {
   flex: none;
 }
-.player-entry > .player-avatar { flex: none; }
+.player-entry > .player-avatar {
+  flex: none;
+}
 .friend-profile-detail {
   display: grid;
   gap: 14px;
@@ -751,10 +758,30 @@ button {
   border-radius: 15px;
   background: #101d34;
 }
-.friend-profile-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.friend-profile-heading h3 { margin: 0; }
-.friend-profile-heading button { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 8px 10px; border: 1px solid #435c7e; border-radius: 9px; background: #172743; color: #e5efff; }
-.friend-profile-heading svg { width: 16px; height: 16px; }
+.friend-profile-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.friend-profile-heading h3 {
+  margin: 0;
+}
+.friend-profile-heading button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 8px 10px;
+  border: 1px solid #435c7e;
+  border-radius: 9px;
+  background: #172743;
+  color: #e5efff;
+}
+.friend-profile-heading svg {
+  width: 16px;
+  height: 16px;
+}
 .player-entry > div:nth-child(2) {
   flex: 1;
   min-width: 0;
@@ -828,7 +855,9 @@ button {
   .player-entry button + button {
     margin-left: 0;
   }
-  .friend-profile-detail { padding: 10px; }
+  .friend-profile-detail {
+    padding: 10px;
+  }
 }
 .account-overview {
   display: grid;
@@ -1846,19 +1875,6 @@ button {
     margin-left: 0;
   }
 
-  .feature-tourney {
-    min-height: 0;
-  }
-
-  .feature-tourney h2 {
-    font-size: 30px;
-  }
-
-  .feature-tourney > div > div {
-    flex-wrap: wrap;
-    gap: 10px 22px;
-  }
-
   .podium {
     justify-content: flex-start;
     overflow-x: auto;
@@ -1910,18 +1926,12 @@ button {
 
 @media (max-width: 480px) {
   .difficulty-grid,
-  .cards3,
-  .stat-grid,
   .shop-grid {
     grid-template-columns: 1fr;
   }
 
   .difficulty-grid button {
     min-height: 118px;
-  }
-
-  .feature-tourney {
-    padding: 20px 17px;
   }
 
   .filters {
@@ -2277,8 +2287,15 @@ button {
   position: absolute;
   inset: -8px;
   border-radius: 50%;
-  background: repeating-conic-gradient(from 15deg, var(--frame-highlight) 0deg 3deg, var(--frame-color) 4deg 15deg, var(--frame-accent) 17deg 21deg);
-  box-shadow: 0 0 0 1px var(--frame-highlight), inset 0 0 0 2px var(--frame-accent);
+  background: repeating-conic-gradient(
+    from 15deg,
+    var(--frame-highlight) 0deg 3deg,
+    var(--frame-color) 4deg 15deg,
+    var(--frame-accent) 17deg 21deg
+  );
+  box-shadow:
+    0 0 0 1px var(--frame-highlight),
+    inset 0 0 0 2px var(--frame-accent);
 }
 .player-avatar.achievement-frame:after {
   content: var(--rank-symbol);
@@ -2291,51 +2308,123 @@ button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: radial-gradient(circle at 30% 25%, var(--frame-highlight), var(--frame-color) 35%, var(--frame-accent));
+  background: radial-gradient(
+    circle at 30% 25%,
+    var(--frame-highlight),
+    var(--frame-color) 35%,
+    var(--frame-accent)
+  );
   border: 1px solid var(--frame-highlight);
   color: #081529;
   font-size: 12px;
   box-shadow: 0 0 9px var(--frame-color);
 }
 .player-avatar.achievement-frame[data-frame-pattern="1"]:before {
-  background: repeating-conic-gradient(var(--frame-highlight) 0deg 2deg, var(--frame-accent) 3deg 9deg, var(--frame-color) 10deg 18deg);
+  background: repeating-conic-gradient(
+    var(--frame-highlight) 0deg 2deg,
+    var(--frame-accent) 3deg 9deg,
+    var(--frame-color) 10deg 18deg
+  );
 }
 .player-avatar.achievement-frame[data-frame-pattern="2"]:before {
-  background: conic-gradient(from 45deg, var(--frame-color) 0 19%, var(--frame-highlight) 20% 25%, var(--frame-accent) 27% 44%, var(--frame-highlight) 45% 50%, var(--frame-color) 52% 69%, var(--frame-highlight) 70% 75%, var(--frame-accent) 77% 94%, var(--frame-highlight) 95%);
+  background: conic-gradient(
+    from 45deg,
+    var(--frame-color) 0 19%,
+    var(--frame-highlight) 20% 25%,
+    var(--frame-accent) 27% 44%,
+    var(--frame-highlight) 45% 50%,
+    var(--frame-color) 52% 69%,
+    var(--frame-highlight) 70% 75%,
+    var(--frame-accent) 77% 94%,
+    var(--frame-highlight) 95%
+  );
 }
 .player-avatar.achievement-frame[data-frame-pattern="3"]:before {
-  background: repeating-conic-gradient(from 10deg, var(--frame-accent) 0deg 9deg, var(--frame-highlight) 10deg 12deg, var(--frame-color) 13deg 30deg);
+  background: repeating-conic-gradient(
+    from 10deg,
+    var(--frame-accent) 0deg 9deg,
+    var(--frame-highlight) 10deg 12deg,
+    var(--frame-color) 13deg 30deg
+  );
 }
 .player-avatar.achievement-frame[data-frame-pattern="4"]:before {
-  background: repeating-conic-gradient(from 22deg, var(--frame-highlight) 0deg 1deg, var(--frame-color) 2deg 27deg, var(--frame-accent) 28deg 36deg);
+  background: repeating-conic-gradient(
+    from 22deg,
+    var(--frame-highlight) 0deg 1deg,
+    var(--frame-color) 2deg 27deg,
+    var(--frame-accent) 28deg 36deg
+  );
 }
 .player-avatar.achievement-frame[data-frame-pattern="5"]:before {
-  background: conic-gradient(from 20deg, var(--frame-highlight), var(--frame-color), var(--frame-accent), var(--frame-highlight), var(--frame-color), var(--frame-accent), var(--frame-highlight));
+  background: conic-gradient(
+    from 20deg,
+    var(--frame-highlight),
+    var(--frame-color),
+    var(--frame-accent),
+    var(--frame-highlight),
+    var(--frame-color),
+    var(--frame-accent),
+    var(--frame-highlight)
+  );
 }
 .player-avatar.achievement-frame[data-frame-pattern="6"]:before {
-  background: repeating-conic-gradient(from 7deg, var(--frame-color) 0deg 5deg, var(--frame-highlight) 6deg 8deg, var(--frame-accent) 9deg 15deg);
+  background: repeating-conic-gradient(
+    from 7deg,
+    var(--frame-color) 0deg 5deg,
+    var(--frame-highlight) 6deg 8deg,
+    var(--frame-accent) 9deg 15deg
+  );
 }
 .player-avatar.achievement-frame[data-frame-pattern="7"]:before {
-  background: conic-gradient(from 45deg, var(--frame-accent) 0 11%, var(--frame-highlight) 12% 14%, var(--frame-color) 15% 36%, var(--frame-highlight) 37% 39%, var(--frame-accent) 40% 61%, var(--frame-highlight) 62% 64%, var(--frame-color) 65% 86%, var(--frame-highlight) 87% 89%, var(--frame-accent) 90%);
+  background: conic-gradient(
+    from 45deg,
+    var(--frame-accent) 0 11%,
+    var(--frame-highlight) 12% 14%,
+    var(--frame-color) 15% 36%,
+    var(--frame-highlight) 37% 39%,
+    var(--frame-accent) 40% 61%,
+    var(--frame-highlight) 62% 64%,
+    var(--frame-color) 65% 86%,
+    var(--frame-highlight) 87% 89%,
+    var(--frame-accent) 90%
+  );
 }
 .player-avatar.achievement-frame[data-frame-pattern="8"]:before {
-  background: repeating-conic-gradient(from 10deg, var(--frame-color) 0deg 10deg, var(--frame-accent) 11deg 13deg, var(--frame-highlight) 14deg 18deg);
+  background: repeating-conic-gradient(
+    from 10deg,
+    var(--frame-color) 0deg 10deg,
+    var(--frame-accent) 11deg 13deg,
+    var(--frame-highlight) 14deg 18deg
+  );
 }
 .player-avatar.achievement-frame[data-frame-pattern="9"]:before {
-  background: conic-gradient(from 90deg, var(--frame-highlight), var(--frame-accent) 15%, var(--frame-color) 30%, var(--frame-highlight) 50%, var(--frame-accent) 65%, var(--frame-color) 80%, var(--frame-highlight));
+  background: conic-gradient(
+    from 90deg,
+    var(--frame-highlight),
+    var(--frame-accent) 15%,
+    var(--frame-color) 30%,
+    var(--frame-highlight) 50%,
+    var(--frame-accent) 65%,
+    var(--frame-color) 80%,
+    var(--frame-highlight)
+  );
 }
 .player-avatar.achievement-frame.epic-frame {
   box-shadow:
-    0 0 0 2px var(--frame-accent), 0 0 0 6px var(--frame-color),
-    0 0 22px var(--frame-color), 0 0 35px color-mix(in srgb, var(--frame-color) 40%, transparent);
+    0 0 0 2px var(--frame-accent),
+    0 0 0 6px var(--frame-color),
+    0 0 22px var(--frame-color),
+    0 0 35px color-mix(in srgb, var(--frame-color) 40%, transparent);
 }
 .player-avatar.achievement-frame.epic-frame:before {
   animation: rank-frame-spin 9s linear infinite;
 }
 .player-avatar.achievement-frame.legendary-frame {
   box-shadow:
-    0 0 0 2px var(--frame-accent), 0 0 0 7px var(--frame-highlight),
-    0 0 0 9px var(--frame-accent), 0 0 24px var(--frame-color),
+    0 0 0 2px var(--frame-accent),
+    0 0 0 7px var(--frame-highlight),
+    0 0 0 9px var(--frame-accent),
+    0 0 24px var(--frame-color),
     0 0 45px var(--frame-accent);
 }
 .player-avatar.achievement-frame.legendary-frame:before {
@@ -2345,9 +2434,13 @@ button {
   animation: rank-frame-glow 2.7s ease-in-out infinite alternate;
 }
 /* Every reward uses its own vector crown; the old shared conic ring is hidden. */
-.player-avatar.achievement-frame::before { content: none; }
+.player-avatar.achievement-frame::before {
+  content: none;
+}
 .player-avatar.achievement-frame:not(:is(.epic-frame, .legendary-frame, .majestic-frame)) {
-  box-shadow: 0 0 0 1px var(--frame-accent), 0 0 10px color-mix(in srgb, var(--frame-color) 45%, transparent);
+  box-shadow:
+    0 0 0 1px var(--frame-accent),
+    0 0 10px color-mix(in srgb, var(--frame-color) 45%, transparent);
 }
 .player-avatar.achievement-frame .element-classic {
   filter: drop-shadow(0 0 2px var(--frame-color));
@@ -2355,7 +2448,9 @@ button {
 /* Epic and legendary rewards are sculpted ornaments, not recoloured base rings. */
 .player-avatar.achievement-frame:is(.epic-frame, .legendary-frame, .majestic-frame) {
   border-color: var(--frame-accent);
-  box-shadow: 0 0 0 1px var(--frame-highlight), 0 0 14px var(--frame-color);
+  box-shadow:
+    0 0 0 1px var(--frame-highlight),
+    0 0 14px var(--frame-color);
 }
 .player-avatar.achievement-frame:is(.epic-frame, .legendary-frame, .majestic-frame)::before,
 .player-avatar.achievement-frame:is(.epic-frame, .legendary-frame, .majestic-frame)::after {
@@ -2373,7 +2468,7 @@ button {
   filter: drop-shadow(0 0 3px var(--frame-accent));
 }
 .player-avatar.achievement-frame .element-inner {
-  opacity: .88;
+  opacity: 0.88;
 }
 .player-avatar.achievement-frame .archetype-art {
   inset: -16px;
@@ -2438,8 +2533,11 @@ button {
 }
 .player-avatar.achievement-frame.majestic-frame {
   border-color: var(--frame-highlight);
-  box-shadow: 0 0 0 2px var(--frame-accent), 0 0 0 5px var(--frame-highlight),
-    0 0 19px var(--frame-color), 0 0 34px var(--frame-accent);
+  box-shadow:
+    0 0 0 2px var(--frame-accent),
+    0 0 0 5px var(--frame-highlight),
+    0 0 19px var(--frame-color),
+    0 0 34px var(--frame-accent);
 }
 .player-avatar.achievement-frame.majestic-frame .elemental-art {
   filter: drop-shadow(0 0 5px var(--frame-color)) drop-shadow(0 0 10px var(--frame-highlight));
@@ -2457,12 +2555,68 @@ button {
   filter: drop-shadow(0 0 4px var(--frame-highlight));
   animation: element-glimmer 3s ease-in-out infinite;
 }
-@keyframes element-orbit { to { transform: rotate(360deg); } }
-@keyframes element-glimmer { 50% { opacity: .55; filter: drop-shadow(0 0 4px var(--frame-highlight)); } }
-@keyframes element-particle { 0%, 100% { opacity: .25; transform: scale(.6); } 50% { opacity: 1; transform: scale(1.6); } }
-@keyframes lightning-strike { 0%, 43%, 48%, 100% { opacity: .8; filter: none; } 44%, 46% { opacity: 1; filter: drop-shadow(0 0 5px white); } 45%, 47% { opacity: .22; } }
-@keyframes element-wave { 0%, 100% { opacity: .7; transform: scale(.86); } 50% { opacity: 1; transform: scale(1.18); } }
-@keyframes meteor-flare { 0%, 100% { opacity: .65; filter: drop-shadow(0 0 2px var(--frame-color)); } 50% { opacity: 1; filter: drop-shadow(0 0 7px var(--frame-highlight)); } }
+@keyframes element-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes element-glimmer {
+  50% {
+    opacity: 0.55;
+    filter: drop-shadow(0 0 4px var(--frame-highlight));
+  }
+}
+@keyframes element-particle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.6);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+}
+@keyframes lightning-strike {
+  0%,
+  43%,
+  48%,
+  100% {
+    opacity: 0.8;
+    filter: none;
+  }
+  44%,
+  46% {
+    opacity: 1;
+    filter: drop-shadow(0 0 5px white);
+  }
+  45%,
+  47% {
+    opacity: 0.22;
+  }
+}
+@keyframes element-wave {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.86);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+@keyframes meteor-flare {
+  0%,
+  100% {
+    opacity: 0.65;
+    filter: drop-shadow(0 0 2px var(--frame-color));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 7px var(--frame-highlight));
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .player-avatar.achievement-frame:before,
   .player-avatar.achievement-frame:after,
@@ -2470,9 +2624,19 @@ button {
     animation: none !important;
   }
 }
-.profile-studio { display: grid; gap: 20px; }
-.account-private-meta { margin: -7px 0 0; color: #a9b9d0; font-size: 13px; overflow-wrap: anywhere; }
-.profile-studio-heading h3 { margin: 4px 0 0; }
+.profile-studio {
+  display: grid;
+  gap: 20px;
+}
+.account-private-meta {
+  margin: -7px 0 0;
+  color: #a9b9d0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.profile-studio-heading h3 {
+  margin: 4px 0 0;
+}
 .profile-card {
   --profile-ink: #d8edff;
   position: relative;
@@ -2484,8 +2648,12 @@ button {
   border: 1px solid #7bc5fc8c;
   border-radius: 22px;
   color: var(--profile-ink);
-  background: radial-gradient(circle at 88% 5%, #69d8ed55, transparent 40%), linear-gradient(125deg, #10294b, #10213b 55%, #192b52);
-  box-shadow: 0 18px 40px #040a1f80, inset 0 0 0 1px #ffffff16;
+  background:
+    radial-gradient(circle at 88% 5%, #69d8ed55, transparent 40%),
+    linear-gradient(125deg, #10294b, #10213b 55%, #192b52);
+  box-shadow:
+    0 18px 40px #040a1f80,
+    inset 0 0 0 1px #ffffff16;
 }
 .profile-card::before {
   content: "";
@@ -2497,44 +2665,186 @@ button {
   top: -130px;
   border: 1px solid #ffffff50;
   border-radius: 50%;
-  box-shadow: 0 0 0 24px #ffffff0b, 0 0 0 52px #ffffff0a, 0 0 0 88px #ffffff08;
+  box-shadow:
+    0 0 0 24px #ffffff0b,
+    0 0 0 52px #ffffff0a,
+    0 0 0 88px #ffffff08;
 }
-.profile-card-aurora { border-color: #59e5c7; background: radial-gradient(circle at 84% 2%, #44f3bd70, transparent 46%), linear-gradient(135deg, #083b42, #131f55 68%, #40336e); }
-.profile-card-arena { border-color: #e3a754; background: radial-gradient(circle at 85% 0%, #ee8d4866, transparent 45%), linear-gradient(135deg, #432126, #241b36 65%, #4c2e25); }
-.profile-card-obsidian { border-color: #b594f7; background: radial-gradient(circle at 85% 5%, #b17afb66, transparent 45%), linear-gradient(135deg, #14152e, #27173c 65%, #150f27); }
-.profile-card-celestial { border-color: #f8da91; background: radial-gradient(circle at 85% 0%, #ffdb9870, transparent 40%), linear-gradient(135deg, #243354, #4b3867 67%, #644a63); }
-.profile-card-top { display: flex; align-items: center; gap: 20px; min-width: 0; }
-.profile-card-identity { display: grid; gap: 2px; min-width: 0; }
-.profile-card-identity strong { font-size: clamp(20px, 4vw, 29px); overflow-wrap: anywhere; line-height: 1.15; }
-.profile-card-identity small { color: #e5e9f4; font-size: 14px; }
-.profile-subtitle { width: fit-content; color: #ffe5a2; font-weight: 750; letter-spacing: .04em; }
-.profile-card-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 27px; }
-.profile-card-stats div { display: grid; gap: 2px; padding: 9px 10px; border: 1px solid #ffffff2e; border-radius: 11px; background: #06142a50; }
-.profile-card-stats b { font-size: 23px; line-height: 1; }
-.profile-card-stats span { font-size: 12px; color: #e0e8f4; }
-.profile-card-best { display: flex; justify-content: space-between; gap: 12px; margin-top: 16px; font-size: 14px; }
-.profile-card-best b { color: #fff1c2; }
-.profile-rewards { display: grid; gap: 24px; }
-.profile-rewards h4 { margin: 0 0 4px; font-size: 18px; }
-.profile-rewards p { margin: 0 0 12px; color: #a9b9d0; }
-.profile-reward-grid, .profile-title-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.profile-reward, .profile-title { display: grid; align-content: start; justify-items: start; gap: 7px; min-height: 95px; padding: 12px; border: 1px solid #334b6b; border-radius: 12px; background: #111e34; color: #e9f3ff; text-align: left; cursor: pointer; }
-.profile-reward.selected, .profile-title.selected { border-color: #76dcf5; box-shadow: 0 0 0 1px #76dcf55c; }
-.profile-reward:disabled, .profile-title:disabled { opacity: .52; cursor: not-allowed; }
-.profile-reward b, .profile-title b { font-size: 15px; }
-.profile-reward small, .profile-title small { color: #c5d4e8; line-height: 1.35; font-size: 12px; }
-.profile-reward-swatch { display: block; width: 100%; height: 27px; border: 1px solid #ffffff64; border-radius: 6px; background: linear-gradient(100deg, #10294b, #69d8ed); }
-.profile-reward-swatch.profile-card-aurora { background: linear-gradient(100deg, #083b42, #44f3bd, #40336e); }
-.profile-reward-swatch.profile-card-arena { background: linear-gradient(100deg, #432126, #ee8d48, #241b36); }
-.profile-reward-swatch.profile-card-obsidian { background: linear-gradient(100deg, #14152e, #b17afb, #27173c); }
-.profile-reward-swatch.profile-card-celestial { background: linear-gradient(100deg, #243354, #ffdb98, #644a63); }
+.profile-card-aurora {
+  border-color: #59e5c7;
+  background:
+    radial-gradient(circle at 84% 2%, #44f3bd70, transparent 46%),
+    linear-gradient(135deg, #083b42, #131f55 68%, #40336e);
+}
+.profile-card-arena {
+  border-color: #e3a754;
+  background:
+    radial-gradient(circle at 85% 0%, #ee8d4866, transparent 45%),
+    linear-gradient(135deg, #432126, #241b36 65%, #4c2e25);
+}
+.profile-card-obsidian {
+  border-color: #b594f7;
+  background:
+    radial-gradient(circle at 85% 5%, #b17afb66, transparent 45%),
+    linear-gradient(135deg, #14152e, #27173c 65%, #150f27);
+}
+.profile-card-celestial {
+  border-color: #f8da91;
+  background:
+    radial-gradient(circle at 85% 0%, #ffdb9870, transparent 40%),
+    linear-gradient(135deg, #243354, #4b3867 67%, #644a63);
+}
+.profile-card-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+.profile-card-identity {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.profile-card-identity strong {
+  font-size: clamp(20px, 4vw, 29px);
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+.profile-card-identity small {
+  color: #e5e9f4;
+  font-size: 14px;
+}
+.profile-subtitle {
+  width: fit-content;
+  color: #ffe5a2;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+.profile-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 27px;
+}
+.profile-card-stats div {
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid #ffffff2e;
+  border-radius: 11px;
+  background: #06142a50;
+}
+.profile-card-stats b {
+  font-size: 23px;
+  line-height: 1;
+}
+.profile-card-stats span {
+  font-size: 12px;
+  color: #e0e8f4;
+}
+.profile-card-best {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: 14px;
+}
+.profile-card-best b {
+  color: #fff1c2;
+}
+.profile-rewards {
+  display: grid;
+  gap: 24px;
+}
+.profile-rewards h4 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+.profile-rewards p {
+  margin: 0 0 12px;
+  color: #a9b9d0;
+}
+.profile-reward-grid,
+.profile-title-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.profile-reward,
+.profile-title {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 7px;
+  min-height: 95px;
+  padding: 12px;
+  border: 1px solid #334b6b;
+  border-radius: 12px;
+  background: #111e34;
+  color: #e9f3ff;
+  text-align: left;
+  cursor: pointer;
+}
+.profile-reward.selected,
+.profile-title.selected {
+  border-color: #76dcf5;
+  box-shadow: 0 0 0 1px #76dcf55c;
+}
+.profile-reward:disabled,
+.profile-title:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+.profile-reward b,
+.profile-title b {
+  font-size: 15px;
+}
+.profile-reward small,
+.profile-title small {
+  color: #c5d4e8;
+  line-height: 1.35;
+  font-size: 12px;
+}
+.profile-reward-swatch {
+  display: block;
+  width: 100%;
+  height: 27px;
+  border: 1px solid #ffffff64;
+  border-radius: 6px;
+  background: linear-gradient(100deg, #10294b, #69d8ed);
+}
+.profile-reward-swatch.profile-card-aurora {
+  background: linear-gradient(100deg, #083b42, #44f3bd, #40336e);
+}
+.profile-reward-swatch.profile-card-arena {
+  background: linear-gradient(100deg, #432126, #ee8d48, #241b36);
+}
+.profile-reward-swatch.profile-card-obsidian {
+  background: linear-gradient(100deg, #14152e, #b17afb, #27173c);
+}
+.profile-reward-swatch.profile-card-celestial {
+  background: linear-gradient(100deg, #243354, #ffdb98, #644a63);
+}
 @media (max-width: 560px) {
-  .profile-card { padding: 19px; min-height: 238px; }
-  .profile-card-top { gap: 15px; }
-  .profile-card-stats { gap: 5px; }
-  .profile-card-stats div { padding: 8px 6px; }
-  .profile-card-stats b { font-size: 19px; }
-  .profile-card-stats span { font-size: 12px; }
+  .profile-card {
+    padding: 19px;
+    min-height: 238px;
+  }
+  .profile-card-top {
+    gap: 15px;
+  }
+  .profile-card-stats {
+    gap: 5px;
+  }
+  .profile-card-stats div {
+    padding: 8px 6px;
+  }
+  .profile-card-stats b {
+    font-size: 19px;
+  }
+  .profile-card-stats span {
+    font-size: 12px;
+  }
 }
 .challenge-board {
   display: grid;
@@ -2637,16 +2947,26 @@ button {
   font-size: 14px;
   font-weight: 750;
 }
-.challenge-categories button.epic { border-color: #715caa; }
-.challenge-categories button.legendary { border-color: #aa803f; }
+.challenge-categories button.epic {
+  border-color: #715caa;
+}
+.challenge-categories button.legendary {
+  border-color: #aa803f;
+}
 .challenge-categories button.active {
   background: #244467;
   border-color: #8ddbe8;
   box-shadow: inset 0 0 0 1px #8ddbe855;
   color: #fff;
 }
-.challenge-categories button.epic.active { background: #493674; border-color: #d0adff; }
-.challenge-categories button.legendary.active { background: #624824; border-color: #ffdb8c; }
+.challenge-categories button.epic.active {
+  background: #493674;
+  border-color: #d0adff;
+}
+.challenge-categories button.legendary.active {
+  background: #624824;
+  border-color: #ffdb8c;
+}
 .challenge-categories small {
   color: #b7cbe5;
   font-size: 12px;
@@ -2697,7 +3017,11 @@ button {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  background-image: radial-gradient(circle at 50% 26%, color-mix(in srgb, var(--frame-color, #6e8fc4) 12%, transparent), transparent 70%);
+  background-image: radial-gradient(
+    circle at 50% 26%,
+    color-mix(in srgb, var(--frame-color, #6e8fc4) 12%, transparent),
+    transparent 70%
+  );
 }
 .frame-gallery .challenge-item .player-avatar {
   margin: 15px 0 10px;
@@ -2851,4 +3175,35 @@ button {
     padding: 17px;
     gap: 13px;
   }
+}
+
+.resume-game {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--cyan);
+  border-radius: 15px;
+  background: linear-gradient(90deg, #13335a, #10192b);
+  color: #fff;
+  text-align: left;
+}
+.resume-game:hover {
+  border-color: #fff;
+}
+.resume-game svg {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  color: var(--cyan);
+}
+.resume-game span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.resume-game small {
+  color: var(--muted);
 }

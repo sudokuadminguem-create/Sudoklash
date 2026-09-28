@@ -79,8 +79,7 @@ button {
   flex-direction: column;
   gap: 7px;
 }
-.side nav button,
-.settings {
+.side nav button {
   border: 0;
   background: transparent;
   display: flex;
@@ -92,8 +91,7 @@ button {
   text-align: left;
   position: relative;
 }
-.side nav svg,
-.settings svg {
+.side nav svg {
   width: 19px;
 }
 .side nav button:hover,
@@ -152,9 +150,7 @@ button {
   margin-top: 9px;
   font-size: 11px;
 }
-.settings {
-  margin-top: 10px;
-}
+
 .close {
   display: none;
   margin-left: auto;
@@ -606,8 +602,7 @@ header h1 {
   gap: 0 10px;
   margin: 17px 0;
 }
-.weekly button,
-.cards3 button {
+.weekly button {
   border: 0;
   background: none;
   color: #71a6ff;
@@ -674,51 +669,7 @@ header h1 {
 .mini-rank em {
   color: var(--cyan);
 }
-.feature-tourney {
-  min-height: 290px;
-  border: 1px solid #7250ce;
-  background: radial-gradient(circle at 85%, #743fee77, transparent 40%), #101630;
-  border-radius: 22px;
-  padding: 35px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.feature-tourney h2 {
-  font-size: 38px;
-  margin: 12px 0;
-}
-.feature-tourney p {
-  color: #adb5c8;
-}
-.feature-tourney > svg {
-  width: 180px;
-  height: 180px;
-  color: #986fff44;
-}
-.feature-tourney > div > div {
-  display: flex;
-  gap: 30px;
-  margin: 25px 0;
-}
-.feature-tourney b {
-  font-size: 24px;
-  color: var(--gold);
-}
-.feature-tourney button {
-  padding: 13px 20px;
-  border: 0;
-  border-radius: 11px;
-  background: #fff;
-  color: #131a2a;
-  font-weight: 800;
-}
-.cards3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 18px;
-}
+
 .filters,
 .shop-tabs {
   display: flex;
@@ -829,8 +780,7 @@ header h1 {
   padding: 2px 5px;
   border-radius: 5px;
 }
-.friends-layout,
-.stats-layout {
+.friends-layout {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
   gap: 18px;
@@ -903,67 +853,7 @@ header h1 {
   border-radius: 8px;
   padding: 7px;
 }
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 18px;
-}
-.stat {
-  display: flex;
-  flex-direction: column;
-}
-.stat span {
-  color: var(--muted);
-  font-size: 13px;
-}
-.stat b {
-  font-size: 29px;
-  margin: 7px 0;
-}
-.stat small {
-  color: #66dbae;
-}
-.stats-layout {
-  grid-template-columns: 2fr 1fr;
-}
-.chart {
-  height: 240px;
-  display: flex;
-  align-items: end;
-  gap: 10px;
-  border-bottom: 1px solid #29364f;
-  background: repeating-linear-gradient(0deg, transparent, transparent 54px, #1b2740 55px);
-}
-.chart i {
-  flex: 1;
-  background: linear-gradient(var(--cyan), var(--blue));
-  border-radius: 5px 5px 0 0;
-}
-.axis {
-  display: flex;
-  justify-content: space-between;
-  color: var(--muted);
-  font-size: 11px;
-}
-.achievements > div {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 0;
-  border-bottom: 1px solid var(--line);
-}
-.achievements p {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-.achievements small {
-  color: var(--muted);
-}
-.achievements em {
-  color: var(--gold);
-}
+
 .shop-hero {
   background: linear-gradient(120deg, #14254a, #342069);
   border: 1px solid #5743a9;
@@ -1152,28 +1042,17 @@ header h1 {
     font-size: 0;
   }
   .rightcol,
-  .friends-layout,
-  .stats-layout {
+  .friends-layout {
     display: block;
   }
   .rightcol > * {
     margin-top: 14px;
   }
   .difficulty-grid,
-  .cards3,
-  .stat-grid,
   .shop-grid {
     grid-template-columns: 1fr 1fr;
   }
-  .feature-tourney {
-    padding: 24px;
-  }
-  .feature-tourney > svg {
-    display: none;
-  }
-  .cards3 article {
-    margin-bottom: 12px;
-  }
+
   .podium {
     transform: scale(0.82);
     margin-left: -35px;
@@ -1189,8 +1068,7 @@ header h1 {
   .tr > *:nth-child(5) {
     display: none;
   }
-  .friends-layout > aside,
-  .stats-layout > div + div {
+  .friends-layout > aside {
     margin-top: 15px;
   }
   .shop-hero > div:last-child {

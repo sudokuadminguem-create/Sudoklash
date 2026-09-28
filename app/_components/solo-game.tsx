@@ -2,14 +2,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import { localJudge, type Judge } from "@/app/lib/judge";
+import {
+  clearSoloSave,
+  storeSoloSave,
+  type BoardSnapshot,
+  type SoloSave,
+  type StartedGame,
+} from "@/app/lib/solo-save";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
 import type { Difficulty } from "@/lib/difficulties";
 import { SudokuBoard } from "./sudoku-board";
-
-type StartedGame =
-  | { guest: true; puzzle: number[]; solution: number[] }
-  | { guest: false; gameId: string; puzzle: number[] };
 
 async function soloRequest<T>(body: Record<string, unknown>): Promise<T> {
   const response = await fetch("/api/solo", {
@@ -22,34 +25,51 @@ async function soloRequest<T>(body: Record<string, unknown>): Promise<T> {
   return data;
 }
 
+/** Errors meaning the server no longer has this game open (replaced on another device…). */
+const gone = (error: unknown) =>
+  error instanceof Error && (error.message === "game_not_found" || error.message === "game_over");
+
 /**
  * A solo grid served by the server. Signed-in players never receive the solution: the
  * server checks digits, gives hints and times the game before granting XP.
+ * The game in progress is saved in the browser so it can be resumed later.
  */
 export function SoloGame({
   difficulty,
   account,
   cosmetics,
   openAuth,
+  resume,
 }: {
   difficulty: Difficulty;
   account: Account;
   cosmetics: Cosmetics;
   openAuth: () => void;
+  /** A saved game to carry on instead of starting a new one. */
+  resume?: SoloSave;
 }) {
-  const [game, setGame] = useState<StartedGame | null>(null),
-    [error, setError] = useState(false);
-  const signedIn = !!account.user;
+  const [game, setGame] = useState<StartedGame | null>(resume?.game ?? null),
+    [board, setBoard] = useState<BoardSnapshot | undefined>(resume?.board),
+    [error, setError] = useState(false),
+    [expired, setExpired] = useState(false);
+  const userId = account.user?.id ?? null;
+  const signedIn = !!userId;
   const start = useCallback(async () => {
     setError(false);
     try {
-      setGame(await soloRequest<StartedGame>({ action: "start", difficulty }));
+      const started = await soloRequest<StartedGame>({ action: "start", difficulty });
+      setBoard(undefined);
+      setExpired(false);
+      setGame(started);
     } catch {
       setError(true);
     }
   }, [difficulty]);
   useEffect(() => {
+    // A resumed game is kept as long as it belongs to who is playing.
+    if (game && game.guest === !signedIn) return;
     void start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [start, signedIn]);
 
   const judge = useMemo<Judge | null>(() => {
@@ -58,7 +78,19 @@ export function SoloGame({
     const { gameId } = game;
     return {
       check: ({ index, number, id }) =>
-        soloRequest({ action: "check", gameId, index, number, mistakeId: id }),
+        soloRequest<{ correct: boolean; mistakes: number }>({
+          action: "check",
+          gameId,
+          index,
+          number,
+          mistakeId: id,
+        }).catch((e: unknown) => {
+          if (gone(e)) {
+            clearSoloSave(userId);
+            setExpired(true);
+          }
+          throw e;
+        }),
       hint: async (grid) =>
         (
           await soloRequest<{ hint: { index: number; number: number } | null }>({
@@ -68,8 +100,17 @@ export function SoloGame({
           })
         ).hint,
     };
-  }, [game]);
+  }, [game, userId]);
 
+  if (expired)
+    return (
+      <div className="panel weekly-state error">
+        <p>Cette partie n’est plus disponible : une autre grille a été lancée depuis.</p>
+        <button className="primary" onClick={() => void start()}>
+          Nouvelle grille
+        </button>
+      </div>
+    );
   if (error)
     return (
       <div className="panel weekly-state error">
@@ -94,6 +135,13 @@ export function SoloGame({
       title="Entraînement solo"
       soloExperience
       onConnect={openAuth}
+      resume={board}
+      onSnapshot={(snapshot) => {
+        // Guest games stay with the guest, even if the player signs in meanwhile.
+        const owner = game.guest ? null : userId;
+        if (snapshot) storeSoloSave(owner, { difficulty, game, board: snapshot });
+        else clearSoloSave(owner);
+      }}
       onNewGame={() => void start()}
       onSolved={async (grid) => {
         if (game.guest) return null;

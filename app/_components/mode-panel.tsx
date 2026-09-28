@@ -1,5 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { History } from "lucide-react";
+import { formatClock } from "@/app/lib/format-time";
+import { loadSoloSave, saveProgress, type SoloSave } from "@/app/lib/solo-save";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
 import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
@@ -21,12 +24,27 @@ export function ModePanel({
   cosmetics: Cosmetics;
   openAuth: () => void;
 }) {
-  const [chosen, setChosen] = useState<Difficulty | null>(null);
+  const [chosen, setChosen] = useState<Difficulty | null>(null),
+    [resuming, setResuming] = useState<SoloSave | undefined>(),
+    [saved, setSaved] = useState<SoloSave | null>(null);
+  const userId = account.user?.id ?? null;
+  // Look for a game to resume each time the difficulty picker shows up.
+  useEffect(() => {
+    if (mode !== "solo" || chosen || account.loading) return;
+    setSaved(loadSoloSave(userId));
+  }, [mode, chosen, account.loading, userId]);
   if (mode === "solo")
     return chosen ? (
       <div>
         <div className="solo-bar">
-          <button onClick={() => setChosen(null)}>← Changer de difficulté</button>
+          <button
+            onClick={() => {
+              setChosen(null);
+              setResuming(undefined);
+            }}
+          >
+            ← Changer de difficulté
+          </button>
           <b>{chosen}</b>
           <span>Grille valide · solution unique</span>
         </div>
@@ -36,6 +54,7 @@ export function ModePanel({
           account={account}
           cosmetics={cosmetics}
           openAuth={openAuth}
+          resume={resuming}
         />
       </div>
     ) : (
@@ -48,6 +67,24 @@ export function ModePanel({
             nécessaires pour la résoudre.
           </p>
         </div>
+        {saved && (
+          <button
+            className="resume-game"
+            onClick={() => {
+              setResuming(saved);
+              setChosen(saved.difficulty);
+            }}
+          >
+            <History />
+            <span>
+              <b>Reprendre ma partie</b>
+              <small>
+                {saved.difficulty} · {formatClock(saved.board.seconds)} · {saveProgress(saved)}%
+                complétée
+              </small>
+            </span>
+          </button>
+        )}
         <div className="difficulty-grid">
           {soloDifficulties.map((d, i) => (
             <button
