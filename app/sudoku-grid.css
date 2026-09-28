@@ -2256,10 +2256,11 @@ button {
   position: relative;
   isolation: isolate;
   border-radius: 50%;
-  border-color: var(--frame-color);
+  border: 2px solid var(--frame-highlight);
   box-shadow:
     0 0 0 2px var(--frame-accent),
-    0 0 15px color-mix(in srgb, var(--frame-color) 55%, transparent);
+    0 0 0 5px var(--frame-color),
+    0 0 18px color-mix(in srgb, var(--frame-color) 55%, transparent);
 }
 .player-avatar.achievement-frame > span {
   position: relative;
@@ -2269,75 +2270,68 @@ button {
 .player-avatar.achievement-frame:before {
   content: "";
   position: absolute;
-  inset: -6px;
+  inset: -8px;
   border-radius: 50%;
-  background: repeating-conic-gradient(
-    var(--frame-color) 0deg 20deg,
-    var(--frame-accent) 20deg 40deg
-  );
+  background: repeating-conic-gradient(from 15deg, var(--frame-highlight) 0deg 3deg, var(--frame-color) 4deg 15deg, var(--frame-accent) 17deg 21deg);
+  box-shadow: 0 0 0 1px var(--frame-highlight), inset 0 0 0 2px var(--frame-accent);
 }
 .player-avatar.achievement-frame:after {
   content: var(--rank-symbol);
   position: absolute;
   z-index: 2;
-  top: -9px;
-  right: -7px;
+  top: -11px;
+  right: -10px;
   width: 20px;
   height: 20px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #0a152c;
-  border: 1px solid var(--frame-color);
-  color: var(--frame-color);
+  background: radial-gradient(circle at 30% 25%, var(--frame-highlight), var(--frame-color) 35%, var(--frame-accent));
+  border: 1px solid var(--frame-highlight);
+  color: #081529;
   font-size: 12px;
   box-shadow: 0 0 9px var(--frame-color);
 }
 .player-avatar.achievement-frame[data-frame-pattern="1"]:before {
-  background: repeating-conic-gradient(
-    var(--frame-color) 0deg 12deg,
-    var(--frame-accent) 12deg 24deg
-  );
+  background: repeating-conic-gradient(var(--frame-highlight) 0deg 2deg, var(--frame-accent) 3deg 9deg, var(--frame-color) 10deg 18deg);
 }
 .player-avatar.achievement-frame[data-frame-pattern="2"]:before {
-  background: conic-gradient(
-    from 45deg,
-    var(--frame-color),
-    #f8f8ff,
-    var(--frame-accent),
-    var(--frame-color)
-  );
+  background: conic-gradient(from 45deg, var(--frame-color) 0 19%, var(--frame-highlight) 20% 25%, var(--frame-accent) 27% 44%, var(--frame-highlight) 45% 50%, var(--frame-color) 52% 69%, var(--frame-highlight) 70% 75%, var(--frame-accent) 77% 94%, var(--frame-highlight) 95%);
 }
 .player-avatar.achievement-frame[data-frame-pattern="3"]:before {
-  background: repeating-conic-gradient(
-    var(--frame-accent) 0deg 25deg,
-    var(--frame-color) 25deg 45deg
-  );
+  background: repeating-conic-gradient(from 10deg, var(--frame-accent) 0deg 9deg, var(--frame-highlight) 10deg 12deg, var(--frame-color) 13deg 30deg);
 }
 .player-avatar.achievement-frame[data-frame-pattern="4"]:before {
-  background: conic-gradient(
-    var(--frame-color),
-    transparent,
-    var(--frame-accent),
-    var(--frame-color),
-    transparent,
-    var(--frame-accent),
-    var(--frame-color)
-  );
+  background: repeating-conic-gradient(from 22deg, var(--frame-highlight) 0deg 1deg, var(--frame-color) 2deg 27deg, var(--frame-accent) 28deg 36deg);
+}
+.player-avatar.achievement-frame[data-frame-pattern="5"]:before {
+  background: conic-gradient(from 20deg, var(--frame-highlight), var(--frame-color), var(--frame-accent), var(--frame-highlight), var(--frame-color), var(--frame-accent), var(--frame-highlight));
+}
+.player-avatar.achievement-frame[data-frame-pattern="6"]:before {
+  background: repeating-conic-gradient(from 7deg, var(--frame-color) 0deg 5deg, var(--frame-highlight) 6deg 8deg, var(--frame-accent) 9deg 15deg);
+}
+.player-avatar.achievement-frame[data-frame-pattern="7"]:before {
+  background: conic-gradient(from 45deg, var(--frame-accent) 0 11%, var(--frame-highlight) 12% 14%, var(--frame-color) 15% 36%, var(--frame-highlight) 37% 39%, var(--frame-accent) 40% 61%, var(--frame-highlight) 62% 64%, var(--frame-color) 65% 86%, var(--frame-highlight) 87% 89%, var(--frame-accent) 90%);
+}
+.player-avatar.achievement-frame[data-frame-pattern="8"]:before {
+  background: repeating-conic-gradient(from 10deg, var(--frame-color) 0deg 10deg, var(--frame-accent) 11deg 13deg, var(--frame-highlight) 14deg 18deg);
+}
+.player-avatar.achievement-frame[data-frame-pattern="9"]:before {
+  background: conic-gradient(from 90deg, var(--frame-highlight), var(--frame-accent) 15%, var(--frame-color) 30%, var(--frame-highlight) 50%, var(--frame-accent) 65%, var(--frame-color) 80%, var(--frame-highlight));
 }
 .player-avatar.achievement-frame.epic-frame {
   box-shadow:
-    0 0 0 2px var(--frame-accent),
-    0 0 20px var(--frame-color);
+    0 0 0 2px var(--frame-accent), 0 0 0 6px var(--frame-color),
+    0 0 22px var(--frame-color), 0 0 35px color-mix(in srgb, var(--frame-color) 40%, transparent);
 }
 .player-avatar.achievement-frame.epic-frame:before {
   animation: rank-frame-spin 9s linear infinite;
 }
 .player-avatar.achievement-frame.legendary-frame {
   box-shadow:
-    0 0 0 2px var(--frame-accent),
-    0 0 16px var(--frame-color),
-    0 0 30px var(--frame-accent);
+    0 0 0 2px var(--frame-accent), 0 0 0 7px var(--frame-highlight),
+    0 0 0 9px var(--frame-accent), 0 0 24px var(--frame-color),
+    0 0 45px var(--frame-accent);
 }
 .player-avatar.achievement-frame.legendary-frame:before {
   animation: rank-frame-spin 5s linear infinite;
@@ -2345,10 +2339,106 @@ button {
 .player-avatar.achievement-frame.legendary-frame:after {
   animation: rank-frame-glow 2.7s ease-in-out infinite alternate;
 }
+/* Every reward uses its own vector crown; the old shared conic ring is hidden. */
+.player-avatar.achievement-frame::before { content: none; }
+.player-avatar.achievement-frame:not(:is(.epic-frame, .legendary-frame, .majestic-frame)) {
+  box-shadow: 0 0 0 1px var(--frame-accent), 0 0 10px color-mix(in srgb, var(--frame-color) 45%, transparent);
+}
+.player-avatar.achievement-frame .element-classic {
+  filter: drop-shadow(0 0 2px var(--frame-color));
+}
+/* Epic and legendary rewards are sculpted ornaments, not recoloured base rings. */
+.player-avatar.achievement-frame:is(.epic-frame, .legendary-frame, .majestic-frame) {
+  border-color: var(--frame-accent);
+  box-shadow: 0 0 0 1px var(--frame-highlight), 0 0 14px var(--frame-color);
+}
+.player-avatar.achievement-frame:is(.epic-frame, .legendary-frame, .majestic-frame)::before,
+.player-avatar.achievement-frame:is(.epic-frame, .legendary-frame, .majestic-frame)::after {
+  content: none;
+}
+.player-avatar.achievement-frame .elemental-art {
+  position: absolute;
+  z-index: 3;
+  inset: -12px;
+  width: calc(100% + 24px);
+  height: calc(100% + 24px);
+  overflow: visible;
+  pointer-events: none;
+  color: var(--frame-color);
+  filter: drop-shadow(0 0 3px var(--frame-accent));
+}
+.player-avatar.achievement-frame .element-inner {
+  opacity: .88;
+}
+.player-avatar.achievement-frame.epic-frame .element-ornament {
+  filter: drop-shadow(0 0 2px var(--frame-color));
+}
+.player-avatar.achievement-frame.legendary-frame .elemental-art {
+  filter: drop-shadow(0 0 5px var(--frame-color)) drop-shadow(0 0 8px var(--frame-accent));
+}
+.player-avatar.achievement-frame.legendary-frame .element-halo {
+  stroke-dasharray: 2 5;
+  animation: element-orbit 12s linear infinite;
+  transform-origin: center;
+}
+.player-avatar.achievement-frame.legendary-frame .element-metal {
+  animation: element-orbit 17s linear infinite reverse;
+  transform-origin: center;
+}
+.player-avatar.achievement-frame.legendary-frame .element-ornament {
+  animation: element-glimmer 2.5s ease-in-out infinite;
+}
+.player-avatar.achievement-frame.legendary-frame .element-particle {
+  animation: element-particle 2.2s ease-in-out infinite;
+  transform-origin: center;
+}
+.player-avatar.achievement-frame.legendary-frame .element-lightning .element-ornament {
+  animation: lightning-strike 2.8s steps(1, end) infinite;
+}
+.player-avatar.achievement-frame.legendary-frame .element-splash .element-ornament path,
+.player-avatar.achievement-frame.legendary-frame .element-aurora .element-ornament path {
+  animation: element-wave 3.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.player-avatar.achievement-frame.legendary-frame .element-meteor .element-ornament {
+  animation: meteor-flare 2.3s ease-in-out infinite;
+}
+.player-avatar.achievement-frame.legendary-frame .element-solar .element-particle {
+  animation-duration: 1.3s;
+}
+.player-avatar.achievement-frame.majestic-frame {
+  border-color: var(--frame-highlight);
+  box-shadow: 0 0 0 2px var(--frame-accent), 0 0 0 5px var(--frame-highlight),
+    0 0 19px var(--frame-color), 0 0 34px var(--frame-accent);
+}
+.player-avatar.achievement-frame.majestic-frame .elemental-art {
+  filter: drop-shadow(0 0 5px var(--frame-color)) drop-shadow(0 0 10px var(--frame-highlight));
+}
+.player-avatar.achievement-frame.majestic-frame .element-halo {
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  transform-origin: center;
+  animation: element-orbit 20s linear infinite;
+}
+.player-avatar.achievement-frame.majestic-frame .element-particle {
+  animation: element-particle 2.8s ease-in-out infinite;
+}
+.player-avatar.achievement-frame.majestic-frame .element-signature {
+  filter: drop-shadow(0 0 4px var(--frame-highlight));
+  animation: element-glimmer 3s ease-in-out infinite;
+}
+@keyframes element-orbit { to { transform: rotate(360deg); } }
+@keyframes element-glimmer { 50% { opacity: .55; filter: drop-shadow(0 0 4px var(--frame-highlight)); } }
+@keyframes element-particle { 0%, 100% { opacity: .25; transform: scale(.6); } 50% { opacity: 1; transform: scale(1.6); } }
+@keyframes lightning-strike { 0%, 43%, 48%, 100% { opacity: .8; filter: none; } 44%, 46% { opacity: 1; filter: drop-shadow(0 0 5px white); } 45%, 47% { opacity: .22; } }
+@keyframes element-wave { 0%, 100% { opacity: .7; transform: scale(.86); } 50% { opacity: 1; transform: scale(1.18); } }
+@keyframes meteor-flare { 0%, 100% { opacity: .65; filter: drop-shadow(0 0 2px var(--frame-color)); } 50% { opacity: 1; filter: drop-shadow(0 0 7px var(--frame-highlight)); } }
 @media (prefers-reduced-motion: reduce) {
   .player-avatar.achievement-frame:before,
-  .player-avatar.achievement-frame:after {
-    animation: none;
+  .player-avatar.achievement-frame:after,
+  .player-avatar.achievement-frame .elemental-art * {
+    animation: none !important;
   }
 }
 .challenge-board {
@@ -2421,6 +2511,52 @@ button {
   background: #ffffff18;
   font-size: 12px;
 }
+.challenge-filter {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid #304665;
+  border-radius: 16px;
+  background: linear-gradient(130deg, #15243b, #101b30);
+}
+.challenge-filter > strong {
+  color: #e3efff;
+  font-size: 14px;
+}
+.challenge-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 4px 0;
+}
+.challenge-categories button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 41px;
+  padding: 8px 13px;
+  border: 1px solid #3a4c69;
+  border-radius: 999px;
+  background: #111e33;
+  color: #d6e3f5;
+  font-size: 14px;
+  font-weight: 750;
+}
+.challenge-categories button.epic { border-color: #715caa; }
+.challenge-categories button.legendary { border-color: #aa803f; }
+.challenge-categories button.active {
+  background: #244467;
+  border-color: #8ddbe8;
+  box-shadow: inset 0 0 0 1px #8ddbe855;
+  color: #fff;
+}
+.challenge-categories button.epic.active { background: #493674; border-color: #d0adff; }
+.challenge-categories button.legendary.active { background: #624824; border-color: #ffdb8c; }
+.challenge-categories small {
+  color: #b7cbe5;
+  font-size: 12px;
+  font-weight: 650;
+}
 .challenge-secret-note {
   display: flex;
   gap: 9px;
@@ -2458,6 +2594,25 @@ button {
 .challenge-item.legendary {
   border-color: #a27e3c;
   background: linear-gradient(145deg, #362a31, #172039);
+}
+.frame-gallery {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+.frame-gallery .challenge-item {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background-image: radial-gradient(circle at 50% 26%, color-mix(in srgb, var(--frame-color, #6e8fc4) 12%, transparent), transparent 70%);
+}
+.frame-gallery .challenge-item .player-avatar {
+  margin: 15px 0 10px;
+  transform: scale(1.25);
+}
+.frame-gallery .challenge-detail {
+  width: 100%;
+}
+.frame-gallery .challenge-detail h3 {
+  min-height: 2.2em;
 }
 .challenge-item .player-avatar {
   margin: 7px 3px 0;

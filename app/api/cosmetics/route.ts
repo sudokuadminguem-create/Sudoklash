@@ -12,6 +12,8 @@ import {
 } from "@/lib/cosmetics";
 import { rankedPosition } from "@/lib/ranked-position";
 import { rankFor } from "@/lib/ranked-rules";
+import { achievementFrames } from "@/lib/achievement-frames";
+import { playerAchievements } from "@/lib/achievement-awards";
 
 export const dynamic = "force-dynamic";
 const json = (data: unknown, status = 200) =>
@@ -93,11 +95,13 @@ async function state(userId: string) {
   const points = rating?.points ?? 0;
   const position = await rankedPosition(db, userId, points);
   const rank = rankFor(points, position);
+  const achievementIds = [...(await playerAchievements(db,userId,points)).ids];
   const savedFrame = selection?.frame_id;
   const frameSelection =
     savedFrame === "rank_auto" ||
     savedFrame === "none" ||
-    unlockedFrames.some((f) => f.id === savedFrame)
+    unlockedFrames.some((f) => f.id === savedFrame) ||
+    achievementIds.includes(savedFrame ?? "")
       ? savedFrame
       : "rank_auto";
   const frameId = frameSelection === "rank_auto" ? `rank-${rank.name}` : frameSelection;
@@ -110,7 +114,10 @@ async function state(userId: string) {
     ),
     ownedAvatars: owned,
     ownedThemes,
-    unlockedFrames: unlockedFrames.map((f) => f.id),
+    unlockedFrames: [...unlockedFrames.map((f) => f.id), ...achievementIds],
+    achievementFrames: achievementFrames
+      .filter((f) => achievementIds.includes(f.id))
+      .map(({ id, name, rarity }) => ({ id, name, rarity })),
     avatarId: owned.includes(selection?.avatar_id ?? "") ? selection!.avatar_id : "nova",
     frameId,
     frameSelection,

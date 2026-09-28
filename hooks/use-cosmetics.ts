@@ -13,6 +13,7 @@ export type CosmeticState = {
   ownedAvatars: string[];
   ownedThemes: string[];
   unlockedFrames: string[];
+  achievementFrames: { id: string; name: string; rarity: "simple" | "epic" | "legendary" | "majestic" }[];
   avatarId: string;
   frameId: string;
   frameSelection: string;

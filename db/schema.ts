@@ -84,6 +84,16 @@ export const cosmeticPurchases = sqliteTable(
   (table) => [primaryKey({ columns: [table.userId, table.itemId] })],
 );
 
+export const achievementUnlocks = sqliteTable(
+  "achievement_unlocks",
+  {
+    userId: text("user_id").notNull(),
+    achievementId: text("achievement_id").notNull(),
+    unlockedAt: integer("unlocked_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.achievementId] })],
+);
+
 export const soloResults = sqliteTable(
   "solo_results",
   {
