@@ -1,0 +1,10 @@
+node_modules
+.next
+build
+components/ui
+drizzle
+pnpm-lock.yaml
+.sites-runtime
+dist
+vendor
+.openai

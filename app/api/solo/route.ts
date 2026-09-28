@@ -41,7 +41,7 @@ const digits = (value: string) => value.split("").map(Number);
 
 const gameFor = (userId: string, gameId: unknown) =>
   typeof gameId === "string"
-    ? env.DB.prepare("SELECT * FROM solo_games WHERE id = ? AND user_id = ?")
+    ? env.DB!.prepare("SELECT * FROM solo_games WHERE id = ? AND user_id = ?")
         .bind(gameId, userId)
         .first<Game>()
     : null;
@@ -58,11 +58,11 @@ export async function POST(request: Request) {
     if (!user) return json({ guest: true, puzzle: digits(puzzle), solution: digits(solution) });
     const id = crypto.randomUUID();
     // One open game per player: starting a new grid abandons the previous one.
-    await env.DB.batch([
-      env.DB.prepare("DELETE FROM solo_games WHERE user_id = ? AND completed_at IS NULL").bind(
+    await env.DB!.batch([
+      env.DB!.prepare("DELETE FROM solo_games WHERE user_id = ? AND completed_at IS NULL").bind(
         user.userId,
       ),
-      env.DB.prepare(
+      env.DB!.prepare(
         "INSERT INTO solo_games (id, user_id, difficulty, puzzle, solution, started_at) VALUES (?, ?, ?, ?, ?, ?)",
       ).bind(id, user.userId, body.difficulty, puzzle, solution, Date.now()),
     ]);
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     if (game.puzzle[index] !== "0") return json({ error: "invalid_entry" }, 422);
     if (game.solution[index] === String(number))
       return json({ correct: true, mistakes: game.mistakes });
-    await env.DB.prepare(
+    await env.DB!.prepare(
       "UPDATE solo_games SET mistakes = mistakes + 1, last_mistake_id = ? WHERE id = ? AND completed_at IS NULL AND mistakes < 3 AND (last_mistake_id IS NULL OR last_mistake_id != ?)",
     )
       .bind(mistakeId, game.id, mistakeId)
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     if (game.hints_used >= MAX_SOLO_HINTS) return json({ error: "no_hints_left" }, 409);
     const index = grid.findIndex((value, i) => value !== Number(game.solution[i]));
     if (index < 0) return json({ hint: null });
-    const result = await env.DB.prepare(
+    const result = await env.DB!.prepare(
       "UPDATE solo_games SET hints_used = hints_used + 1 WHERE id = ? AND hints_used < ?",
     )
       .bind(game.id, MAX_SOLO_HINTS)
@@ -110,13 +110,13 @@ export async function POST(request: Request) {
     const now = Date.now();
     const elapsedSeconds = Math.floor((now - game.started_at) / 1000);
     if (elapsedSeconds < MIN_SOLO_SECONDS) return json({ error: "too_fast" }, 422);
-    const finished = await env.DB.prepare(
+    const finished = await env.DB!.prepare(
       "UPDATE solo_games SET completed_at = ? WHERE id = ? AND completed_at IS NULL AND mistakes < 3",
     )
       .bind(now, game.id)
       .run();
     if (!finished.meta.changes) return json({ error: "game_over" }, 409);
-    await env.DB.prepare(
+    await env.DB!.prepare(
       "INSERT INTO solo_results (id, user_id, difficulty, elapsed_seconds, completed_at) VALUES (?, ?, ?, ?, ?)",
     )
       .bind(game.id, user.userId, game.difficulty, elapsedSeconds, now)
