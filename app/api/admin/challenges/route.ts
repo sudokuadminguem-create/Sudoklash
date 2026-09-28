@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   if (!title) return Response.json({ error: "missing_title" }, { status: 400 });
   if (!hasUniqueSolution(puzzle))
     return Response.json({ error: "invalid_puzzle" }, { status: 400 });
-  await env.DB.prepare(
+  await env.DB!.prepare(
     "INSERT INTO challenge_settings (challenge_type, title, puzzle, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(challenge_type) DO UPDATE SET title = excluded.title, puzzle = excluded.puzzle, updated_at = excluded.updated_at",
   )
     .bind(body.kind, title, puzzle, Date.now())
