@@ -93,8 +93,12 @@ export function SudokuBoard({
     wrong: Record<number, number>;
   }>({ correct: {}, wrong: {} });
   const verdictsRef = useRef(verdicts);
+  // Latest grid, for verdicts that come back after other digits were placed.
   const cellsRef = useRef(cells);
-  cellsRef.current = cells;
+  const updateCells = (grid: number[]) => {
+    cellsRef.current = grid;
+    setCells(grid);
+  };
   const isCorrect = (grid: number[], i: number) =>
     !!puzzle[i] || (!!grid[i] && verdictsRef.current.correct[i] === grid[i]);
   const isWrong = (i: number) => !!cells[i] && verdicts.wrong[i] === cells[i];
@@ -185,7 +189,7 @@ export function SudokuBoard({
     }
     const c = [...cells];
     c[index] = n;
-    setCells(c);
+    updateCells(c);
     setCellNotes((prev) => ({ ...prev, [index]: [] }));
     void submit({ index, number: n, id: crypto.randomUUID() }, c);
   };
@@ -194,14 +198,14 @@ export function SudokuBoard({
     setHistory((h) => [...h, { cells: [...cells], notes: { ...cellNotes } }]);
     const c = [...cells];
     c[selected] = 0;
-    setCells(c);
+    updateCells(c);
     setCellNotes((p) => ({ ...p, [selected]: [] }));
   };
   const undo = () => {
     if (mistakes >= 3) return;
     const last = history.at(-1);
     if (!last) return;
-    setCells(last.cells);
+    updateCells(last.cells);
     setCellNotes(last.notes);
     setHistory((h) => h.slice(0, -1));
   };
