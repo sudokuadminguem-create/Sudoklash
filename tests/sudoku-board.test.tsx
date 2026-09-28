@@ -107,6 +107,28 @@ describe("sudoku board", () => {
     expect(container.querySelectorAll(".lives .full")).toHaveLength(1);
   });
 
+  it("removes a placed digit from the notes of its row, column and box", async () => {
+    await render(localJudge(puzzle, solution));
+    const noteKey = async () =>
+      act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "n" })));
+    const notesOf = (index: number) =>
+      [...cellButtons()[index].querySelectorAll(".cell-notes i")]
+        .map((note) => note.textContent)
+        .filter(Boolean);
+    // Cell 2 shares a row with cell 3; cell 77 shares nothing with it.
+    const [annotated, sameRow, elsewhere] = [2, 3, 77];
+    const digit = solution[sameRow];
+    const other = (digit % 9) + 1;
+    await noteKey();
+    await play(annotated, digit);
+    await play(annotated, other);
+    await play(elsewhere, digit);
+    await noteKey();
+    await play(sameRow, digit);
+    expect(notesOf(annotated)).toEqual([String(other)]);
+    expect(notesOf(elsewhere)).toEqual([String(digit)]);
+  });
+
   it("places the judge's hint", async () => {
     await render(localJudge(puzzle, solution));
     const hintButton = [...container.querySelectorAll("button")].find((b) =>
