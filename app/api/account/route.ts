@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const db = env.DB;
   if (!db) return Response.json({ error: "stats_unavailable" }, { status: 503 });
   try {
-    const [profile, solo, daily, weekly, recent, ranked] = await Promise.all([
+    const [profile, solo, daily, weekly, recent, ranked, bestByDifficulty] = await Promise.all([
       db
         .prepare("SELECT username, created_at FROM player_profiles WHERE user_id = ?")
         .bind(user.userId)
@@ -44,6 +44,10 @@ export async function GET(request: Request) {
         .prepare("SELECT points, wins, losses FROM ranked_ratings WHERE user_id = ?")
         .bind(user.userId)
         .first<{ points: number; wins: number; losses: number }>(),
+      db
+        .prepare("SELECT difficulty, MIN(elapsed_seconds) AS best FROM solo_results WHERE user_id = ? GROUP BY difficulty")
+        .bind(user.userId)
+        .all<{ difficulty: string; best: number }>(),
     ]);
     const points = ranked?.points ?? 0;
     const position = await rankedPosition(db, user.userId, points);
@@ -54,6 +58,7 @@ export async function GET(request: Request) {
         daily: daily?.completed ?? 0,
         weekly: weekly?.completed ?? 0,
         recent: recent.results,
+        bestByDifficulty: bestByDifficulty.results,
         ranked: {
           points,
           wins: ranked?.wins ?? 0,

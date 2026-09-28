@@ -14,6 +14,7 @@ import { rankedPosition } from "@/lib/ranked-position";
 import { rankFor } from "@/lib/ranked-rules";
 import { achievementFrames } from "@/lib/achievement-frames";
 import { playerAchievements } from "@/lib/achievement-awards";
+import { profileCards, profileTitles, unlockedRewards } from "@/lib/profile-rewards";
 
 export const dynamic = "force-dynamic";
 const json = (data: unknown, status = 200) =>
@@ -60,9 +61,9 @@ async function state(userId: string) {
   const [score, selection, purchases, rating, image] = await Promise.all([
     counts(userId),
     db
-      .prepare("SELECT avatar_id,frame_id,theme_id FROM player_cosmetics WHERE user_id=?")
+      .prepare("SELECT avatar_id,frame_id,theme_id,profile_card_id,profile_title_id FROM player_cosmetics WHERE user_id=?")
       .bind(userId)
-      .first<{ avatar_id: string; frame_id: string; theme_id: string }>(),
+      .first<{ avatar_id: string; frame_id: string; theme_id: string; profile_card_id: string; profile_title_id: string }>(),
     db
       .prepare("SELECT item_id,price FROM cosmetic_purchases WHERE user_id=?")
       .bind(userId)
@@ -95,7 +96,11 @@ async function state(userId: string) {
   const points = rating?.points ?? 0;
   const position = await rankedPosition(db, userId, points);
   const rank = rankFor(points, position);
-  const achievementIds = [...(await playerAchievements(db,userId,points)).ids];
+  const awards = await playerAchievements(db,userId,points);
+  const achievementIds = [...awards.ids];
+  const rewardProgress = { ...awards.progress, epicFrames: awards.epicCount };
+  const ownedCards = unlockedRewards(profileCards, rewardProgress).map((reward) => reward.id);
+  const ownedTitles = unlockedRewards(profileTitles, rewardProgress).map((reward) => reward.id);
   const savedFrame = selection?.frame_id;
   const frameSelection =
     savedFrame === "rank_auto" ||
@@ -126,6 +131,10 @@ async function state(userId: string) {
     rankPoints: points,
     customAvatar: image?.image_data ?? null,
     themeId: ownedThemes.includes(selection?.theme_id ?? "") ? selection!.theme_id : "ocean",
+    ownedCards,
+    ownedTitles,
+    profileCardId: ownedCards.includes(selection?.profile_card_id ?? "") ? selection!.profile_card_id : "origin",
+    profileTitleId: ownedTitles.includes(selection?.profile_title_id ?? "") ? selection!.profile_title_id : "none",
   };
 }
 
@@ -210,6 +219,18 @@ export async function POST(request: Request) {
         )
         .bind(user.userId, current.avatarId, current.frameSelection, body.id)
         .run();
+    } else if (body.action === "equip_profile_card" || body.action === "equip_profile_title") {
+      const card = body.action === "equip_profile_card";
+      if (!(card ? current.ownedCards : current.ownedTitles).includes(body.id))
+        return json({ error: "reward_locked" }, 403);
+      await db.batch([
+        db.prepare("INSERT OR IGNORE INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?)")
+          .bind(user.userId, current.avatarId, current.frameSelection, current.themeId),
+        db.prepare(card
+          ? "UPDATE player_cosmetics SET profile_card_id=? WHERE user_id=?"
+          : "UPDATE player_cosmetics SET profile_title_id=? WHERE user_id=?")
+          .bind(body.id, user.userId),
+      ]);
     } else if (body.action === "buy_avatar" || body.action === "buy_theme") {
       const avatar = body.action === "buy_avatar";
       const product = avatar

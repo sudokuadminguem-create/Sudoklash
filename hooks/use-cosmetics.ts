@@ -22,6 +22,10 @@ export type CosmeticState = {
   rankPoints: number;
   customAvatar: string | null;
   themeId: string;
+  ownedCards: string[];
+  ownedTitles: string[];
+  profileCardId: string;
+  profileTitleId: string;
 };
 
 export type CosmeticAction =
@@ -31,7 +35,9 @@ export type CosmeticAction =
   | "equip_theme"
   | "buy_theme"
   | "upload_avatar"
-  | "remove_avatar";
+  | "remove_avatar"
+  | "equip_profile_card"
+  | "equip_profile_title";
 
 export type Cosmetics = ReturnType<typeof useCosmetics>;
 

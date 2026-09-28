@@ -2465,6 +2465,72 @@ button {
     animation: none !important;
   }
 }
+.profile-studio { display: grid; gap: 20px; }
+.account-private-meta { margin: -7px 0 0; color: #a9b9d0; font-size: 13px; overflow-wrap: anywhere; }
+.profile-studio-heading h3 { margin: 4px 0 0; }
+.profile-card {
+  --profile-ink: #d8edff;
+  position: relative;
+  isolation: isolate;
+  width: min(100%, 540px);
+  min-height: 254px;
+  padding: 25px;
+  overflow: hidden;
+  border: 1px solid #7bc5fc8c;
+  border-radius: 22px;
+  color: var(--profile-ink);
+  background: radial-gradient(circle at 88% 5%, #69d8ed55, transparent 40%), linear-gradient(125deg, #10294b, #10213b 55%, #192b52);
+  box-shadow: 0 18px 40px #040a1f80, inset 0 0 0 1px #ffffff16;
+}
+.profile-card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 250px;
+  height: 250px;
+  right: -65px;
+  top: -130px;
+  border: 1px solid #ffffff50;
+  border-radius: 50%;
+  box-shadow: 0 0 0 24px #ffffff0b, 0 0 0 52px #ffffff0a, 0 0 0 88px #ffffff08;
+}
+.profile-card-aurora { border-color: #59e5c7; background: radial-gradient(circle at 84% 2%, #44f3bd70, transparent 46%), linear-gradient(135deg, #083b42, #131f55 68%, #40336e); }
+.profile-card-arena { border-color: #e3a754; background: radial-gradient(circle at 85% 0%, #ee8d4866, transparent 45%), linear-gradient(135deg, #432126, #241b36 65%, #4c2e25); }
+.profile-card-obsidian { border-color: #b594f7; background: radial-gradient(circle at 85% 5%, #b17afb66, transparent 45%), linear-gradient(135deg, #14152e, #27173c 65%, #150f27); }
+.profile-card-celestial { border-color: #f8da91; background: radial-gradient(circle at 85% 0%, #ffdb9870, transparent 40%), linear-gradient(135deg, #243354, #4b3867 67%, #644a63); }
+.profile-card-top { display: flex; align-items: center; gap: 20px; min-width: 0; }
+.profile-card-identity { display: grid; gap: 2px; min-width: 0; }
+.profile-card-identity strong { font-size: clamp(20px, 4vw, 29px); overflow-wrap: anywhere; line-height: 1.15; }
+.profile-card-identity small { color: #e5e9f4; font-size: 14px; }
+.profile-subtitle { width: fit-content; color: #ffe5a2; font-weight: 750; letter-spacing: .04em; }
+.profile-card-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 27px; }
+.profile-card-stats div { display: grid; gap: 2px; padding: 9px 10px; border: 1px solid #ffffff2e; border-radius: 11px; background: #06142a50; }
+.profile-card-stats b { font-size: 23px; line-height: 1; }
+.profile-card-stats span { font-size: 12px; color: #e0e8f4; }
+.profile-card-best { display: flex; justify-content: space-between; gap: 12px; margin-top: 16px; font-size: 14px; }
+.profile-card-best b { color: #fff1c2; }
+.profile-rewards { display: grid; gap: 24px; }
+.profile-rewards h4 { margin: 0 0 4px; font-size: 18px; }
+.profile-rewards p { margin: 0 0 12px; color: #a9b9d0; }
+.profile-reward-grid, .profile-title-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.profile-reward, .profile-title { display: grid; align-content: start; justify-items: start; gap: 7px; min-height: 95px; padding: 12px; border: 1px solid #334b6b; border-radius: 12px; background: #111e34; color: #e9f3ff; text-align: left; cursor: pointer; }
+.profile-reward.selected, .profile-title.selected { border-color: #76dcf5; box-shadow: 0 0 0 1px #76dcf55c; }
+.profile-reward:disabled, .profile-title:disabled { opacity: .52; cursor: not-allowed; }
+.profile-reward b, .profile-title b { font-size: 15px; }
+.profile-reward small, .profile-title small { color: #c5d4e8; line-height: 1.35; font-size: 12px; }
+.profile-reward-swatch { display: block; width: 100%; height: 27px; border: 1px solid #ffffff64; border-radius: 6px; background: linear-gradient(100deg, #10294b, #69d8ed); }
+.profile-reward-swatch.profile-card-aurora { background: linear-gradient(100deg, #083b42, #44f3bd, #40336e); }
+.profile-reward-swatch.profile-card-arena { background: linear-gradient(100deg, #432126, #ee8d48, #241b36); }
+.profile-reward-swatch.profile-card-obsidian { background: linear-gradient(100deg, #14152e, #b17afb, #27173c); }
+.profile-reward-swatch.profile-card-celestial { background: linear-gradient(100deg, #243354, #ffdb98, #644a63); }
+@media (max-width: 560px) {
+  .profile-card { padding: 19px; min-height: 238px; }
+  .profile-card-top { gap: 15px; }
+  .profile-card-stats { gap: 5px; }
+  .profile-card-stats div { padding: 8px 6px; }
+  .profile-card-stats b { font-size: 19px; }
+  .profile-card-stats span { font-size: 12px; }
+}
 .challenge-board {
   display: grid;
   gap: 20px;
