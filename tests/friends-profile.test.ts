@@ -25,6 +25,7 @@ describe("friend profiles", () => {
     expect(card.status).toBe(200);
     expect(card.body).toMatchObject({ username: "Bob", avatarId: "custom", frameId: "challenge-e-001", profileCardId: "arena", profileTitleId: "flash", image: "data:image/webp;base64,AAAA" });
     const list = await callRoute(directory);
-    expect(list.body.relationships[0]).toMatchObject({ username: "Bob", avatarId: "custom", frameId: "challenge-e-001", image: "data:image/webp;base64,AAAA" });
+    expect(list.body.relationships[0]).toMatchObject({ username: "Bob", avatarId: "custom", frameId: "challenge-e-001", image: "/api/players/avatar?id=bob" });
   });
 });
+
