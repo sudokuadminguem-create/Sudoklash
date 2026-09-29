@@ -11,7 +11,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
-  use: { baseURL, trace: "retain-on-failure" },
+  // The app follows the browser language: the suite is written against the French interface.
+  use: { baseURL, locale: "fr-FR", trace: "retain-on-failure" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 5"] } },

@@ -21,6 +21,8 @@ import {
 } from "@/app/lib/board-logic";
 import { useBoardShortcuts, useGameClock } from "@/app/lib/board-hooks";
 import type { Entry, Judge } from "@/app/lib/judge";
+import { useI18n } from "@/app/lib/i18n";
+import { levelName } from "@/app/lib/i18n-core";
 import { useSettings } from "@/app/lib/settings";
 import type { BoardSnapshot } from "@/app/lib/solo-save";
 import { areRelated, CLASSIC, cellCount, type Geometry } from "@/lib/variants";
@@ -102,6 +104,7 @@ export function SudokuBoard({
   previousBest,
 }: SudokuBoardProps) {
   const { settings } = useSettings();
+  const { t } = useI18n();
   const replayable = !!onNewGame;
   const [cells, setCells] = useState(() =>
       (resume?.cells ?? puzzle).map((value, index) =>
@@ -209,7 +212,7 @@ export function SudokuBoard({
   const finish = (grid: number[]) => {
     setDone(true);
     if (settings.hapticKeys) haptic("win");
-    announce(`Victoire ! Grille terminée en ${formatClock(seconds)}.`);
+    announce(t("say.won", { time: formatClock(seconds) }));
     if (soloExperience) {
       setExperience("saving");
       void Promise.resolve()
@@ -246,13 +249,16 @@ export function SudokuBoard({
           updateCells(current);
         }
         announce(
-          verdictAnnouncement({
-            correct: true,
-            number: entry.number,
-            index: entry.index,
-            size: geometry.size,
-            mistakes: mistakesRef.current,
-          }),
+          verdictAnnouncement(
+            {
+              correct: true,
+              number: entry.number,
+              index: entry.index,
+              size: geometry.size,
+              mistakes: mistakesRef.current,
+            },
+            t,
+          ),
         );
         const correctCells = current.filter((_, i) => isCorrect(current, i)).length;
         onProgress?.(correctCells, current);
@@ -277,13 +283,16 @@ export function SudokuBoard({
       if (storageKey) window.localStorage.setItem(storageKey, String(count));
       setMistakes(count);
       announce(
-        verdictAnnouncement({
-          correct: false,
-          number: entry.number,
-          index: entry.index,
-          size: geometry.size,
-          mistakes: count,
-        }),
+        verdictAnnouncement(
+          {
+            correct: false,
+            number: entry.number,
+            index: entry.index,
+            size: geometry.size,
+            mistakes: count,
+          },
+          t,
+        ),
       );
     } catch {
       setFailedEntries((list) => [...list, entry]);
@@ -400,7 +409,7 @@ export function SudokuBoard({
     erase,
     toggleNotes: () => {
       if (competitive) return;
-      announce(noteMode ? "Mode notes désactivé." : "Mode notes activé.");
+      announce(t(noteMode ? "say.notesOff" : "say.notesOn"));
       setNoteMode((v) => !v);
     },
     undo,
@@ -457,18 +466,20 @@ export function SudokuBoard({
     if (settings.confirmNewGrid && started && !done && mistakes < 3) setConfirmingNewGame(true);
     else onNewGame?.();
   };
-  const record = personalRecord(previousBest, seconds);
+  const record = personalRecord(previousBest, seconds, t);
   const lost = mistakes >= MAX_MISTAKES;
   const eyebrow = `${
     modeLabel ??
-    (hintsAllowed === 0 && race
-      ? "PARTIE CLASSÉE"
-      : race
-        ? "PARTIE PRIVÉE"
-        : competitive
-          ? "DÉFI"
-          : "PARTIE NORMALE")
-  } · ${difficulty.toUpperCase()}`;
+    t(
+      hintsAllowed === 0 && race
+        ? "eyebrow.ranked"
+        : race
+          ? "eyebrow.private"
+          : competitive
+            ? "eyebrow.challenge"
+            : "eyebrow.normal",
+    )
+  } · ${levelName(t, difficulty).toUpperCase()}`;
   return (
     <div
       className={`game-card ${!active ? "weekly-gated" : ""} ${lost ? "lost" : ""} ${done ? "solved" : ""} ${settings.largeDigits ? "large-digits" : ""}`}
@@ -561,7 +572,7 @@ export function SudokuBoard({
       {lost && <LossResult onNewGame={onNewGame} />}
       {done && (
         <VictoryPanel
-          difficulty={difficulty}
+          difficulty={levelName(t, difficulty)}
           time={time}
           mistakes={mistakes}
           hintsUsed={hintsUsed}
@@ -569,7 +580,10 @@ export function SudokuBoard({
           soloExperience={soloExperience}
           experience={experience}
           experienceTotal={experienceTotal}
-          shareText={shareText({ title, difficulty, time, mistakes, hintsUsed })}
+          shareText={shareText(
+            { title, difficulty: levelName(t, difficulty), time, mistakes, hintsUsed },
+            t,
+          )}
           onConnect={onConnect}
           onNewGame={onNewGame}
         />
@@ -579,10 +593,10 @@ export function SudokuBoard({
       </div>
       {confirmingNewGame && (
         <ConfirmDialog
-          title="Abandonner cette grille ?"
-          message="Ta progression sur la grille en cours sera perdue."
-          confirmLabel="Abandonner et relancer"
-          cancelLabel="Continuer la partie"
+          title={t("abandon.title")}
+          message={t("abandon.message")}
+          confirmLabel={t("abandon.confirm")}
+          cancelLabel={t("abandon.cancel")}
           onCancel={() => setConfirmingNewGame(false)}
           onConfirm={() => {
             setConfirmingNewGame(false);

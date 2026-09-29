@@ -21,6 +21,7 @@ import {
 import "./sudoku-grid.css";
 import "./hint-techniques.css";
 import "./mobile.css";
+import "./i18n.css";
 import { AccountButton } from "./_components/account-button";
 import { AchievementBoard } from "./_components/achievement-board";
 import { ChallengeAnnouncer } from "./_components/challenge-announcer";
@@ -37,6 +38,8 @@ import { useDuelInvites } from "./lib/use-duel-invites";
 import { SettingsPanel } from "./_components/settings-panel";
 import { Shop } from "./_components/shop";
 import { authHeaders } from "./lib/auth-headers";
+import { I18nProvider, useI18n } from "./lib/i18n";
+import type { MessageKey } from "./lib/i18n-core";
 import { SettingsProvider } from "./lib/settings";
 import { supabase } from "./lib/supabase";
 import { useAccount } from "@/hooks/use-account";
@@ -45,24 +48,42 @@ import { gridThemes } from "@/lib/cosmetics";
 
 type View = "jouer" | "compte" | "classement" | "amis" | "boutique" | "defis" | "parametres";
 const nav = [
-  ["jouer", "Jouer", Gamepad2],
-  ["defis", "Défis", Medal],
-  ["classement", "Classement", Trophy],
-  ["amis", "Amis", Users],
-  ["compte", "Compte", UserRound],
-  ["boutique", "Boutique", Coins],
-  ["parametres", "Paramètres", Settings],
-] as const;
+  ["jouer", "nav.play", Gamepad2],
+  ["defis", "nav.challenges", Medal],
+  ["classement", "nav.ranking", Trophy],
+  ["amis", "nav.friends", Users],
+  ["compte", "nav.account", UserRound],
+  ["boutique", "nav.shop", Coins],
+  ["parametres", "nav.settings", Settings],
+] as const satisfies readonly (readonly [View, MessageKey, unknown])[];
 const modeTabs = [
-  ["classée", "Partie classée", Swords],
-  ["solo", "Solo", Zap],
-  ["daily", "Grille du jour", CalendarDays],
-  ["hebdo", "Grille hebdo", Flame],
-  ["duel", "Duel d’amis", Handshake],
-  ["privée", "Salon privé", Users],
-] as const;
+  ["classée", "mode.ranked", Swords],
+  ["solo", "mode.solo", Zap],
+  ["daily", "mode.daily", CalendarDays],
+  ["hebdo", "mode.weekly", Flame],
+  ["duel", "mode.duel", Handshake],
+  ["privée", "mode.lobby", Users],
+] as const satisfies readonly (readonly [string, MessageKey, unknown])[];
+const titleKeys: Record<View, MessageKey> = {
+  jouer: "title.play",
+  compte: "title.account",
+  classement: "title.ranking",
+  amis: "title.friends",
+  boutique: "title.shop",
+  defis: "title.challenges",
+  parametres: "title.settings",
+};
 
 export default function Home() {
+  return (
+    <I18nProvider>
+      <HomeContent />
+    </I18nProvider>
+  );
+}
+
+function HomeContent() {
+  const { t } = useI18n();
   const [view, setView] = useState<View>("jouer"),
     [mode, setMode] = useState("solo"),
     [mobile, setMobile] = useState(false),
@@ -148,21 +169,9 @@ export default function Home() {
       setToast(s);
       setTimeout(() => setToast(""), 2400);
     },
-    title = useMemo(
-      () =>
-        ({
-          jouer: "Centre de jeu",
-          compte: "Mon compte",
-          classement: "Classement mondial",
-          amis: "Amis",
-          boutique: "Boutique cosmétique",
-          defis: "Défis",
-          parametres: "Paramètres",
-        })[view],
-      [view],
-    );
+    title = t(titleKeys[view]);
   const duelInvites = useDuelInvites(account.user?.id, (from) =>
-    notify(`${from} te défie ! Rendez-vous dans « Duel d’amis ».`),
+    notify(t("shell.duelInvite", { from })),
   );
   const activeTheme = gridThemes.find((t) => t.id === cosmetics.state?.themeId) ?? gridThemes[0];
   return (
@@ -185,7 +194,7 @@ export default function Home() {
           }}
         />
         <a className="skip-link" href="#contenu">
-          Aller au contenu
+          {t("shell.skip")}
         </a>
         <aside id="main-menu" className={mobile ? "side open" : "side"}>
           <div className="brand">
@@ -193,7 +202,11 @@ export default function Home() {
             <div>
               SUDOKU <b>CLASH</b>
             </div>
-            <button className="close" aria-label="Fermer le menu" onClick={() => setMobile(false)}>
+            <button
+              className="close"
+              aria-label={t("shell.menuClose")}
+              onClick={() => setMobile(false)}
+            >
               <X />
             </button>
           </div>
@@ -208,28 +221,28 @@ export default function Home() {
                 }}
               >
                 <I />
-                <span>{label}</span>
+                <span>{t(label)}</span>
               </button>
             ))}
             {me.isAdmin && (
               <a className="admin-link" href="/admin">
                 <LockKeyhole />
-                <span>Administration</span>
+                <span>{t("shell.admin")}</span>
               </a>
             )}
           </nav>
           <div className="season">
-            <span>BÊTA PUBLIQUE</span>
-            <b>Comptes et salons en ligne</b>
+            <span>{t("shell.beta")}</span>
+            <b>{t("shell.betaTitle")}</b>
             <div>
               <i style={{ width: "100%" }} />
             </div>
-            <small>Progression enregistrée et protégée</small>
+            <small>{t("shell.betaNote")}</small>
           </div>
         </aside>
         <button
           className={mobile ? "scrim show" : "scrim"}
-          aria-label="Fermer le menu"
+          aria-label={t("shell.menuClose")}
           tabIndex={mobile ? 0 : -1}
           onClick={() => setMobile(false)}
         />
@@ -237,7 +250,7 @@ export default function Home() {
           <header>
             <button
               className="menub"
-              aria-label="Ouvrir le menu"
+              aria-label={t("shell.menuOpen")}
               aria-expanded={mobile}
               aria-controls="main-menu"
               onClick={() => setMobile(true)}
@@ -264,18 +277,16 @@ export default function Home() {
                   <div>
                     <span className="live">
                       <i />
-                      BÊTA PUBLIQUE · COMPTES RÉELS
+                      {t("home.live")}
                     </span>
-                    <h2>Prêt pour le prochain clash ?</h2>
-                    <p>Joue en solo, trouve un duel classé ou crée un salon privé.</p>
+                    <h2>{t("home.title")}</h2>
+                    <p>{t("home.lead")}</p>
                   </div>
                   <button
                     className="rank-card beta-account home-account-button"
                     onClick={() => (account.user ? setView("compte") : setAuthOpen(true))}
                     aria-label={
-                      account.user
-                        ? "Voir mon compte et personnaliser mon avatar"
-                        : "Se connecter au compte"
+                      account.user ? t("home.accountSignedIn") : t("home.accountSignedOut")
                     }
                   >
                     <PlayerAvatar
@@ -287,14 +298,14 @@ export default function Home() {
                     />
                     <span className="home-account-text">
                       <small>
-                        MON COMPTE ·{" "}
-                        {account.user ? `NIVEAU ${cosmetics.state?.level ?? 1}` : "NON CONNECTÉ"}
-                      </small>
-                      <b>{account.profile?.username || "Choisir mon avatar"}</b>
-                      <span>
+                        {t("home.myAccount")} ·{" "}
                         {account.user
-                          ? "Voir le profil et les cadres"
-                          : "Se connecter pour personnaliser"}
+                          ? t("home.level", { level: cosmetics.state?.level ?? 1 })
+                          : t("home.notConnected")}
+                      </small>
+                      <b>{account.profile?.username || t("home.chooseAvatar")}</b>
+                      <span>
+                        {account.user ? t("home.viewProfile") : t("home.signInToCustomize")}
                       </span>
                     </span>
                   </button>
@@ -307,7 +318,7 @@ export default function Home() {
                       className={mode === id ? "active" : ""}
                     >
                       <I />
-                      {label}
+                      {t(label)}
                       {id === "hebdo" && <small>+500</small>}
                       {id === "duel" && duelInvites > 0 && <small>{duelInvites}</small>}
                     </button>
