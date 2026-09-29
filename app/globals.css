@@ -634,6 +634,11 @@ header h1 {
 .difficulty-grid button small {
   color: var(--muted);
 }
+.difficulty-grid button .difficulty-xp {
+  color: var(--cyan);
+  font-size: 13px;
+  font-weight: 750;
+}
 .private {
   text-align: center;
   padding: 70px;

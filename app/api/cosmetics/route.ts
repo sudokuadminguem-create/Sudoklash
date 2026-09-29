@@ -8,6 +8,7 @@ import {
   levelFrames,
   progressFor,
   shopAvatars,
+  soloXpFor,
   type ProgressCounts,
 } from "@/lib/cosmetics";
 import { rankedPosition } from "@/lib/ranked-position";
@@ -27,9 +28,9 @@ async function counts(userId: string): Promise<ProgressCounts> {
   const db = env.DB!;
   const [solo, daily, weekly, rating] = await Promise.all([
     db
-      .prepare("SELECT COUNT(*) AS n FROM solo_results WHERE user_id=?")
+      .prepare("SELECT difficulty, COUNT(*) AS n FROM solo_results WHERE user_id=? GROUP BY difficulty")
       .bind(userId)
-      .first<{ n: number }>(),
+      .all<{ difficulty: string; n: number }>(),
     db
       .prepare(
         "SELECT COUNT(*) AS n FROM daily_attempts WHERE user_id=? AND completed_at IS NOT NULL",
@@ -48,7 +49,8 @@ async function counts(userId: string): Promise<ProgressCounts> {
       .first<{ wins: number; losses: number }>(),
   ]);
   return {
-    solo: solo?.n ?? 0,
+    solo: solo.results.reduce((total, row) => total + row.n, 0),
+    soloXp: solo.results.reduce((total, row) => total + row.n * soloXpFor(row.difficulty), 0),
     daily: daily?.n ?? 0,
     weekly: weekly?.n ?? 0,
     wins: rating?.wins ?? 0,

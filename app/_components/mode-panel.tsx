@@ -8,6 +8,7 @@ import { ConfirmDialog } from "./confirm-dialog";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
 import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
+import { soloXpFor } from "@/lib/cosmetics";
 import { PrivateLobby } from "./private-lobby";
 import { RoomGame } from "./room-game";
 import { SoloGame } from "./solo-game";
@@ -105,15 +106,16 @@ export function ModePanel({
               <small>
                 {
                   [
-                    "Nus simples",
-                    "Candidats uniques",
-                    "Paires et blocs",
-                    "Techniques avancées",
-                    "Chaînes logiques",
-                    "Logique extrême",
+                    "Cases à chiffre unique",
+                    "Chiffre unique dans une ligne ou un bloc",
+                    "Candidats bloqués",
+                    "Paires",
+                    "Triples et X-Wing",
+                    "Techniques au-delà de l’Expert",
                   ][i]
                 }
               </small>
+              <span className="difficulty-xp">+{soloXpFor(d)} XP</span>
             </button>
           ))}
         </div>

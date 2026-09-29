@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/solo/route";
+import { GET as cosmetics } from "@/app/api/cosmetics/route";
 import { MIN_SOLO_SECONDS } from "@/lib/solo-rules";
 import { solveGrid } from "@/lib/sudoku-solver";
 import { callRoute, installTestDatabase } from "./support/d1";
@@ -110,6 +111,26 @@ describe("solo games", () => {
     expect(results).toEqual([
       { user_id: "alice", difficulty: "Facile", elapsed_seconds: MIN_SOLO_SECONDS - 1 + 60 },
     ]);
+  });
+
+  it("awards difficulty-based XP and includes past results in the player's total", async () => {
+    for (const [difficulty, reward] of [
+      ["Débutant", 20],
+      ["Facile", 35],
+      ["Intermédiaire", 55],
+      ["Difficile", 80],
+      ["Expert", 110],
+      ["Maître", 150],
+    ] as const) {
+      const { body } = await callRoute(POST, { action: "start", difficulty });
+      const grid = solveGrid(body.puzzle)!;
+      vi.advanceTimersByTime(MIN_SOLO_SECONDS * 1000);
+      const win = await callRoute(POST, { action: "complete", gameId: body.gameId, grid });
+      expect(win.body).toMatchObject({ saved: true, xpGained: reward });
+    }
+    const profile = await callRoute(cosmetics);
+    expect(profile.status).toBe(200);
+    expect(profile.body).toMatchObject({ xp: 450, counts: { solo: 6, soloXp: 450 } });
   });
 
   it("rejects wrong grids and other players' games", async () => {

@@ -76,7 +76,7 @@ type Profile = { clues: [number, number]; techniques: (TechniqueLevel | null)[] 
 /** What each solo difficulty means: clue count range and the techniques it requires. */
 export const difficultyProfiles: Record<Difficulty, Profile> = {
   Débutant: { clues: [40, 46], techniques: [Technique.NakedSingle] },
-  Facile: { clues: [32, 38], techniques: [Technique.NakedSingle, Technique.HiddenSingle] },
+  Facile: { clues: [32, 38], techniques: [Technique.HiddenSingle] },
   Intermédiaire: { clues: [26, 34], techniques: [Technique.LockedCandidates] },
   Difficile: { clues: [22, 32], techniques: [Technique.Pairs] },
   Expert: { clues: [20, 30], techniques: [Technique.TriplesAndXWing] },

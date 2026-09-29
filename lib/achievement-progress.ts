@@ -1,5 +1,5 @@
 import type { AchievementProgress } from "./achievement-frames";
-import { progressFor } from "./cosmetics";
+import { progressFor, soloXpFor } from "./cosmetics";
 
 type SoloRow = { difficulty: string; elapsed_seconds: number; completed_at: number; mistakes:number|null; hints_used:number|null };
 type PeriodRow = { id: string; mistakes: number; elapsed_seconds:number|null; completed_at:number };
@@ -108,6 +108,7 @@ export async function achievementProgress(
   const close = wins.filter(row=>myProgress(row)-theirProgress(row)===1).length;
   const xp = progressFor({
     solo: solo.length,
+    soloXp: solo.reduce((total, row) => total + soloXpFor(row.difficulty), 0),
     daily: daily.length,
     weekly: weekly.length,
     wins: wins.length,

@@ -1,3 +1,5 @@
+import type { Difficulty } from "@/lib/difficulties";
+
 export const freeAvatars = [
   { id: "nova", name: "Nova", symbol: "✦", colors: ["#284bba", "#6edafa"] },
   { id: "zenith", name: "Zénith", symbol: "☀", colors: ["#ad5522", "#ffcf63"] },
@@ -63,12 +65,24 @@ export const achievementAvatars = [
 export const avatars = [...freeAvatars, ...shopAvatars, ...achievementAvatars];
 export type ProgressCounts = {
   solo: number;
+  soloXp: number;
   daily: number;
   weekly: number;
   wins: number;
   losses: number;
 };
-export const SOLO_WIN_XP = 35;
+/** Solo rewards rise with the technique needed; old results use the same schedule. */
+export const soloWinXp: Record<Difficulty, number> = {
+  Débutant: 20,
+  Facile: 35,
+  Intermédiaire: 55,
+  Difficile: 80,
+  Expert: 110,
+  Maître: 150,
+};
+export function soloXpFor(difficulty: string): number {
+  return difficulty in soloWinXp ? soloWinXp[difficulty as Difficulty] : 35;
+}
 export const levelFrames = [
   { level: 1, id: "starter", name: "Initial", color: "#526688" },
   { level: 5, id: "azure", name: "Azur", color: "#4b93ff" },
@@ -98,7 +112,7 @@ export const rankedFrames = [
 
 // Only completed results saved by the server contribute. Existing results count too.
 export function progressFor(s: ProgressCounts) {
-  const xp = s.solo * SOLO_WIN_XP + s.daily * 100 + s.weekly * 250 + s.wins * 120 + s.losses * 40;
+  const xp = s.soloXp + s.daily * 100 + s.weekly * 250 + s.wins * 120 + s.losses * 40;
   const level = Math.floor(Math.sqrt(xp / 100)) + 1;
   const current = 100 * (level - 1) ** 2,
     next = 100 * level ** 2;

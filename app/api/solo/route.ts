@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
-import { SOLO_WIN_XP } from "@/lib/cosmetics";
+import { soloXpFor } from "@/lib/cosmetics";
 import { isSoloDifficulty } from "@/lib/difficulties";
 import {
   isCellIndex,
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
       )
       .bind(game.id, user.userId, game.difficulty, elapsedSeconds, now)
       .run();
-    return json({ saved: true, xpGained: SOLO_WIN_XP, elapsedSeconds });
+    return json({ saved: true, xpGained: soloXpFor(game.difficulty), elapsedSeconds });
   }
 
   return json({ error: "invalid_action" }, 400);
