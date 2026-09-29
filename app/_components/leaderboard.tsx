@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Crown } from "lucide-react";
-import { PlayerAvatar } from "./player-cosmetics";
 
 export function Leaderboard() {
   type Row = {
@@ -11,9 +10,6 @@ export function Leaderboard() {
     wins: number;
     losses: number;
     rank: { label: string };
-    avatarId: string;
-    frameId: string;
-    image: string | null;
   };
   const [players, setPlayers] = useState<Row[]>([]),
     [loading, setLoading] = useState(true),
@@ -57,10 +53,7 @@ export function Leaderboard() {
           <div className="podium">
             {players.slice(0, 3).map((r, i) => (
               <div className={`pod p${i + 1}`} key={r.position}>
-                <div className="pod-avatar">
-                  <PlayerAvatar avatarId={r.avatarId} image={r.image} frameId={r.frameId} />
-                  {i === 0 && <Crown className="pod-crown" aria-hidden="true" />}
-                </div>
+                <div>{i === 0 ? <Crown /> : i + 1}</div>
                 <b>{r.username}</b>
                 <span>{r.rank.label}</span>
                 <strong>{r.points} points</strong>
@@ -79,7 +72,7 @@ export function Leaderboard() {
               <div className="tr" key={r.position}>
                 <b>#{r.position}</b>
                 <span>
-                  <PlayerAvatar avatarId={r.avatarId} image={r.image} frameId={r.frameId} size="small" />
+                  <i className="avatar small">{r.username.slice(0, 2).toUpperCase()}</i>
                   {r.username}
                 </span>
                 <span>{r.rank.label}</span>
@@ -95,4 +88,3 @@ export function Leaderboard() {
     </div>
   );
 }
-
