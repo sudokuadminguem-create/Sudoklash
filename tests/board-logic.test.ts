@@ -6,6 +6,10 @@ import {
   notesAfterPlacing,
   personalRecord,
   progressPercent,
+  pruneNotes,
+  pushHistory,
+  MAX_HISTORY,
+  type HistoryStep,
   sameUnit,
   shareText,
   stepBack,
@@ -147,5 +151,41 @@ describe("game summary", () => {
     expect(
       shareText({ title: "Arène", difficulty: "Facile", time: "03:20", mistakes: 1, hintsUsed: 2 }),
     ).toBe("Sudoku Clash · Arène Facile\n⏱ 03:20 ❤️❤️🤍 💡 2");
+  });
+});
+
+describe("note checking", () => {
+  it("removes candidates that a confirmed digit rules out", () => {
+    // Cell 0 confirmed as 5: cells 1 (row), 9 (column) and 10 (box) cannot hold a 5.
+    const confirmed = Array(81).fill(0);
+    confirmed[0] = 5;
+    const { notes, removed } = pruneNotes({ 1: [5, 6], 9: [5], 10: [2, 5], 40: [5] }, confirmed);
+    expect(notes).toEqual({ 1: [6], 9: [], 10: [2], 40: [5] });
+    expect(removed).toBe(3);
+  });
+
+  it("clears the notes of a cell that is already filled", () => {
+    const confirmed = Array(81).fill(0);
+    confirmed[4] = 7;
+    expect(pruneNotes({ 4: [1, 7] }, confirmed)).toEqual({ notes: { 4: [] }, removed: 2 });
+  });
+
+  it("leaves consistent notes alone and does not mutate its input", () => {
+    const notes = { 1: [1, 2] };
+    const confirmed = Array(81).fill(0);
+    confirmed[80] = 9;
+    expect(pruneNotes(notes, confirmed)).toEqual({ notes: { 1: [1, 2] }, removed: 0 });
+    expect(notes).toEqual({ 1: [1, 2] });
+  });
+});
+
+describe("history", () => {
+  it("keeps the most recent steps up to the limit", () => {
+    let history: HistoryStep[] = [];
+    for (let n = 0; n < MAX_HISTORY + 20; n++)
+      history = pushHistory(history, { cells: [n], notes: {} });
+    expect(history).toHaveLength(MAX_HISTORY);
+    expect(history[0].cells[0]).toBe(20);
+    expect(history.at(-1)!.cells[0]).toBe(MAX_HISTORY + 19);
   });
 });

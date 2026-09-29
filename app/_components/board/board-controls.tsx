@@ -1,4 +1,5 @@
-import { Eraser, Lightbulb, Pencil, RotateCcw, X } from "lucide-react";
+import "../../board-actions.css";
+import { Eraser, Lightbulb, ListChecks, Pencil, Redo2, RotateCcw, X } from "lucide-react";
 import { DIGITS } from "@/app/lib/board-logic";
 import type { ShownHint } from "./types";
 import { hintText } from "@/app/lib/hint-text";
@@ -35,6 +36,7 @@ type GameActionsProps = {
   competitive: boolean;
   noteMode: boolean;
   canUndo: boolean;
+  canRedo: boolean;
   hintsLeft: number;
   hintDisabled: boolean;
   /** Shown only when the player can start a new grid. */
@@ -42,6 +44,8 @@ type GameActionsProps = {
   onToggleNotes: () => void;
   onErase: () => void;
   onUndo: () => void;
+  onRedo: () => void;
+  onCheckNotes: () => void;
   onHint: () => void;
   onAbandon: () => void;
 };
@@ -73,6 +77,25 @@ export function GameActions(props: GameActionsProps) {
         <RotateCcw />
         Annuler
       </button>
+      <button
+        aria-label="Rétablir l’action annulée"
+        onClick={props.onRedo}
+        disabled={!props.canRedo || lost}
+      >
+        <Redo2 />
+        Rétablir
+      </button>
+      {!props.competitive && (
+        <button
+          aria-label="Vérifier les notes"
+          disabled={lost}
+          onClick={props.onCheckNotes}
+          className="check-notes"
+        >
+          <ListChecks />
+          Vérifier
+        </button>
+      )}
       <button
         aria-label={`Afficher un indice, ${Math.max(0, hintsLeft)} restant${hintsLeft === 1 ? "" : "s"}`}
         disabled={props.hintDisabled}

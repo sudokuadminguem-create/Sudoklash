@@ -1,0 +1,9 @@
+.note-report {
+  margin: 12px 0 0;
+  color: #bcd6ff;
+  font-size: 14px;
+  font-weight: 600;
+}
+.game-actions button.check-notes svg {
+  color: #6ee7b7;
+}
