@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import type { Account } from "@/hooks/use-account";
+import type { Cosmetics } from "@/hooks/use-cosmetics";
 import type { Achievement } from "@/lib/achievement-frames";
+import { PlayerAvatar } from "./player-cosmetics";
 
 type Challenge = Achievement & { progress: number; unlocked: boolean };
 const rarityOrder = { legendary: 3, epic: 2, simple: 1, majestic: 0 };
@@ -23,7 +25,7 @@ export function closestChallenges(challenges: Challenge[]) {
     );
 }
 
-export function NearChallenges({ account }: { account: Account }) {
+export function NearChallenges({ account, cosmetics }: { account: Account; cosmetics: Cosmetics }) {
   const [items, setItems] = useState<Challenge[]>([]);
   const userId = account.user?.id;
   useEffect(() => {
@@ -50,14 +52,18 @@ export function NearChallenges({ account }: { account: Account }) {
     <section className="near-challenges" aria-labelledby="near-challenges-title">
       <div className="near-challenges-heading">
         <h3 id="near-challenges-title">Défis presque terminés</h3>
-        <small>Les trois plus proches de 100 %</small>
       </div>
       <div className="near-challenges-list">
         {items.map((item) => (
           <article className={`near-challenge ${item.rarity}`} key={item.id}>
-            <span className="challenge-rarity">{item.rarity === "legendary" ? "LÉGENDAIRE" : item.rarity === "epic" ? "ÉPIQUE" : "CLASSIQUE"}</span>
-            <strong>{item.name}</strong>
-            <small>{item.requirement}</small>
+            <div className="near-challenge-reward">
+              <PlayerAvatar avatarId={cosmetics.state?.avatarId} image={cosmetics.state?.customAvatar} frameId={item.id} />
+              <div className="near-challenge-labels">
+                <span className="challenge-rarity">{item.rarity === "legendary" ? "LÉGENDAIRE" : item.rarity === "epic" ? "ÉPIQUE" : "CLASSIQUE"} · CADRE À GAGNER</span>
+                <strong>{item.name}</strong>
+              </div>
+            </div>
+            <small title={item.requirement}>{item.requirement}</small>
             <div className="challenge-progress" role="progressbar" aria-label={`Progression : ${item.name}`} aria-valuemin={0} aria-valuemax={item.target} aria-valuenow={Math.min(item.progress, item.target)}>
               <span style={{ width: `${Math.min(100, item.progress / item.target * 100)}%` }} />
             </div>
