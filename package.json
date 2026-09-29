@@ -18,7 +18,8 @@
     "test": "vitest run",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run test",
     "db:generate": "drizzle-kit generate",
-    "puzzles:generate": "tsx scripts/generate-puzzle-bank.ts"
+    "puzzles:generate": "tsx scripts/generate-puzzle-bank.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -50,6 +51,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
     "@cloudflare/workers-types": "4.20260515.1",
+    "@playwright/test": "1.56.1",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "26.6.2",
     "@types/react": "19.3.0",
