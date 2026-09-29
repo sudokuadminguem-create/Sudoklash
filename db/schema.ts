@@ -161,6 +161,9 @@ export const rankedMatches = sqliteTable(
     winnerId: text("winner_id"),
     player1Progress: integer("player1_progress").notNull().default(0),
     player2Progress: integer("player2_progress").notNull().default(0),
+    // Cells each player has had confirmed by the server: 81 characters of 0/1, "" at the start.
+    player1Solved: text("player1_solved").notNull().default(""),
+    player2Solved: text("player2_solved").notNull().default(""),
     player1Mistakes: integer("player1_mistakes").notNull().default(0),
     player2Mistakes: integer("player2_mistakes").notNull().default(0),
     player1LastMistakeId: text("player1_last_mistake_id"),

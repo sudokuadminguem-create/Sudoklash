@@ -24,6 +24,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   container.remove();
+  vi.useRealTimers();
 });
 
 const cellButtons = () => [...container.querySelectorAll<HTMLButtonElement>(".sudoku button")];
@@ -69,6 +70,26 @@ describe("sudoku board", () => {
     await play(index, solution[index]);
     expect(cellButtons()[index].className).not.toContain("wrong");
     expect(cellButtons()[index].className).toContain("confirmed");
+  });
+
+  it("removes each red error highlight after four seconds while keeping the cells empty", async () => {
+    await render(localJudge(puzzle, solution));
+    vi.useFakeTimers();
+    const first = empties[0], second = empties[1];
+    await play(first, (solution[first] % 9) + 1);
+    act(() => vi.advanceTimersByTime(2000));
+    await play(second, (solution[second] % 9) + 1);
+    act(() => vi.advanceTimersByTime(1999));
+    expect(cellButtons()[first].className).toContain("wrong");
+    expect(cellButtons()[second].className).toContain("wrong");
+    act(() => vi.advanceTimersByTime(1));
+    expect(cellButtons()[first].className).not.toContain("wrong");
+    expect(cellButtons()[first].textContent).toBe("");
+    expect(cellButtons()[second].className).toContain("wrong");
+    act(() => vi.advanceTimersByTime(2000));
+    expect(cellButtons()[second].className).not.toContain("wrong");
+    expect(cellButtons()[second].getAttribute("aria-invalid")).toBeNull();
+    expect(cellButtons()[second].textContent).toBe("");
   });
 
   it("locks a confirmed digit against replacement, erasing, notes and undo", async () => {
@@ -245,7 +266,7 @@ describe("sudoku board", () => {
     resumed.cells[pending.index] = pending.number;
     await render({ check }, { resume: resumed });
     expect(cellButtons()[empties[0]].textContent).toBe(String(solution[empties[0]]));
-    expect(cellButtons()[empties[1]].className).toContain("wrong");
+    expect(cellButtons()[empties[1]].className).not.toContain("wrong");
     expect(container.querySelectorAll(".lives .full")).toHaveLength(2);
     expect(container.querySelector(".timer")!.textContent).toBe("02:05");
     // The digit whose verdict never came back is checked again, under the same id.

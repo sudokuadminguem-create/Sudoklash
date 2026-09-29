@@ -18,6 +18,19 @@ function canPlace(grid: readonly number[], position: number, value: number) {
   return true;
 }
 
+/** False when two given digits already clash in a row, column or block. */
+function givensAreConsistent(grid: number[]) {
+  for (let index = 0; index < 81; index++) {
+    const value = grid[index];
+    if (!value) continue;
+    grid[index] = 0;
+    const fits = canPlace(grid, index, value);
+    grid[index] = value;
+    if (!fits) return false;
+  }
+  return true;
+}
+
 type NextCell =
   | { kind: "solved" }
   | { kind: "dead_end" }
@@ -45,6 +58,7 @@ function nextCell(grid: readonly number[]): NextCell {
 /** Returns the first solution found for `source`, or null when it has none. */
 export function solveGrid(source: readonly number[]): number[] | null {
   const grid = [...source];
+  if (!givensAreConsistent(grid)) return null;
   const solve = (): boolean => {
     const next = nextCell(grid);
     if (next.kind !== "branch") return next.kind === "solved";
@@ -68,6 +82,7 @@ export function solvePuzzle(value: string): number[] | null {
 export function hasUniqueSolution(value: string): boolean {
   if (!GRID_PATTERN.test(value)) return false;
   const grid = value.split("").map(Number);
+  if (!givensAreConsistent(grid)) return false;
   let solutions = 0;
   const search = () => {
     if (solutions > 1) return;

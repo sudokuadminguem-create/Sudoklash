@@ -144,3 +144,7 @@ nginx). Dans ce mode :
   plateforme, qui lit aussi ce fichier, garde D1, sa connexion ChatGPT et ses propres en-têtes ;
 - le conteneur tourne sans root, en lecture seule, sans capacités Linux, sans npm ni apk, avec des
   en-têtes de sécurité (CSP, HSTS, anti-framing) et une sonde `/api/health`.
+
+## End-to-end tests
+
+`pnpm test:e2e` drives the real app in Chromium (desktop and mobile viewports) with Playwright. It starts `pnpm dev` itself, or reuses a server already on port 5173, and uses the guest solo mode, so it needs no account or database. The first time, run `pnpm exec playwright install chromium`.

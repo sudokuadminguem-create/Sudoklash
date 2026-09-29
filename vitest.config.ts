@@ -25,7 +25,7 @@ export default defineConfig({
       exclude: ["lib/puzzle-bank.ts", "lib/runtime/**"],
       reporter: ["text-summary", "json-summary", "lcovonly"],
       // A floor just under today's numbers: coverage may go up, not quietly back down.
-      thresholds: { statements: 40, branches: 30, functions: 38, lines: 40 },
+      thresholds: { statements: 50, branches: 40, functions: 43, lines: 50 },
     },
   },
 });
