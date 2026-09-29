@@ -166,10 +166,14 @@ export default function Home() {
           } as CSSProperties
         }
       >
-        <ChallengeAnnouncer account={account} cosmetics={cosmetics} onDiscover={() => {
-          setView("defis");
-          void cosmetics.refresh();
-        }} />
+        <ChallengeAnnouncer
+          account={account}
+          cosmetics={cosmetics}
+          onDiscover={() => {
+            setView("defis");
+            void cosmetics.refresh();
+          }}
+        />
         <aside id="main-menu" className={mobile ? "side open" : "side"}>
           <div className="brand">
             <div className="brandmark">9</div>
