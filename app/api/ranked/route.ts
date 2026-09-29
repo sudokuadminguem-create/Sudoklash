@@ -1,6 +1,14 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
-import { isCellIndex, isDigit, isEntryId, isGridOf, matchesSolution } from "@/lib/entry-validation";
+import {
+  isCellIndex,
+  isDigit,
+  isEntryId,
+  isGridOf,
+  matchesSolution,
+  mistakeKey,
+} from "@/lib/entry-validation";
+import { MIN_COMPLETE_SECONDS } from "@/lib/solo-rules";
 import { pickPuzzle } from "@/lib/puzzle-picker";
 import { rankedPosition } from "@/lib/ranked-position";
 import {
@@ -32,6 +40,8 @@ type Match = {
   winner_id: string | null;
   player1_progress: number;
   player2_progress: number;
+  player1_solved: string;
+  player2_solved: string;
   player1_mistakes: number;
   player2_mistakes: number;
   finished_at: number | null;
@@ -323,6 +333,7 @@ export async function POST(request: Request) {
     const progress = first ? "player1_progress" : "player2_progress";
     const mistakes = first ? "player1_mistakes" : "player2_mistakes";
     const lastId = first ? "player1_last_mistake_id" : "player2_last_mistake_id";
+    const solvedColumn = first ? "player1_solved" : "player2_solved";
     const opponentId = first ? match.player2_id : match.player1_id;
     // The browser never has the solution: it sends each digit (with its grid, to track
     // progress) and learns whether it is right. Three wrong digits lose the match.
@@ -337,25 +348,31 @@ export async function POST(request: Request) {
         grid[index] !== number
       )
         return json({ error: "invalid_entry" }, 400);
-      const correctCells = grid.reduce(
-        (count, value, i) =>
-          count + (match.puzzle[i] === "0" && value === Number(match.solution[i]) ? 1 : 0),
-        0,
-      );
       if (match.solution[index] === String(number)) {
-        await env
-          .DB!.prepare(
-            `UPDATE ranked_matches SET ${progress} = MAX(${progress}, ?) WHERE id = ? AND status = 'playing'`,
-          )
-          .bind(correctCells, match.id)
-          .run();
+        // Progress counts only cells the server has confirmed one by one. Counting the cells
+        // of the submitted grid would tell a player how many of their guesses are right.
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const current = await matchFor(match.id);
+          if (!current || current.status !== "playing") break;
+          const known = current[solvedColumn].padEnd(81, "0");
+          if (known[index] === "1") break;
+          const solved = `${known.slice(0, index)}1${known.slice(index + 1)}`;
+          const written = await env
+            .DB!.prepare(
+              `UPDATE ranked_matches SET ${solvedColumn} = ?, ${progress} = ? WHERE id = ? AND status = 'playing' AND ${solvedColumn} = ?`,
+            )
+            .bind(solved, solved.split("1").length - 1, match.id, current[solvedColumn])
+            .run();
+          if (written.meta.changes) break;
+        }
         return json({ ...(await state(userId)), correct: true });
       }
+      const key = mistakeKey(mistakeId, index, number);
       await env
         .DB!.prepare(
-          `UPDATE ranked_matches SET ${mistakes} = ${mistakes} + 1, ${lastId} = ?, ${progress} = MAX(${progress}, ?), status = CASE WHEN ${mistakes} >= 2 THEN 'finished' ELSE status END, winner_id = CASE WHEN ${mistakes} >= 2 THEN ? ELSE winner_id END, finish_reason = CASE WHEN ${mistakes} >= 2 THEN 'three_mistakes' ELSE finish_reason END, finished_at = CASE WHEN ${mistakes} >= 2 THEN ? ELSE finished_at END WHERE id = ? AND status = 'playing' AND ${mistakes} < 3 AND (${lastId} IS NULL OR ${lastId} != ?)`,
+          `UPDATE ranked_matches SET ${mistakes} = ${mistakes} + 1, ${lastId} = ?, status = CASE WHEN ${mistakes} >= 2 THEN 'finished' ELSE status END, winner_id = CASE WHEN ${mistakes} >= 2 THEN ? ELSE winner_id END, finish_reason = CASE WHEN ${mistakes} >= 2 THEN 'three_mistakes' ELSE finish_reason END, finished_at = CASE WHEN ${mistakes} >= 2 THEN ? ELSE finished_at END WHERE id = ? AND status = 'playing' AND ${mistakes} < 3 AND (${lastId} IS NULL OR ${lastId} != ?)`,
         )
-        .bind(mistakeId, correctCells, opponentId, Date.now(), match.id, mistakeId)
+        .bind(key, opponentId, Date.now(), match.id, key)
         .run();
       return json({ ...(await state(userId)), correct: false });
     }
@@ -365,6 +382,8 @@ export async function POST(request: Request) {
     }
     if (body.action === "complete") {
       if (!matchesSolution(match.solution, body.grid)) return json({ error: "invalid_grid" }, 422);
+      if (match.status === "playing" && Date.now() - match.started_at < MIN_COMPLETE_SECONDS * 1000)
+        return json({ error: "too_fast" }, 422);
       await env
         .DB!.prepare(
           `UPDATE ranked_matches SET status='finished',winner_id=?,finish_reason='completed',finished_at=?,${progress}=? WHERE id=? AND status='playing' AND ${mistakes}<3`,
