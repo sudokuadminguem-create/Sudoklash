@@ -1,13 +1,17 @@
 "use client";
 import { useI18n } from "@/app/lib/i18n";
 import { locales, type MessageKey } from "@/app/lib/i18n-core";
-import { defaultSettings, useSettings, type Settings } from "@/app/lib/settings";
+import { defaultSettings, fontScales, useSettings, type Settings } from "@/app/lib/settings";
 
-const groups: { title: MessageKey; items: (keyof Settings & string)[] }[] = [
+/** The settings that are a simple on/off switch. */
+type Switch = Exclude<keyof Settings, "fontScale">;
+
+const groups: { title: MessageKey; items: Switch[] }[] = [
   {
     title: "settings.group.grid",
     items: ["highlightUnits", "highlightSame", "autoRemoveNotes", "largeDigits"],
   },
+  { title: "settings.group.display", items: ["highContrast", "colorblind"] },
   { title: "settings.group.game", items: ["showTimer", "confirmNewGrid", "vibrate"] },
 ];
 
@@ -58,13 +62,35 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
                 type="checkbox"
                 role="switch"
                 className="setting-switch"
-                checked={settings[key as keyof Settings] as boolean}
+                checked={settings[key]}
                 onChange={(e) => update({ [key]: e.target.checked })}
               />
             </label>
           ))}
         </section>
       ))}
+      <section className="settings-group">
+        <h3>{t("settings.group.textSize")}</h3>
+        <div className="setting-row font-scale-row">
+          <span>
+            <b>{t("settings.fontScale")}</b>
+            <small>{t("settings.fontScale.help")}</small>
+          </span>
+          <div className="font-scale" role="radiogroup" aria-label={t("settings.group.textSize")}>
+            {fontScales.map((scale) => (
+              <button
+                key={scale}
+                role="radio"
+                aria-checked={settings.fontScale === scale}
+                className={settings.fontScale === scale ? "active" : ""}
+                onClick={() => update({ fontScale: scale })}
+              >
+                {t(`fontScale.${scale}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
       <button
         className="settings-reset"
         onClick={() => {
