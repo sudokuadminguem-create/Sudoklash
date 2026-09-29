@@ -15,7 +15,7 @@ type FriendRow = {
   avatar_id: string | null;
   frame_id: string | null;
   points: number | null;
-  image_owner: string | null;
+  image_data: string | null;
 };
 
 type PlayerRow = {
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
         .all<PlayerRow>(),
       db
         .prepare(
-          "SELECT f.id, f.requester_id, f.addressee_id, f.status, p.user_id AS other_user_id, p.username, c.avatar_id, c.frame_id, i.user_id AS image_owner, r.points FROM friendships f JOIN player_profiles p ON p.user_id = CASE WHEN f.requester_id = ? THEN f.addressee_id ELSE f.requester_id END LEFT JOIN player_cosmetics c ON c.user_id=p.user_id LEFT JOIN player_avatar_images i ON i.user_id=p.user_id LEFT JOIN ranked_ratings r ON r.user_id=p.user_id WHERE f.requester_id = ? OR f.addressee_id = ? ORDER BY f.created_at DESC",
+          "SELECT f.id, f.requester_id, f.addressee_id, f.status, p.user_id AS other_user_id, p.username, c.avatar_id, c.frame_id, i.image_data, r.points FROM friendships f JOIN player_profiles p ON p.user_id = CASE WHEN f.requester_id = ? THEN f.addressee_id ELSE f.requester_id END LEFT JOIN player_cosmetics c ON c.user_id=p.user_id LEFT JOIN player_avatar_images i ON i.user_id=p.user_id LEFT JOIN ranked_ratings r ON r.user_id=p.user_id WHERE f.requester_id = ? OR f.addressee_id = ? ORDER BY f.created_at DESC",
         )
         .bind(user.userId, user.userId, user.userId)
         .all<FriendRow>(),
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
       username: row.username,
       avatarId: row.avatar_id ?? "nova",
       frameId: await appearance(db, row.id, row.frame_id, row.points),
-      image: row.avatar_id === "custom" && row.image_owner ? `/api/players/avatar?id=${encodeURIComponent(row.id)}` : null,
+      image: null,
     })));
     const friends = await Promise.all(relationships.results.map(async (row) => ({
       id: row.id,
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
       otherUserId: row.other_user_id,
       avatarId: row.avatar_id ?? "nova",
       frameId: await appearance(db, row.other_user_id, row.frame_id, row.points),
-      image: row.avatar_id === "custom" && row.image_owner ? `/api/players/avatar?id=${encodeURIComponent(row.other_user_id)}` : null,
+      image: row.status === "accepted" && row.avatar_id === "custom" ? row.image_data : null,
     })));
     return Response.json(
       {
@@ -157,4 +157,3 @@ export async function POST(request: Request) {
     return Response.json({ error: "friends_unavailable" }, { status: 503 });
   }
 }
-
