@@ -1,0 +1,217 @@
+/*
+ * Display settings (Paramètres › Affichage). The attributes on <html> come from
+ * lib/settings-model.ts: data-font-scale, data-colorblind and data-contrast.
+ */
+
+/* ---------- Text size: everything on the page grows, like a browser zoom ---------- */
+html[data-font-scale="large"] body {
+  zoom: 1.15;
+}
+html[data-font-scale="xlarge"] body {
+  zoom: 1.3;
+}
+
+/* ---------- Colour-blind mode: an error is a shape and a pattern, not a red cell ---------- */
+html[data-colorblind="on"] .sudoku .sudoku-row button.wrong,
+html[data-colorblind="on"] .sudoku .sudoku-row button.wrong.sel,
+html[data-colorblind="on"] .sudoku .sudoku-row button.wrong.same {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 5l14 14M19 5L5 19' stroke='%23fff' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E")
+      center / 52% no-repeat,
+    repeating-linear-gradient(45deg, #7a3300 0 6px, #a84400 6px 12px) !important;
+  box-shadow: inset 0 0 0 3px #ffb454 !important;
+}
+/* Right digits and hints use blue and yellow, which every kind of colour vision tells apart. */
+html[data-colorblind="on"] .sudoku .sudoku-row button.hint-target {
+  box-shadow: inset 0 0 0 4px #f0e442;
+}
+html[data-colorblind="on"] .sudoku .sudoku-row button.hint-pattern {
+  box-shadow: inset 0 0 0 4px #56b4e9;
+}
+html[data-colorblind="on"] .lives svg.full {
+  color: #e69f00;
+}
+html[data-colorblind="on"] .grid-invalid {
+  color: #ffc46b;
+}
+html[data-colorblind="on"] .grid-invalid::before {
+  content: "⚠ ";
+}
+
+/* ---------- High contrast: black and white, thick borders, no gradients ---------- */
+html[data-contrast="high"] {
+  --bg: #000;
+  --panel: #000;
+  --line: #fff;
+  --text: #fff;
+  --muted: #eee;
+  --gold: #ffe600;
+  --cyan: #00f0f0;
+}
+html[data-contrast="high"] body {
+  background: #000;
+  background-image: none;
+  color: #fff;
+}
+html[data-contrast="high"]
+  :is(
+    .panel,
+    .game-card,
+    .side,
+    .season,
+    .toast,
+    .account-dialog,
+    .confirm-dialog,
+    .hint-panel,
+    .duel-card,
+    .streak-tile,
+    .welcome,
+    .victory,
+    .loss-result,
+    .ranked-summary > div
+  ) {
+  background: #000 !important;
+  border: 2px solid #fff !important;
+  box-shadow: none !important;
+}
+html[data-contrast="high"]
+  body
+  :is(
+    small,
+    p,
+    span,
+    label,
+    li,
+    td,
+    th,
+    dt,
+    dd,
+    h1,
+    h2,
+    h3,
+    h4,
+    b,
+    strong,
+    em,
+    caption,
+    legend
+  ):not(.sudoku *, button *, svg *, .cage-sum) {
+  color: #fff !important;
+}
+html[data-contrast="high"] body .mode-tabs small {
+  background: #fff;
+  color: #000 !important;
+}
+html[data-contrast="high"] button {
+  background: #000;
+  color: #fff;
+  border: 2px solid #fff;
+}
+html[data-contrast="high"]
+  button:is(.primary, .active, [aria-checked="true"], [aria-pressed="true"]) {
+  background: #fff;
+  color: #000;
+}
+html[data-contrast="high"] button:disabled {
+  opacity: 1;
+  color: #cfcfcf;
+  border-style: dashed;
+}
+html[data-contrast="high"] a {
+  color: #8cd6ff;
+  text-decoration: underline;
+}
+
+/* The grid: thick block lines, white givens, yellow entries, a filled selection. */
+html[data-contrast="high"] .sudoku {
+  border: 3px solid #fff;
+}
+html[data-contrast="high"] .sudoku button {
+  border-color: #8a8a8a;
+  border-style: solid;
+  border-width: 0 1px 1px 0;
+  background: #000;
+  color: #ffe600;
+  font-weight: 800;
+}
+html[data-contrast="high"] .sudoku .sudoku-row button:nth-child(3n) {
+  border-right: 3px solid #fff;
+}
+html[data-contrast="high"] .sudoku .sudoku-row.block-bottom button {
+  border-bottom: 3px solid #fff;
+}
+html[data-contrast="high"] .sudoku .sudoku-row button:last-child {
+  border-right: 0;
+}
+html[data-contrast="high"] .sudoku .sudoku-row:last-child button {
+  border-bottom: 0;
+}
+html[data-contrast="high"] .sudoku button.entered:not(.same):not(.sel):not(.line) {
+  background: #000;
+}
+html[data-contrast="high"] .sudoku button.given {
+  background: #000;
+  color: #fff;
+}
+html[data-contrast="high"] .sudoku .sudoku-row button.line:not(.sel) {
+  background: #262626;
+}
+html[data-contrast="high"] .sudoku .sudoku-row button.same:not(.sel) {
+  background: #000;
+  color: #fff;
+  box-shadow: inset 0 0 0 3px #ffe600;
+}
+html[data-contrast="high"] .sudoku .sudoku-row button.sel {
+  background: #fff;
+  color: #000;
+}
+html[data-contrast="high"] .sudoku .sudoku-row button.wrong,
+html[data-contrast="high"] .sudoku .sudoku-row button.wrong.sel,
+html[data-contrast="high"] .sudoku .sudoku-row button.wrong.same {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 5l14 14M19 5L5 19' stroke='%23fff' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E")
+      center / 52% no-repeat,
+    #000 !important;
+  box-shadow: inset 0 0 0 4px #ff8a00 !important;
+}
+html[data-contrast="high"] .sudoku .cell-notes,
+html[data-contrast="high"] .sudoku .cell-notes i {
+  color: #fff;
+}
+html[data-contrast="high"] .cage-sum {
+  color: #ffe600;
+}
+html[data-contrast="high"] .sudoku .sudoku-row button.cage::after {
+  border-color: #ffe600;
+}
+html[data-contrast="high"] .sudoku .sudoku-row button.diag::before {
+  background: rgba(255, 255, 255, 0.16);
+}
+html[data-contrast="high"] .keypad button.active-number {
+  background: #fff;
+  color: #000;
+}
+html[data-contrast="high"] .keypad button.completed-digit {
+  text-decoration: line-through;
+}
+
+/* The three sizes of the text-size setting, side by side. */
+.font-scale {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.font-scale button {
+  border: 1px solid #38588d;
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: #13213a;
+  color: #cddbf2;
+  font-size: 13px;
+  font-weight: 700;
+}
+.font-scale button.active {
+  border-color: #54c8ff;
+  background: #16406b;
+  color: #fff;
+}

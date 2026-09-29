@@ -1,8 +1,23 @@
 "use client";
 import { useInstall } from "@/app/lib/pwa";
-import { defaultSettings, useSettings, type Settings } from "@/app/lib/settings";
+import {
+  defaultSettings,
+  fontScales,
+  useSettings,
+  type FontScale,
+  type Settings,
+} from "@/app/lib/settings";
 
-const groups: { title: string; items: [keyof Settings, string, string][] }[] = [
+/** The settings that are a simple on/off switch. */
+type Switch = Exclude<keyof Settings, "fontScale">;
+
+const fontScaleLabels: Record<FontScale, string> = {
+  normal: "Normale",
+  large: "Grande",
+  xlarge: "Très grande",
+};
+
+const groups: { title: string; items: [Switch, string, string][] }[] = [
   {
     title: "Grille",
     items: [
@@ -22,6 +37,21 @@ const groups: { title: string; items: [keyof Settings, string, string][] }[] = [
         "Un chiffre posé disparaît des notes de sa ligne, de sa colonne et de son bloc.",
       ],
       ["largeDigits", "Grands chiffres", "Agrandit les chiffres de la grille et des notes."],
+    ],
+  },
+  {
+    title: "Affichage",
+    items: [
+      [
+        "highContrast",
+        "Contraste élevé",
+        "Fond noir, texte blanc et bordures épaisses. Activé de lui-même si votre système le demande.",
+      ],
+      [
+        "colorblind",
+        "Mode daltonien",
+        "Les erreurs sont marquées par une croix et des rayures, pas seulement par la couleur rouge.",
+      ],
     ],
   },
   {
@@ -73,6 +103,28 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
           ))}
         </section>
       ))}
+      <section className="settings-group">
+        <h3>Taille du texte</h3>
+        <div className="setting-row font-scale-row">
+          <span>
+            <b>Taille de l’affichage</b>
+            <small>Agrandit tout ce qui est à l’écran, comme un zoom.</small>
+          </span>
+          <div className="font-scale" role="radiogroup" aria-label="Taille du texte">
+            {fontScales.map((scale) => (
+              <button
+                key={scale}
+                role="radio"
+                aria-checked={settings.fontScale === scale}
+                className={settings.fontScale === scale ? "active" : ""}
+                onClick={() => update({ fontScale: scale })}
+              >
+                {fontScaleLabels[scale]}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
       {install && (
         <section className="settings-group">
           <h3>Application</h3>
