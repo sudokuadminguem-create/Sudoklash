@@ -1,5 +1,4 @@
-import "../../board-actions.css";
-import { Eraser, Lightbulb, ListChecks, Pencil, Redo2, RotateCcw, X } from "lucide-react";
+import { Eraser, Lightbulb, Pencil, Redo2, RotateCcw, X } from "lucide-react";
 import { DIGITS } from "@/app/lib/board-logic";
 import type { ShownHint } from "./types";
 import { hintText } from "@/app/lib/hint-text";
@@ -45,7 +44,6 @@ type GameActionsProps = {
   onErase: () => void;
   onUndo: () => void;
   onRedo: () => void;
-  onCheckNotes: () => void;
   onHint: () => void;
   onAbandon: () => void;
 };
@@ -85,17 +83,6 @@ export function GameActions(props: GameActionsProps) {
         <Redo2 />
         Rétablir
       </button>
-      {!props.competitive && (
-        <button
-          aria-label="Vérifier les notes"
-          disabled={lost}
-          onClick={props.onCheckNotes}
-          className="check-notes"
-        >
-          <ListChecks />
-          Vérifier
-        </button>
-      )}
       <button
         aria-label={`Afficher un indice, ${Math.max(0, hintsLeft)} restant${hintsLeft === 1 ? "" : "s"}`}
         disabled={props.hintDisabled}

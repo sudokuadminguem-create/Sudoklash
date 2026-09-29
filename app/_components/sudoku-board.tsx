@@ -9,7 +9,6 @@ import {
   notesAfterPlacing,
   personalRecord,
   progressPercent,
-  pruneNotes,
   pushHistory,
   sameUnit,
   shareText,
@@ -107,7 +106,6 @@ export function SudokuBoard({
     [history, setHistory] = useState<HistoryStep[]>([]),
     // Steps undone and not yet replaced by a new move: what redo brings back.
     [future, setFuture] = useState<HistoryStep[]>([]),
-    [noteReport, setNoteReport] = useState<string | null>(null),
     [mistakes, setMistakes] = useState(resume?.mistakes ?? initialMistakes),
     [hintsUsed, setHintsUsed] = useState(resume?.hintsUsed ?? 0),
     // Digits whose check could not reach the judge.
@@ -282,7 +280,6 @@ export function SudokuBoard({
   const remember = () => {
     setHistory((h) => pushHistory(h, { cells: [...cells], notes: { ...cellNotes } }));
     setFuture([]);
-    setNoteReport(null);
   };
   const erase = () => {
     if (
@@ -302,7 +299,6 @@ export function SudokuBoard({
     if (mistakes >= 3) return;
     const last = history.at(-1);
     if (!last) return;
-    setNoteReport(null);
     const restored = stepBack(last, verdictsRef.current, cellsRef.current);
     setFuture((f) => pushHistory(f, { cells: [...cellsRef.current], notes: { ...cellNotes } }));
     updateCells(restored.cells);
@@ -313,27 +309,12 @@ export function SudokuBoard({
     if (mistakes >= 3) return;
     const next = future.at(-1);
     if (!next) return;
-    setNoteReport(null);
     // Judged digits keep their verdict: redo cannot bring back a rejected one.
     const restored = stepBack(next, verdictsRef.current, cellsRef.current);
     setHistory((h) => pushHistory(h, { cells: [...cellsRef.current], notes: { ...cellNotes } }));
     updateCells(restored.cells);
     setCellNotes(restored.notes);
     setFuture((f) => f.slice(0, -1));
-  };
-  const checkNotes = () => {
-    if (mistakes >= 3) return;
-    const confirmed = cellsRef.current.map((v, i) => (isCorrect(cellsRef.current, i) ? v : 0));
-    const { notes, removed } = pruneNotes(cellNotes, confirmed);
-    if (removed) {
-      remember();
-      setCellNotes(notes);
-    }
-    setNoteReport(
-      removed
-        ? `${removed} note${removed === 1 ? "" : "s"} impossible${removed === 1 ? "" : "s"} retirée${removed === 1 ? "" : "s"}.`
-        : "Toutes tes notes sont cohérentes avec les chiffres validés.",
-    );
   };
   // Digits restored from a save whose check never came back: ask again, with the same ids
   // so a mistake the server already counted is not counted twice.
@@ -496,7 +477,6 @@ export function SudokuBoard({
         onErase={erase}
         onUndo={undo}
         onRedo={redo}
-        onCheckNotes={checkNotes}
         onHint={() => void requestHint()}
         onAbandon={newGame}
       />
@@ -507,11 +487,6 @@ export function SudokuBoard({
         progress={progressPercent(filled, givens)}
         competitive={competitive}
       />
-      {noteReport && (
-        <p className="note-report" role="status">
-          {noteReport}
-        </p>
-      )}
       <BoardNotices mistakes={mistakes} unverified={unverified.length} onRetry={retryFailed} />
       {lost && <LossResult onNewGame={onNewGame} />}
       {done && (

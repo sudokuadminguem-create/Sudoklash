@@ -137,30 +137,4 @@ describe("notes stay right", () => {
     expect(notesOf(sameRow)).toEqual([]);
     expect(notesOf(elsewhere)).toEqual([String(solution[a])]);
   });
-
-  it("checks the notes against the confirmed digits and reports it", async () => {
-    await render();
-    await press(a, solution[a]);
-    // Notes added afterwards are not pruned on their own.
-    await noteMode();
-    await press(sameRow, solution[a]);
-    await press(sameRow, solution[sameRow]);
-    expect(notesOf(sameRow)).toEqual([String(solution[sameRow]), String(solution[a])].sort());
-
-    await click("Vérifier les notes");
-    expect(notesOf(sameRow)).toEqual([String(solution[sameRow])]);
-    expect(container.querySelector(".note-report")!.textContent).toBe("1 note impossible retirée.");
-
-    await click("Annuler la dernière action");
-    expect(notesOf(sameRow)).toHaveLength(2);
-
-    await click("Vérifier les notes");
-    await click("Vérifier les notes");
-    expect(container.querySelector(".note-report")!.textContent).toContain("cohérentes");
-  });
-
-  it("offers no note check in a competitive game", async () => {
-    await render({ competitive: true });
-    expect(container.querySelector('button[aria-label="Vérifier les notes"]')).toBeNull();
-  });
 });
