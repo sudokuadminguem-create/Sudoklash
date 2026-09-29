@@ -7,6 +7,14 @@ export function isEntryId(value: unknown): value is string {
   return typeof value === "string" && /^[a-f0-9-]{36}$/.test(value);
 }
 
+/**
+ * What identifies one wrong guess: the client id alone would let a player retry a cell with
+ * every digit under the same id and be charged for a single mistake.
+ */
+export function mistakeKey(id: string, index: number, number: number) {
+  return `${id}:${index}:${number}`;
+}
+
 export function isCellIndex(value: unknown): value is number {
   return Number.isInteger(value) && (value as number) >= 0 && (value as number) < 81;
 }

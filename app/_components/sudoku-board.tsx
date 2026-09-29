@@ -110,7 +110,7 @@ export function SudokuBoard({
     [mistakesLoaded, setMistakesLoaded] = useState(!storageKey),
     [shownHint, setShownHint] = useState<ShownHint | null>(null),
     [confirmingNewGame, setConfirmingNewGame] = useState(false);
-  // Accepted digits are locked. Rejected digits keep their empty cell marked until retried.
+  // Accepted digits are locked; rejected digits remain in the verdict history for undo.
   const [verdicts, setVerdicts] = useState<Verdicts>(
     () => resume?.verdicts ?? { correct: {}, wrong: {} },
   );
@@ -119,6 +119,29 @@ export function SudokuBoard({
     !done && active && mistakes < MAX_MISTAKES,
   );
   const verdictsRef = useRef(verdicts);
+  const [errorCells, setErrorCells] = useState<Record<number, boolean>>({});
+  const errorTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  useEffect(
+    () => () => {
+      Object.values(errorTimers.current).forEach(clearTimeout);
+    },
+    [],
+  );
+  const clearError = (index: number) => {
+    clearTimeout(errorTimers.current[index]);
+    delete errorTimers.current[index];
+    setErrorCells((current) => {
+      if (!current[index]) return current;
+      const next = { ...current };
+      delete next[index];
+      return next;
+    });
+  };
+  const flashError = (index: number) => {
+    clearTimeout(errorTimers.current[index]);
+    setErrorCells((current) => ({ ...current, [index]: true }));
+    errorTimers.current[index] = setTimeout(() => clearError(index), 4000);
+  };
   // Entries sent to the judge whose verdict has not come back yet, by id.
   const pendingRef = useRef<Record<string, Entry>>({});
   // Latest grid, for verdicts that come back after other digits were placed.
@@ -129,8 +152,7 @@ export function SudokuBoard({
   };
   const isCorrect = (grid: number[], i: number) =>
     isConfirmed(puzzle, verdictsRef.current, grid, i);
-  const isWrong = (i: number) =>
-    !puzzle[i] && verdicts.wrong[i] !== undefined && (!cells[i] || verdicts.wrong[i] === cells[i]);
+  const isWrong = (i: number) => !!errorCells[i];
   const recordVerdict = (entry: Entry, correct: boolean) => {
     const next = {
       ...verdictsRef.current,
@@ -173,6 +195,7 @@ export function SudokuBoard({
         delete pendingRef.current[entry.id];
       });
       if (verdict.correct) {
+        clearError(entry.index);
         recordVerdict(entry, true);
         // Other digits may have been placed since: count against the board as it is now.
         let current = cellsRef.current;
@@ -192,6 +215,7 @@ export function SudokuBoard({
         const current = [...cellsRef.current];
         current[entry.index] = 0;
         updateCells(current);
+        flashError(entry.index);
       }
       if (settings.vibrate) navigator.vibrate?.(180);
       // Several checks can be in flight and answer out of order: never let the count go back.
@@ -232,6 +256,7 @@ export function SudokuBoard({
     }
     const c = [...cells];
     c[index] = n;
+    clearError(index);
     if (verdictsRef.current.wrong[index] !== undefined) {
       const wrong = { ...verdictsRef.current.wrong };
       delete wrong[index];

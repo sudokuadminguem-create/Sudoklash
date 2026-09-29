@@ -49,3 +49,7 @@ next-env.d.ts
 # Self-hosted SQLite database (Docker volume when run outside a container)
 /data/
 !.env.example
+
+# Playwright
+/test-results/
+/playwright-report/

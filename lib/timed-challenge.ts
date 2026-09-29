@@ -2,7 +2,8 @@ import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
 import { challengeWindow } from "@/lib/challenge-schedule";
 import { getPeriodChallenge, type ChallengeKind } from "@/lib/challenges";
-import { isCellIndex, isDigit, isEntryId, MAX_MISTAKES } from "@/lib/entry-validation";
+import { isCellIndex, isDigit, isEntryId, MAX_MISTAKES, mistakeKey } from "@/lib/entry-validation";
+import { MIN_COMPLETE_SECONDS } from "@/lib/solo-rules";
 import { solvePuzzle } from "@/lib/sudoku-solver";
 
 // Daily and weekly challenges share the same rules: one timed attempt per period
@@ -131,11 +132,12 @@ export function timedChallengeRoute({ kind, table, periodColumn }: TimedChalleng
       if (solution[index] === number)
         return Response.json({ correct: true, ...payload(attempt, nextAt, config) });
 
+      const key = mistakeKey(mistakeId, index, number);
       await db
         .prepare(
           `UPDATE ${table} SET mistakes = mistakes + 1, last_mistake_id = ? WHERE user_id = ? AND ${periodColumn} = ? AND completed_at IS NULL AND mistakes < 3 AND (last_mistake_id IS NULL OR last_mistake_id != ?)`,
         )
-        .bind(mistakeId, user.userId, periodId, mistakeId)
+        .bind(key, user.userId, periodId, key)
         .run();
       const updated = await currentAttempt(user.userId, periodId);
       return Response.json({ correct: false, ...payload(updated, nextAt, config) });
@@ -153,7 +155,9 @@ export function timedChallengeRoute({ kind, table, periodColumn }: TimedChalleng
         solution && grid.length === 81 && grid.every((value, index) => value === solution[index]);
       if (!valid) return Response.json({ error: "invalid_solution" }, { status: 422 });
 
-      const elapsed = Math.max(1, Math.floor((now - attempt.started_at) / 1000));
+      const elapsed = Math.floor((now - attempt.started_at) / 1000);
+      if (elapsed < MIN_COMPLETE_SECONDS)
+        return Response.json({ error: "too_fast" }, { status: 422 });
       await db
         .prepare(
           `UPDATE ${table} SET completed_at = ?, elapsed_seconds = ? WHERE user_id = ? AND ${periodColumn} = ? AND completed_at IS NULL AND mistakes < 3`,
