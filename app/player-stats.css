@@ -1,0 +1,186 @@
+.player-stats {
+  padding: 24px;
+}
+.player-stats h3 {
+  margin: 0 0 16px;
+}
+.streak-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.streak-tile {
+  padding: 16px 18px;
+  border: 1px solid #263551;
+  border-radius: 14px;
+  background: #0d1526;
+}
+.streak-tile span {
+  color: #97a8c2;
+  font-size: 14px;
+}
+.streak-tile b {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+  font-size: 26px;
+}
+.streak-tile b svg {
+  width: 24px;
+  height: 24px;
+  color: #5b6b86;
+}
+.streak-tile b svg.lit {
+  color: #ffb454;
+}
+.streak-tile small {
+  color: #91a3be;
+}
+.difficulty-table,
+.progression-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.difficulty-table caption {
+  margin-bottom: 8px;
+  color: #97a8c2;
+  font-size: 14px;
+  text-align: left;
+}
+.difficulty-table th,
+.difficulty-table td,
+.progression-table th,
+.progression-table td {
+  padding: 10px 6px;
+  border-top: 1px solid #263551;
+  text-align: right;
+}
+.difficulty-table th:first-child,
+.progression-table th:first-child,
+.progression-table td:first-child {
+  text-align: left;
+}
+.difficulty-table thead th,
+.progression-table thead th {
+  border-top: 0;
+  color: #97a8c2;
+  font-size: 13px;
+  font-weight: 600;
+}
+.difficulty-table tbody th {
+  font-weight: 600;
+}
+.stats-filter {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 22px 0 14px;
+}
+.stats-filter button {
+  border: 1px solid #38588d;
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: #13213a;
+  color: #cddbf2;
+  font-size: 13px;
+  font-weight: 700;
+}
+.stats-filter button.active {
+  border-color: #54c8ff;
+  background: #16406b;
+  color: #fff;
+}
+.progression-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.progression-head h4 {
+  margin: 0;
+  font-size: 16px;
+}
+.stats-link {
+  border: 0;
+  background: transparent;
+  color: #7dc4ff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+}
+.progression-trend,
+.stats-empty {
+  margin: 6px 0 10px;
+  color: #91a3be;
+  font-size: 14px;
+}
+.progression-plot {
+  position: relative;
+}
+.progression-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y;
+}
+.plot-grid {
+  stroke: #1f2d47;
+  stroke-width: 1;
+}
+.plot-tick {
+  fill: #8496b3;
+  font-size: 11px;
+}
+.plot-line {
+  fill: none;
+  stroke: #54c8ff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.plot-cross {
+  stroke: #5578b4;
+  stroke-width: 1;
+}
+.plot-dot {
+  fill: #54c8ff;
+  stroke: #0a1120;
+  stroke-width: 2;
+}
+.plot-label {
+  paint-order: stroke;
+  stroke: #0a1120;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  fill: #dbe7fb;
+  font-size: 12px;
+  font-weight: 700;
+}
+.plot-tooltip {
+  position: absolute;
+  top: 6px;
+  display: grid;
+  gap: 2px;
+  transform: translateX(-50%);
+  padding: 8px 10px;
+  border: 1px solid #38588d;
+  border-radius: 10px;
+  background: #101b30;
+  color: #cddbf2;
+  font-size: 12px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.plot-tooltip b {
+  color: #fff;
+  font-size: 15px;
+}
+@media (max-width: 640px) {
+  .streak-row {
+    grid-template-columns: 1fr;
+  }
+}

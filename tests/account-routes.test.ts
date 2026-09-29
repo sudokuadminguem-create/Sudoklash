@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET as account } from "@/app/api/account/route";
 import { GET as achievements } from "@/app/api/achievements/route";
 import { GET as profileGet, POST as profilePost } from "@/app/api/profile/route";
@@ -75,6 +75,72 @@ describe("account statistics", () => {
       ]),
     );
     expect(body.ranked).toMatchObject({ points: 40, wins: 3, losses: 1 });
+  });
+});
+
+describe("personal statistics", () => {
+  const at = (iso: string) => Date.parse(iso);
+  beforeEach(() => vi.useFakeTimers({ now: new Date("2026-09-29T14:00:00Z") }));
+  afterEach(() => vi.useRealTimers());
+
+  const solo = (id: string, difficulty: string, seconds: number, iso: string, user = "alice") =>
+    db
+      .prepare(
+        "INSERT INTO solo_results (id, user_id, difficulty, elapsed_seconds, completed_at) VALUES (?, ?, ?, ?, ?)",
+      )
+      .run(id, user, difficulty, seconds, at(iso));
+
+  it("starts empty", async () => {
+    const { body } = await callRoute(account);
+    expect(body.byDifficulty).toEqual([]);
+    expect(body.history).toEqual([]);
+    expect(body.streak).toEqual({ current: 0, best: 0, playedToday: false });
+  });
+
+  it("counts games, best and average time by difficulty, for this player only", async () => {
+    solo("a", "Facile", 100, "2026-09-20T10:00:00Z");
+    solo("b", "Facile", 301, "2026-09-21T10:00:00Z");
+    solo("c", "Expert", 900, "2026-09-22T10:00:00Z");
+    solo("d", "Facile", 5, "2026-09-22T10:00:00Z", "bob");
+    const { body } = await callRoute(account);
+    expect(body.byDifficulty).toEqual(
+      expect.arrayContaining([
+        { difficulty: "Facile", games: 2, best: 100, average: 201 },
+        { difficulty: "Expert", games: 1, best: 900, average: 900 },
+      ]),
+    );
+    expect(body.byDifficulty).toHaveLength(2);
+  });
+
+  it("returns the history oldest first, capped at the latest 200 results", async () => {
+    const insert = db.prepare(
+      "INSERT INTO solo_results (id, user_id, difficulty, elapsed_seconds, completed_at) VALUES (?, 'alice', 'Facile', ?, ?)",
+    );
+    for (let n = 0; n < 230; n++) insert.run(`g${n}`, 100 + n, 1_000_000 + n);
+    const { history } = (await callRoute(account)).body;
+    expect(history).toHaveLength(200);
+    expect(history[0].elapsed_seconds).toBe(130);
+    expect(history.at(-1).elapsed_seconds).toBe(329);
+    expect(history.map((r: { completed_at: number }) => r.completed_at)).toEqual(
+      [...history.map((r: { completed_at: number }) => r.completed_at)].sort((x, y) => x - y),
+    );
+  });
+
+  it("builds the streak from solo wins, daily and weekly challenges together", async () => {
+    solo("a", "Facile", 100, "2026-09-27T10:00:00Z");
+    db.prepare(
+      "INSERT INTO daily_attempts (user_id, day_id, started_at, completed_at, puzzle, created_at) VALUES ('alice', '2026-09-28', 1, ?, '', 1)",
+    ).run(at("2026-09-28T09:00:00Z"));
+    db.prepare(
+      "INSERT INTO weekly_attempts (user_id, week_id, started_at, completed_at, puzzle, created_at) VALUES ('alice', '2026-W39', 1, ?, '', 1)",
+    ).run(at("2026-09-29T08:00:00Z"));
+    // An unfinished attempt and another player's win do not count.
+    db.prepare(
+      "INSERT INTO daily_attempts (user_id, day_id, started_at, puzzle, created_at) VALUES ('alice', '2026-09-26', 1, '', 1)",
+    ).run();
+    solo("z", "Facile", 100, "2026-09-26T10:00:00Z", "bob");
+    const { streak } = (await callRoute(account)).body;
+    expect(streak).toEqual({ current: 3, best: 3, playedToday: true });
   });
 });
 
