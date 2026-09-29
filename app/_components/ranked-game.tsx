@@ -22,6 +22,7 @@ export function RankedGame({
     setPendingGrid(grid);
     try {
       await rankedRequest("complete", { grid });
+      window.dispatchEvent(new Event("sudoklash:progress"));
       setError("");
       setPendingGrid(null);
       await refresh();

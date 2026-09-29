@@ -37,7 +37,10 @@ export function RoomGame({
       p_grid: grid.join(""),
     });
     if (error) notify(error.message);
-    else notify(`Grille validée en ${formatDuration(Math.floor(Number(data) / 1000))}`);
+    else {
+      notify(`Grille validée en ${formatDuration(Math.floor(Number(data) / 1000))}`);
+      window.dispatchEvent(new Event("sudoklash:progress"));
+    }
   };
   return (
     <div>
