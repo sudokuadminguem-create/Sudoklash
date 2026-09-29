@@ -261,8 +261,10 @@ describe("sudoku board", () => {
     await render(localJudge(puzzle, solution), { onNewGame });
     const newGrid = () =>
       [...container.querySelectorAll<HTMLButtonElement>(".game-actions button")].find(
-        (b) => b.textContent === "Nouvelle grille",
+        (b) => b.classList.contains("abandon-grid"),
       )!;
+    expect(newGrid().getAttribute("aria-label")).toContain("Abandonner cette grille");
+    expect(newGrid().querySelector("svg")).not.toBeNull();
     const dialog = () => document.querySelector("[role=alertdialog]");
     // Nothing played yet: nothing to lose.
     await act(async () => newGrid().click());
@@ -281,7 +283,7 @@ describe("sudoku board", () => {
     expect(dialog()).toBeNull();
     expect(onNewGame).toHaveBeenCalledTimes(1);
     await act(async () => newGrid().click());
-    await choose("Nouvelle grille");
+    await choose("Abandonner et relancer");
     expect(onNewGame).toHaveBeenCalledTimes(2);
   });
 
@@ -302,7 +304,7 @@ describe("sudoku board", () => {
     expect(container.querySelector(".timer")).toBeNull();
     expect(container.querySelectorAll(".sudoku button.line")).toHaveLength(0);
     const newGrid = [...container.querySelectorAll<HTMLButtonElement>(".game-actions button")].find(
-      (b) => b.textContent === "Nouvelle grille",
+      (b) => b.classList.contains("abandon-grid"),
     )!;
     await act(async () => newGrid.click());
     expect(onNewGame).toHaveBeenCalledTimes(1);

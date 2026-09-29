@@ -587,9 +587,13 @@ export function SudokuBoard({
           Indice ({Math.max(0, hintLimit - hintsUsed)})
         </button>
         {replayable && (
-          <button aria-label="Nouvelle grille" onClick={newGame}>
-            <RotateCcw />
-            Nouvelle grille
+          <button
+            className="abandon-grid"
+            aria-label="Abandonner cette grille et en lancer une nouvelle"
+            onClick={newGame}
+          >
+            <X aria-hidden="true" />
+            Abandonner et relancer
           </button>
         )}
       </div>
@@ -717,7 +721,7 @@ export function SudokuBoard({
         <ConfirmDialog
           title="Abandonner cette grille ?"
           message="Ta progression sur la grille en cours sera perdue."
-          confirmLabel="Nouvelle grille"
+          confirmLabel="Abandonner et relancer"
           cancelLabel="Continuer la partie"
           onCancel={() => setConfirmingNewGame(false)}
           onConfirm={() => {
