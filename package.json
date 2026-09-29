@@ -11,14 +11,15 @@
     "build": "node scripts/run-framework.mjs build",
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
     "build:standalone": "SUDOKLASH_SELF_HOSTED=1 next build",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern coverage",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run test",
     "db:generate": "drizzle-kit generate",
-    "puzzles:generate": "tsx scripts/generate-puzzle-bank.ts"
+    "puzzles:generate": "tsx scripts/generate-puzzle-bank.ts",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -56,6 +57,7 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.1",
     "@vitejs/plugin-rsc": "0.5.26",
+    "@vitest/coverage-v8": "5.0.1",
     "drizzle-kit": "0.31.11",
     "eslint": "9.39.4",
     "eslint-config-next": "16.3.4",

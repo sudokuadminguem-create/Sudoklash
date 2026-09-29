@@ -9,3 +9,4 @@ dist
 vendor
 .openai
 vendor
+coverage
