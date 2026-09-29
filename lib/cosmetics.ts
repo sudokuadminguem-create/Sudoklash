@@ -114,16 +114,22 @@ export const rankedFrames = [
 ] as const;
 
 // Only completed results saved by the server contribute. Existing results count too.
-export function progressFor(s: ProgressCounts) {
-  const xp = s.soloXp + s.daily * 100 + s.weekly * 250 + s.wins * 120 + s.losses * 40;
+export function levelProgressForXp(xp: number) {
   const level = Math.floor(Math.sqrt(xp / 100)) + 1;
   const current = 100 * (level - 1) ** 2,
     next = 100 * level ** 2;
   return {
-    xp,
     level,
     levelXp: xp - current,
     nextLevelXp: next - current,
+  };
+}
+
+export function progressFor(s: ProgressCounts) {
+  const xp = s.soloXp + s.daily * 100 + s.weekly * 250 + s.wins * 120 + s.losses * 40;
+  return {
+    xp,
+    ...levelProgressForXp(xp),
     earnedCoins: 300 + s.solo * 20 + s.daily * 60 + s.weekly * 150 + s.wins * 70,
   };
 }

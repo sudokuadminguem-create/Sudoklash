@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Share2, ShieldCheck, Trophy, X } from "lucide-react";
 import type { ExperienceState } from "./types";
+import { ExperienceProgress } from "../experience-progress";
 
 type FooterProps = {
   hintLimit: number;
@@ -76,6 +77,7 @@ type VictoryProps = {
   record: { label: string; best: boolean } | null;
   soloExperience: boolean;
   experience: ExperienceState;
+  experienceTotal: number | null;
   shareText: string;
   onConnect?: () => void;
   onNewGame?: () => void;
@@ -130,6 +132,9 @@ export function VictoryPanel(props: VictoryProps) {
               </span>
               <strong key={experience}>+{experience} XP</strong>
               <small>Expérience ajoutée à ton compte</small>
+              {props.experienceTotal !== null && (
+                <ExperienceProgress gained={experience} totalXp={props.experienceTotal} />
+              )}
             </>
           ) : experience === "saving" ? (
             <small>Enregistrement de ton expérience…</small>

@@ -48,7 +48,7 @@ export function useCosmetics(account: AccountState) {
   const refresh = useCallback(async () => {
     if (!account.user) {
       setState(null);
-      return;
+      return null;
     }
     setLoading(true);
     try {
@@ -57,9 +57,12 @@ export function useCosmetics(account: AccountState) {
         headers: await authHeaders(),
       });
       if (!response.ok) throw Error("load");
-      setState((await response.json()) as CosmeticState);
+      const updated = (await response.json()) as CosmeticState;
+      setState(updated);
+      return updated;
     } catch {
       setState(null);
+      return null;
     } finally {
       setLoading(false);
     }

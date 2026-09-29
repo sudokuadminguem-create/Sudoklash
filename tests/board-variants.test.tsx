@@ -12,7 +12,7 @@ import {
 import { localJudge } from "@/app/lib/judge";
 import { pickVariantGame } from "@/lib/variant-picker";
 import { seededRandom } from "@/lib/sudoku-generator";
-import { geometryOf } from "@/lib/variants";
+import { areRelated, geometryOf } from "@/lib/variants";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -148,6 +148,30 @@ describe("board with a variant geometry", () => {
       expect(edges(cell).includes("cage-r")).toBe(c === 8 || !inCage(cell + 1));
       expect(cells()[cell].getAttribute("aria-label")).toContain(`cage de somme ${cage.sum}`);
     }
+  });
+
+  it("removes a confirmed digit from the notes along a diagonal, not only row, column and box", async () => {
+    const { puzzle, solution } = await renderVariant("diagonal");
+    const box = (cell: number) => Math.floor(cell / 27) * 3 + Math.floor((cell % 9) / 3);
+    const main = [...Array(9).keys()].map((i) => i * 10).filter((cell) => !puzzle[cell]);
+    // Two empty cells of the main diagonal in different boxes: related only by the diagonal.
+    const a = main[0];
+    const b = main.find((cell) => box(cell) !== box(a))!;
+    expect(areRelated(geometryOf(undefined), a, b)).toBe(false);
+    expect(areRelated(geometryOf("diagonal"), a, b)).toBe(true);
+    const digit = solution[a];
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "n" }));
+    });
+    await press(b, digit); // a note on b
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "n" }));
+    });
+    const notesOf = (i: number) =>
+      [...cells()[i].querySelectorAll(".cell-notes i")].map((n) => n.textContent).filter(Boolean);
+    expect(notesOf(b)).toEqual([String(digit)]);
+    await press(a, digit); // confirmed by the judge
+    expect(notesOf(b)).toEqual([]);
   });
 
   it("keeps the classic grid free of variant marks", async () => {

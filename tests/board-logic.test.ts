@@ -6,6 +6,9 @@ import {
   notesAfterPlacing,
   personalRecord,
   progressPercent,
+  pushHistory,
+  MAX_HISTORY,
+  type HistoryStep,
   sameUnit,
   shareText,
   stepBack,
@@ -147,5 +150,16 @@ describe("game summary", () => {
     expect(
       shareText({ title: "Arène", difficulty: "Facile", time: "03:20", mistakes: 1, hintsUsed: 2 }),
     ).toBe("Sudoku Clash · Arène Facile\n⏱ 03:20 ❤️❤️🤍 💡 2");
+  });
+});
+
+describe("history", () => {
+  it("keeps the most recent steps up to the limit", () => {
+    let history: HistoryStep[] = [];
+    for (let n = 0; n < MAX_HISTORY + 20; n++)
+      history = pushHistory(history, { cells: [n], notes: {} });
+    expect(history).toHaveLength(MAX_HISTORY);
+    expect(history[0].cells[0]).toBe(20);
+    expect(history.at(-1)!.cells[0]).toBe(MAX_HISTORY + 19);
   });
 });

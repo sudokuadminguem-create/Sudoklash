@@ -4,6 +4,8 @@ import { ShieldCheck, Timer, Trophy, X } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import { formatDuration } from "@/app/lib/format-time";
 import type { Judge } from "@/app/lib/judge";
+import type { Cosmetics } from "@/hooks/use-cosmetics";
+import { ExperienceProgress } from "./experience-progress";
 import { SudokuBoard } from "./sudoku-board";
 
 type ChallengeData = {
@@ -19,9 +21,11 @@ type ChallengeData = {
 export function TimedChallenge({
   kind,
   openAuth,
+  cosmetics,
 }: {
   kind: "daily" | "weekly";
   openAuth: () => void;
+  cosmetics: Cosmetics;
 }) {
   const [data, setData] = useState<ChallengeData | null>(null),
     [loading, setLoading] = useState(true),
@@ -29,7 +33,8 @@ export function TimedChallenge({
     [authRequired, setAuthRequired] = useState(false),
     [error, setError] = useState(""),
     [now, setNow] = useState(0),
-    [pendingGrid, setPendingGrid] = useState<number[] | null>(null);
+    [pendingGrid, setPendingGrid] = useState<number[] | null>(null),
+    [earnedXp, setEarnedXp] = useState<number | null>(null);
   const refreshInFlight = useRef(false),
     retryAt = useRef(0);
   const isDaily = kind === "daily",
@@ -92,6 +97,7 @@ export function TimedChallenge({
       .then((value) => {
         setData(value);
         setPendingGrid(null);
+        setEarnedXp(null);
         setError("");
         retryAt.current = 0;
       })
@@ -119,7 +125,11 @@ export function TimedChallenge({
       if (!response.ok) throw new Error("challenge_save");
       setData(await response.json());
       setPendingGrid(null);
-      if (action === "complete") window.dispatchEvent(new Event("sudoklash:progress"));
+      if (action === "complete") {
+        const updated = await cosmetics.refresh();
+        if (updated) setEarnedXp(updated.xp);
+        window.dispatchEvent(new Event("sudoklash:progress"));
+      }
     } catch {
       setError("Impossible d’enregistrer la tentative. Vérifiez votre connexion puis réessayez.");
     } finally {
@@ -203,6 +213,7 @@ export function TimedChallenge({
         <span className="eyebrow">GRILLE TERMINÉE</span>
         <h2>Votre temps : {formatDuration(data.elapsedSeconds || 0)}</h2>
         <p>Votre tentative est enregistrée. Cette grille ne peut plus être rejouée.</p>
+        {earnedXp !== null && <ExperienceProgress gained={isDaily ? 100 : 250} totalXp={earnedXp} />}
         <div className="next-week">
           <span>Prochaine grille dans</span>
           <b>{formatDuration(remaining)}</b>
