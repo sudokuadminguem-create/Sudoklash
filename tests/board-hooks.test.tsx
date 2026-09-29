@@ -56,6 +56,8 @@ describe("useBoardShortcuts", () => {
     erase: vi.fn(),
     toggleNotes: vi.fn(),
     undo: vi.fn(),
+    redo: vi.fn(),
+    move: vi.fn(() => true),
   });
 
   it("maps keys to actions", async () => {
@@ -94,5 +96,53 @@ describe("useBoardShortcuts", () => {
     await press("4");
     expect(second.digit).toHaveBeenCalledTimes(1);
     root = createRoot(container); // for afterEach
+  });
+
+  const keyOn = (target: EventTarget, key: string, init: KeyboardEventInit = {}) => {
+    const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
+    act(() => {
+      target.dispatchEvent(event);
+    });
+    return event;
+  };
+
+  it("moves the selection with the navigation keys and keeps the page from scrolling", async () => {
+    const h = handlers();
+    await act(async () => root.render(<Shortcuts {...h} />));
+    for (const key of ["ArrowUp", "ArrowLeft", "Home", "End", "PageUp", "PageDown"]) {
+      const event = keyOn(document.body, key);
+      expect(h.move).toHaveBeenLastCalledWith(key);
+      expect(event.defaultPrevented).toBe(true);
+    }
+    expect(h.move).toHaveBeenCalledTimes(6);
+  });
+
+  it("leaves the key alone when nothing moved", async () => {
+    const h = handlers();
+    h.move = vi.fn(() => false);
+    await act(async () => root.render(<Shortcuts {...h} />));
+    expect(keyOn(document.body, "ArrowDown").defaultPrevented).toBe(false);
+  });
+
+  it("moves from inside the grid but not from menus, dialogs or fields", async () => {
+    const h = handlers();
+    document.body.innerHTML =
+      '<div class="sudoku"><button id="cell"></button></div><button id="menu"></button><input id="field">';
+    await act(async () => root.render(<Shortcuts {...h} />));
+    keyOn(document.getElementById("cell")!, "ArrowRight");
+    expect(h.move).toHaveBeenCalledTimes(1);
+    keyOn(document.getElementById("menu")!, "ArrowRight");
+    keyOn(document.getElementById("field")!, "ArrowRight");
+    expect(h.move).toHaveBeenCalledTimes(1);
+    document.body.innerHTML = "";
+  });
+
+  it("does not steal the browser's shortcuts", async () => {
+    const h = handlers();
+    await act(async () => root.render(<Shortcuts {...h} />));
+    keyOn(document.body, "ArrowLeft", { ctrlKey: true });
+    keyOn(document.body, "ArrowLeft", { metaKey: true });
+    keyOn(document.body, "ArrowLeft", { altKey: true });
+    expect(h.move).not.toHaveBeenCalled();
   });
 });

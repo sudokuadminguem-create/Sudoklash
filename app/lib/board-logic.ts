@@ -137,3 +137,63 @@ export function shareText(game: {
     "🤍".repeat(Math.min(MAX_MISTAKES, game.mistakes));
   return `Sudoku Clash · ${game.title} ${game.difficulty}\n⏱ ${game.time} ${lives} 💡 ${game.hintsUsed}`;
 }
+
+const MOVE_KEYS = [
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "Home",
+  "End",
+  "PageUp",
+  "PageDown",
+];
+
+/** Whether this key moves the selection around the grid. */
+export const isMoveKey = (key: string) => MOVE_KEYS.includes(key);
+
+/**
+ * The cell selected after a navigation key, or null when the key is not one. Arrows stop at the
+ * edges; Home and End go to the ends of the row, PageUp and PageDown to the ends of the column.
+ * With nothing selected, any of them lands on the first cell.
+ */
+export function moveSelection(current: number | null, key: string, size: number) {
+  if (!isMoveKey(key)) return null;
+  if (current === null) return 0;
+  const row = Math.floor(current / size);
+  const col = current % size;
+  const last = size - 1;
+  const [nextRow, nextCol] = {
+    ArrowUp: [Math.max(0, row - 1), col],
+    ArrowDown: [Math.min(last, row + 1), col],
+    ArrowLeft: [row, Math.max(0, col - 1)],
+    ArrowRight: [row, Math.min(last, col + 1)],
+    Home: [row, 0],
+    End: [row, last],
+    PageUp: [0, col],
+    PageDown: [last, col],
+  }[key]!;
+  return nextRow * size + nextCol;
+}
+
+const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
+/** Where a cell is, in words: "ligne 3, colonne 4". */
+export const cellPlace = (index: number, size: number) =>
+  `ligne ${Math.floor(index / size) + 1}, colonne ${(index % size) + 1}`;
+
+/** What a screen reader says once the judge has answered about a digit. */
+export function verdictAnnouncement(entry: {
+  correct: boolean;
+  number: number;
+  index: number;
+  size: number;
+  mistakes: number;
+}) {
+  const place = cellPlace(entry.index, entry.size);
+  if (entry.correct) return `Chiffre ${entry.number} validé, ${place}.`;
+  const lives = Math.max(0, MAX_MISTAKES - entry.mistakes);
+  return lives
+    ? `Chiffre ${entry.number} refusé, ${place}. ${lives} ${plural(lives, "vie restante", "vies restantes")}.`
+    : `Chiffre ${entry.number} refusé, ${place}. Plus de vie : grille perdue.`;
+}

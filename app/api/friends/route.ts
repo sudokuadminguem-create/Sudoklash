@@ -23,10 +23,16 @@ type PlayerRow = {
   username: string;
   avatar_id: string | null;
   frame_id: string | null;
+  image_owner: string | null;
   points: number | null;
 };
 
-async function appearance(db: D1Database, userId: string, frameId: string | null, points: number | null) {
+async function appearance(
+  db: D1Database,
+  userId: string,
+  frameId: string | null,
+  points: number | null,
+) {
   if (frameId && frameId !== "rank_auto") return frameId;
   const value = points ?? 0;
   return `rank-${rankFor(value, await rankedPosition(db, userId, value)).name}`;
@@ -47,7 +53,7 @@ export async function GET(request: Request) {
     const [profiles, relationships] = await Promise.all([
       db
         .prepare(
-          "SELECT p.user_id AS id, p.username, c.avatar_id, c.frame_id, r.points FROM player_profiles p LEFT JOIN player_cosmetics c ON c.user_id=p.user_id LEFT JOIN ranked_ratings r ON r.user_id=p.user_id WHERE p.user_id != ? AND INSTR(p.username_key, ?) > 0 ORDER BY p.username_key LIMIT 51 OFFSET ?",
+          "SELECT p.user_id AS id, p.username, c.avatar_id, c.frame_id, i.user_id AS image_owner, r.points FROM player_profiles p LEFT JOIN player_cosmetics c ON c.user_id=p.user_id LEFT JOIN player_avatar_images i ON i.user_id=p.user_id LEFT JOIN ranked_ratings r ON r.user_id=p.user_id WHERE p.user_id != ? AND INSTR(p.username_key, ?) > 0 ORDER BY p.username_key LIMIT 51 OFFSET ?",
         )
         .bind(user.userId, search, offset)
         .all<PlayerRow>(),
@@ -58,23 +64,31 @@ export async function GET(request: Request) {
         .bind(user.userId, user.userId, user.userId)
         .all<FriendRow>(),
     ]);
-    const players = await Promise.all(profiles.results.slice(0, 50).map(async (row) => ({
-      id: row.id,
-      username: row.username,
-      avatarId: row.avatar_id ?? "nova",
-      frameId: await appearance(db, row.id, row.frame_id, row.points),
-    })));
-    const friends = await Promise.all(relationships.results.map(async (row) => ({
-      id: row.id,
-      requester_id: row.requester_id,
-      addressee_id: row.addressee_id,
-      status: row.status,
-      username: row.username,
-      otherUserId: row.other_user_id,
-      avatarId: row.avatar_id ?? "nova",
-      frameId: await appearance(db, row.other_user_id, row.frame_id, row.points),
-      image: row.image_data,
-    })));
+    const players = await Promise.all(
+      profiles.results.slice(0, 50).map(async (row) => ({
+        id: row.id,
+        username: row.username,
+        avatarId: row.avatar_id ?? "nova",
+        frameId: await appearance(db, row.id, row.frame_id, row.points),
+        image:
+          row.avatar_id === "custom" && row.image_owner
+            ? `/api/players/avatar?id=${encodeURIComponent(row.id)}`
+            : null,
+      })),
+    );
+    const friends = await Promise.all(
+      relationships.results.map(async (row) => ({
+        id: row.id,
+        requester_id: row.requester_id,
+        addressee_id: row.addressee_id,
+        status: row.status,
+        username: row.username,
+        otherUserId: row.other_user_id,
+        avatarId: row.avatar_id ?? "nova",
+        frameId: await appearance(db, row.other_user_id, row.frame_id, row.points),
+        image: row.image_data,
+      })),
+    );
     return Response.json(
       {
         players,

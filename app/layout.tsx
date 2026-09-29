@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./a11y.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://sudoklash.galletguemeric.chatgpt.site"),
   title: "Sudoku Clash — Le Sudoku compétitif",

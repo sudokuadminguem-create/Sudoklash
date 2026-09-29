@@ -5,7 +5,9 @@ import { friendlyError } from "@/app/lib/auth-messages";
 import { supabase } from "@/app/lib/supabase";
 import type { Account, Profile } from "@/hooks/use-account";
 import { solvePuzzle } from "@/lib/sudoku-solver";
+import { usePlayerAppearances } from "@/app/lib/use-player-appearances";
 import { LockedPanel } from "./locked-panel";
+import { PlayerAvatar } from "./player-cosmetics";
 
 export type Room = {
   id: string;
@@ -44,6 +46,7 @@ export function PrivateLobby({
     [code, setCode] = useState(""),
     [busy, setBusy] = useState(false);
   const me = account.user?.id;
+  const appearances = usePlayerAppearances(players.map((player) => player.user_id));
   const load = useCallback(async (roomId: string) => {
     const [{ data: r }, { data: p }] = await Promise.all([
       supabase.from("rooms").select("*").eq("id", roomId).single(),
@@ -181,7 +184,11 @@ export function PrivateLobby({
       <div className="lobby-list">
         {players.map((p) => (
           <div key={p.user_id}>
-            <div className="avatar">{(p.profile?.username || "?").slice(0, 2).toUpperCase()}</div>
+            <PlayerAvatar
+              avatarId={appearances[p.user_id]?.avatarId}
+              frameId={appearances[p.user_id]?.frameId}
+              image={appearances[p.user_id]?.image}
+            />
             <span>
               <b>{p.profile?.username || "Joueur"}</b>
               <small>{p.user_id === room.host_id ? "Hôte" : "Invité"}</small>
