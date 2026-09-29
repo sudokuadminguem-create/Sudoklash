@@ -1,7 +1,5 @@
-import type { Difficulty } from "@/lib/difficulties";
-
 /** Best solo time per difficulty, in seconds, kept on this device. */
-type Records = Partial<Record<Difficulty, number>>;
+type Records = Partial<Record<string, number>>;
 
 const keyFor = (userId: string | null | undefined) => `sudoklash:solo-records:${userId ?? "guest"}`;
 
@@ -14,7 +12,7 @@ function load(userId: string | null | undefined): Records {
 }
 
 /** Best time for this difficulty, or null before a first win. */
-export function soloRecord(userId: string | null | undefined, difficulty: Difficulty) {
+export function soloRecord(userId: string | null | undefined, difficulty: string) {
   const best = load(userId)[difficulty];
   return typeof best === "number" && best > 0 ? best : null;
 }
@@ -22,7 +20,7 @@ export function soloRecord(userId: string | null | undefined, difficulty: Diffic
 /** Keeps `seconds` when it beats the record. */
 export function recordSoloWin(
   userId: string | null | undefined,
-  difficulty: Difficulty,
+  difficulty: string,
   seconds: number,
 ) {
   const records = load(userId);

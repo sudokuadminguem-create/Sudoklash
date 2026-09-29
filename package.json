@@ -20,7 +20,8 @@
     "db:generate": "drizzle-kit generate",
     "puzzles:generate": "tsx scripts/generate-puzzle-bank.ts",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "variants:generate": "tsx scripts/generate-variant-bank.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

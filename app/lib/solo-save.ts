@@ -1,10 +1,22 @@
 import type { Entry } from "@/app/lib/judge";
 import { isSoloDifficulty, type Difficulty } from "@/lib/difficulties";
+import { sizeOfCells, variantByLabel, type Cage, type VariantId } from "@/lib/variants";
+
+/** A classic difficulty, or the label of a variant (see lib/variants.ts). */
+export type SoloLevel = Difficulty | string;
+
+export const isSoloLevel = (value: unknown): value is SoloLevel =>
+  isSoloDifficulty(value) || variantByLabel(value) !== undefined;
 
 /** A solo grid as the server handed it out. Guests get the solution to check locally. */
-export type StartedGame =
+export type StartedGame = (
   | { guest: true; puzzle: number[]; solution: number[] }
-  | { guest: false; gameId: string; puzzle: number[] };
+  | { guest: false; gameId: string; puzzle: number[] }
+) & {
+  /** Set for the variants; a classic game has neither. */
+  variant?: VariantId;
+  cages?: Cage[];
+};
 
 /** Everything the board needs to pick a game back up where the player left it. */
 export type BoardSnapshot = {
@@ -19,7 +31,7 @@ export type BoardSnapshot = {
 };
 
 /** A solo game in progress, kept in the browser until it is won, lost or replaced. */
-export type SoloSave = { difficulty: Difficulty; game: StartedGame; board: BoardSnapshot };
+export type SoloSave = { difficulty: SoloLevel; game: StartedGame; board: BoardSnapshot };
 
 // The server keeps one open game per player, so one save per player is enough.
 const keyFor = (userId: string | null | undefined) => `sudoklash:solo-save:${userId ?? "guest"}`;
@@ -31,10 +43,10 @@ export function loadSoloSave(userId: string | null | undefined): SoloSave | null
     const save = JSON.parse(raw) as SoloSave;
     const { board, game } = save;
     if (
-      !isSoloDifficulty(save.difficulty) ||
+      !isSoloLevel(save.difficulty) ||
       game?.guest !== !userId ||
-      game.puzzle?.length !== 81 ||
-      board?.cells?.length !== 81
+      sizeOfCells(game.puzzle?.length) === null ||
+      board?.cells?.length !== game.puzzle.length
     )
       return null;
     return save;

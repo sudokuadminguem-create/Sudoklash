@@ -3,11 +3,12 @@ import { useEffect, useState } from "react";
 import { History } from "lucide-react";
 import { formatClock } from "@/app/lib/format-time";
 import { useSettings } from "@/app/lib/settings";
-import { loadSoloSave, saveProgress, type SoloSave } from "@/app/lib/solo-save";
+import { loadSoloSave, saveProgress, type SoloLevel, type SoloSave } from "@/app/lib/solo-save";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
-import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
+import { soloDifficulties } from "@/lib/difficulties";
+import { variantIds, variantInfo } from "@/lib/variants";
 import { soloXpFor } from "@/lib/cosmetics";
 import { PrivateLobby } from "./private-lobby";
 import { RoomGame } from "./room-game";
@@ -27,12 +28,12 @@ export function ModePanel({
   cosmetics: Cosmetics;
   openAuth: () => void;
 }) {
-  const [chosen, setChosen] = useState<Difficulty | null>(null),
+  const [chosen, setChosen] = useState<SoloLevel | null>(null),
     [resuming, setResuming] = useState<SoloSave | undefined>(),
     [saved, setSaved] = useState<SoloSave | null>(null),
-    [replacing, setReplacing] = useState<Difficulty | null>(null);
+    [replacing, setReplacing] = useState<SoloLevel | null>(null);
   const { settings } = useSettings();
-  const pick = (d: Difficulty) => {
+  const pick = (d: SoloLevel) => {
     setChosen(d);
     notify(`Grille ${d} chargée`);
   };
@@ -116,6 +117,27 @@ export function ModePanel({
                 }
               </small>
               <span className="difficulty-xp">+{soloXpFor(d)} XP</span>
+            </button>
+          ))}
+        </div>
+        <div className="panel-head variant-head">
+          <span className="eyebrow">VARIANTES</span>
+          <h3>Change de règles</h3>
+        </div>
+        <div className="difficulty-grid variant-grid">
+          {variantIds.map((id) => (
+            <button
+              key={id}
+              onClick={() =>
+                saved && settings.confirmNewGrid
+                  ? setReplacing(variantInfo[id].label)
+                  : pick(variantInfo[id].label)
+              }
+            >
+              <span>{{ mini: "▦", diagonal: "╳", killer: "Σ" }[id]}</span>
+              <b>{variantInfo[id].label}</b>
+              <small>{variantInfo[id].tagline}</small>
+              <span className="difficulty-xp">+{variantInfo[id].xp} XP</span>
             </button>
           ))}
         </div>

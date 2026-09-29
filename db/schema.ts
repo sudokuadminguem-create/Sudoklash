@@ -201,6 +201,9 @@ export const soloGames = sqliteTable(
     lastMistakeId: text("last_mistake_id"),
     hintsUsed: integer("hints_used").notNull().default(0),
     completedAt: integer("completed_at"),
+    // "classic", or the id of a variant (see lib/variants.ts), whose cages are kept as text.
+    variant: text("variant").notNull().default("classic"),
+    cages: text("cages").notNull().default(""),
   },
   (table) => [index("idx_solo_games_user").on(table.userId, table.completedAt)],
 );
