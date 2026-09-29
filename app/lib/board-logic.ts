@@ -1,6 +1,7 @@
 // Pure rules of the Sudoku board, kept out of the React component so they can be tested alone.
 
 import { formatClock } from "@/app/lib/format-time";
+import { tFr, type Translate } from "@/app/lib/i18n-core";
 import { areRelated, CLASSIC, type Geometry } from "@/lib/variants";
 
 /** Pencil marks by cell index. */
@@ -112,12 +113,16 @@ export function hintUnitCells(index: number, unit?: readonly number[]) {
 }
 
 /** How this game compares with the player's best time, or null when there is nothing to show. */
-export function personalRecord(previousBest: number | null | undefined, seconds: number) {
+export function personalRecord(
+  previousBest: number | null | undefined,
+  seconds: number,
+  t: Translate = tFr,
+) {
   if (previousBest === undefined) return null;
-  if (previousBest === null) return { label: "Premier record établi", best: true };
+  if (previousBest === null) return { label: t("record.first"), best: true };
   return seconds < previousBest
-    ? { label: `Nouveau record · −${formatClock(previousBest - seconds)}`, best: true }
-    : { label: `Record : ${formatClock(previousBest)}`, best: false };
+    ? { label: t("record.new", { delta: formatClock(previousBest - seconds) }), best: true }
+    : { label: t("record.best", { time: formatClock(previousBest) }), best: false };
 }
 
 /** Share of the empty cells that are filled, as a whole percentage. */
@@ -125,17 +130,26 @@ export const progressPercent = (filled: number, givens: number, total = 81) =>
   Math.round(((filled - givens) / (total - givens)) * 100);
 
 /** The text a player shares after a game. */
-export function shareText(game: {
-  title: string;
-  difficulty: string;
-  time: string;
-  mistakes: number;
-  hintsUsed: number;
-}) {
+export function shareText(
+  game: {
+    title: string;
+    difficulty: string;
+    time: string;
+    mistakes: number;
+    hintsUsed: number;
+  },
+  t: Translate = tFr,
+) {
   const lives =
     "❤️".repeat(Math.max(0, MAX_MISTAKES - game.mistakes)) +
     "🤍".repeat(Math.min(MAX_MISTAKES, game.mistakes));
-  return `Sudoku Clash · ${game.title} ${game.difficulty}\n⏱ ${game.time} ${lives} 💡 ${game.hintsUsed}`;
+  return t("share.text", {
+    title: game.title,
+    level: game.difficulty,
+    time: game.time,
+    lives,
+    hints: game.hintsUsed,
+  });
 }
 
 const MOVE_KEYS = [
@@ -176,24 +190,25 @@ export function moveSelection(current: number | null, key: string, size: number)
   return nextRow * size + nextCol;
 }
 
-const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
-
 /** Where a cell is, in words: "ligne 3, colonne 4". */
-export const cellPlace = (index: number, size: number) =>
-  `ligne ${Math.floor(index / size) + 1}, colonne ${(index % size) + 1}`;
+export const cellPlace = (index: number, size: number, t: Translate = tFr) =>
+  t("place", { row: Math.floor(index / size) + 1, col: (index % size) + 1 });
 
 /** What a screen reader says once the judge has answered about a digit. */
-export function verdictAnnouncement(entry: {
-  correct: boolean;
-  number: number;
-  index: number;
-  size: number;
-  mistakes: number;
-}) {
-  const place = cellPlace(entry.index, entry.size);
-  if (entry.correct) return `Chiffre ${entry.number} validé, ${place}.`;
+export function verdictAnnouncement(
+  entry: {
+    correct: boolean;
+    number: number;
+    index: number;
+    size: number;
+    mistakes: number;
+  },
+  t: Translate = tFr,
+) {
+  const place = cellPlace(entry.index, entry.size, t);
+  if (entry.correct) return t("say.correct", { n: entry.number, place });
   const lives = Math.max(0, MAX_MISTAKES - entry.mistakes);
   return lives
-    ? `Chiffre ${entry.number} refusé, ${place}. ${lives} ${plural(lives, "vie restante", "vies restantes")}.`
-    : `Chiffre ${entry.number} refusé, ${place}. Plus de vie : grille perdue.`;
+    ? t("say.wrong", { n: entry.number, place, count: lives })
+    : t("say.lost", { n: entry.number, place });
 }

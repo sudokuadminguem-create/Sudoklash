@@ -2,6 +2,7 @@ import { Eraser, Lightbulb, Pencil, Redo2, RotateCcw, X } from "lucide-react";
 import { digitsFor } from "@/app/lib/board-logic";
 import type { ShownHint } from "./types";
 import { hintText } from "@/app/lib/hint-text";
+import { useI18n } from "@/app/lib/i18n";
 
 type KeypadProps = {
   /** Side of the grid: the pad has one button per digit up to it. */
@@ -14,16 +15,17 @@ type KeypadProps = {
 
 /** The digit buttons. */
 export function Keypad({ size = 9, selectedValue, completed, disabled, onDigit }: KeypadProps) {
+  const { t } = useI18n();
   return (
     <div
       className="keypad"
-      aria-label="Clavier numérique"
+      aria-label={t("keypad.label")}
       style={size === 9 ? undefined : { gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
     >
       {digitsFor(size).map((n) => (
         <button
           key={n}
-          aria-label={completed.has(n) ? `Chiffre ${n} complété` : `Placer le chiffre ${n}`}
+          aria-label={completed.has(n) ? t("keypad.done", { n }) : t("keypad.place", { n })}
           aria-pressed={selectedValue === n}
           disabled={disabled || completed.has(n)}
           className={`${selectedValue === n ? "active-number" : ""} ${completed.has(n) ? "completed-digit" : ""}`}
@@ -57,54 +59,56 @@ type GameActionsProps = {
 /** Notes, erase, undo, hint and abandon. */
 export function GameActions(props: GameActionsProps) {
   const { lost, hintsLeft } = props;
+  const { t } = useI18n();
+  const left = Math.max(0, hintsLeft);
   return (
     <div className="game-actions">
       <button
-        aria-label="Activer ou désactiver les notes"
+        aria-label={t("actions.notesLabel")}
         aria-pressed={props.noteMode}
         disabled={props.competitive || lost}
         onClick={props.onToggleNotes}
         className={props.noteMode ? "notes-toggle active" : "notes-toggle"}
       >
         <Pencil />
-        Notes <small>N</small>
+        {t("actions.notes")} <small>N</small>
       </button>
-      <button aria-label="Effacer la case sélectionnée" disabled={lost} onClick={props.onErase}>
+      <button aria-label={t("actions.eraseLabel")} disabled={lost} onClick={props.onErase}>
         <Eraser />
-        Effacer
+        {t("actions.erase")}
       </button>
       <button
-        aria-label="Annuler la dernière action"
+        aria-label={t("actions.undoLabel")}
         onClick={props.onUndo}
         disabled={!props.canUndo || lost}
       >
         <RotateCcw />
-        Annuler
+        {t("actions.undo")}
       </button>
       <button
-        aria-label="Rétablir l’action annulée"
+        aria-label={t("actions.redoLabel")}
         onClick={props.onRedo}
         disabled={!props.canRedo || lost}
       >
         <Redo2 />
-        Rétablir
+        {t("actions.redo")}
       </button>
       <button
-        aria-label={`Afficher un indice, ${Math.max(0, hintsLeft)} restant${hintsLeft === 1 ? "" : "s"}`}
+        aria-label={t("actions.hintLabel", { count: left })}
         disabled={props.hintDisabled}
         onClick={props.onHint}
       >
         <Lightbulb />
-        Indice ({Math.max(0, hintsLeft)})
+        {t("actions.hint", { count: left })}
       </button>
       {props.canAbandon && (
         <button
           className="abandon-grid"
-          aria-label="Abandonner cette grille et en lancer une nouvelle"
+          aria-label={t("actions.abandonLabel")}
           onClick={props.onAbandon}
         >
           <X aria-hidden="true" />
-          Abandonner et relancer
+          {t("actions.abandon")}
         </button>
       )}
     </div>
@@ -115,29 +119,26 @@ type HintPanelProps = { hint: ShownHint; onReveal: () => void; onDismiss: () => 
 
 /** Explains where to look, and gives the digit on request. */
 export function HintPanel({ hint, onReveal, onDismiss }: HintPanelProps) {
-  const text = hintText(hint.index, hint.step);
+  const { t } = useI18n();
+  const text = hintText(hint.index, hint.step, t);
   return (
     <div className="hint-panel" role="status" aria-live="polite">
       <Lightbulb />
       <div>
         <b>{text.title}</b>
         {text.techniques.length > 0 && (
-          <ul className="hint-techniques" aria-label="Techniques à utiliser">
+          <ul className="hint-techniques" aria-label={t("hint.techniques")}>
             {text.techniques.map((name) => (
               <li key={name}>{name}</li>
             ))}
           </ul>
         )}
         <p>{text.text}</p>
-        {hint.step?.pattern && (
-          <small className="hint-legend">
-            Les cases cerclées de bleu forment la technique ; la case dorée est celle à remplir.
-          </small>
-        )}
+        {hint.step?.pattern && <small className="hint-legend">{t("hint.legend")}</small>}
         <div className="hint-actions">
-          <button onClick={onReveal}>Révéler le chiffre</button>
+          <button onClick={onReveal}>{t("hint.reveal")}</button>
           <button className="hint-dismiss" onClick={onDismiss}>
-            J’ai compris
+            {t("hint.dismiss")}
           </button>
         </div>
       </div>
