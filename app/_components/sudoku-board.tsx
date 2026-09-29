@@ -6,6 +6,7 @@ import {
   hintUnitCells,
   isConfirmed,
   MAX_MISTAKES,
+  moveSelection,
   notesAfterPlacing,
   personalRecord,
   progressPercent,
@@ -13,6 +14,7 @@ import {
   shareText,
   stepBack,
   toggleNote,
+  verdictAnnouncement,
   type HistoryStep,
   type Notes,
   type Verdicts,
@@ -186,8 +188,26 @@ export function SudokuBoard({
     setHintsUsed(Number.isInteger(savedHints) ? Math.max(0, Math.min(1, savedHints)) : 0);
     setMistakesLoaded(true);
   }, [storageKey]);
+  // What a screen reader is told as the game goes: a new id makes it read even a repeated line.
+  const [announcement, setAnnouncement] = useState({ id: 0, text: "" });
+  const announce = (text: string) => setAnnouncement((a) => ({ id: a.id + 1, text }));
+  // Bumped by a keyboard move: the grid then gives the selected cell the focus.
+  const [focusToken, setFocusToken] = useState(0);
+  const mistakesRef = useRef(mistakes);
+  useEffect(() => {
+    mistakesRef.current = mistakes;
+  }, [mistakes]);
+  const moveTo = (key: string) => {
+    if (!active || mistakes >= MAX_MISTAKES) return false;
+    const next = moveSelection(selected, key, geometry.size);
+    if (next === null) return false;
+    setSelected(next);
+    setFocusToken((t) => t + 1);
+    return true;
+  };
   const finish = (grid: number[]) => {
     setDone(true);
+    announce(`Victoire ! Grille terminée en ${formatClock(seconds)}.`);
     if (soloExperience) {
       setExperience("saving");
       void Promise.resolve()
@@ -223,6 +243,15 @@ export function SudokuBoard({
           current[entry.index] = entry.number;
           updateCells(current);
         }
+        announce(
+          verdictAnnouncement({
+            correct: true,
+            number: entry.number,
+            index: entry.index,
+            size: geometry.size,
+            mistakes: mistakesRef.current,
+          }),
+        );
         const correctCells = current.filter((_, i) => isCorrect(current, i)).length;
         onProgress?.(correctCells, current);
         if (correctCells === cellCount(geometry)) finish(current);
@@ -238,11 +267,22 @@ export function SudokuBoard({
       }
       if (settings.vibrate) navigator.vibrate?.(180);
       // Several checks can be in flight and answer out of order: never let the count go back.
-      setMistakes((previous) => {
-        const count = Math.min(3, Math.max(previous, verdict.mistakes ?? previous + 1));
-        if (storageKey) window.localStorage.setItem(storageKey, String(count));
-        return count;
-      });
+      const count = Math.min(
+        3,
+        Math.max(mistakesRef.current, verdict.mistakes ?? mistakesRef.current + 1),
+      );
+      mistakesRef.current = count;
+      if (storageKey) window.localStorage.setItem(storageKey, String(count));
+      setMistakes(count);
+      announce(
+        verdictAnnouncement({
+          correct: false,
+          number: entry.number,
+          index: entry.index,
+          size: geometry.size,
+          mistakes: count,
+        }),
+      );
     } catch {
       setFailedEntries((list) => [...list, entry]);
     }
@@ -353,10 +393,13 @@ export function SudokuBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cells, cellNotes, seconds, mistakes, hintsUsed, verdicts, failedEntries, done]);
   useBoardShortcuts({
+    move: moveTo,
     digit: (n) => input(n),
     erase,
     toggleNotes: () => {
-      if (!competitive) setNoteMode((v) => !v);
+      if (competitive) return;
+      announce(noteMode ? "Mode notes désactivé." : "Mode notes activé.");
+      setNoteMode((v) => !v);
     },
     undo,
     redo,
@@ -449,6 +492,7 @@ export function SudokuBoard({
       )}
       <SudokuGrid
         geometry={geometry}
+        focusToken={focusToken}
         cells={cells}
         puzzle={puzzle}
         notes={cellNotes}
@@ -523,6 +567,9 @@ export function SudokuBoard({
           onNewGame={onNewGame}
         />
       )}
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        <span key={announcement.id}>{announcement.text}</span>
+      </div>
       {confirmingNewGame && (
         <ConfirmDialog
           title="Abandonner cette grille ?"
