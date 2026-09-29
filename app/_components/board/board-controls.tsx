@@ -105,7 +105,19 @@ export function HintPanel({ hint, onReveal, onDismiss }: HintPanelProps) {
       <Lightbulb />
       <div>
         <b>{text.title}</b>
+        {text.techniques.length > 0 && (
+          <ul className="hint-techniques" aria-label="Techniques à utiliser">
+            {text.techniques.map((name) => (
+              <li key={name}>{name}</li>
+            ))}
+          </ul>
+        )}
         <p>{text.text}</p>
+        {hint.step?.pattern && (
+          <small className="hint-legend">
+            Les cases cerclées de bleu forment la technique ; la case dorée est celle à remplir.
+          </small>
+        )}
         <div className="hint-actions">
           <button onClick={onReveal}>Révéler le chiffre</button>
           <button className="hint-dismiss" onClick={onDismiss}>
