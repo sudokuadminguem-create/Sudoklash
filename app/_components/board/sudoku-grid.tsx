@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { digitsFor, type Notes } from "@/app/lib/board-logic";
+import { useI18n } from "@/app/lib/i18n";
+import { levelName } from "@/app/lib/i18n-core";
 import { CLASSIC, diagonalCells, type Geometry } from "@/lib/variants";
 
 type SudokuGridProps = {
@@ -57,6 +59,7 @@ function cageLayout(geometry: Geometry) {
 /** The grid: givens, entered digits, notes and the state of each cell. */
 export function SudokuGrid(props: SudokuGridProps) {
   const { cells, puzzle, notes, selected, selectedValue } = props;
+  const { t } = useI18n();
   const geometry = props.geometry ?? CLASSIC;
   const { size, boxRows } = geometry;
   const cages = useMemo(() => cageLayout(geometry), [geometry]);
@@ -81,7 +84,7 @@ export function SudokuGrid(props: SudokuGridProps) {
       role="grid"
       aria-rowcount={size}
       aria-colcount={size}
-      aria-label={`Grille de Sudoku ${size} par ${size}, niveau ${props.difficulty}`}
+      aria-label={t("board.grid", { size, level: levelName(t, props.difficulty) })}
     >
       {Array.from({ length: size }, (_, row) => (
         <div
@@ -111,7 +114,18 @@ export function SudokuGrid(props: SudokuGridProps) {
                 aria-selected={selected === i}
                 aria-readonly={!!puzzle[i] || locked}
                 aria-invalid={wrong || undefined}
-                aria-label={`Case ligne ${row + 1}, colonne ${col + 1}${puzzle[i] ? ", donnée" : ""}${v ? `, chiffre ${v}${locked ? ", validé et verrouillé" : ""}` : wrong ? ", erreur, case vide" : `, vide${notes[i]?.length ? `, notes ${notes[i].join(", ")}` : ""}`}${diagonals.has(i) ? ", sur une diagonale" : ""}${cage ? `, cage de somme ${cage.total}` : ""}`}
+                aria-label={
+                  t("cell.base", { row: row + 1, col: col + 1 }) +
+                  (puzzle[i] ? t("cell.given") : "") +
+                  (v
+                    ? t("cell.value", { n: v }) + (locked ? t("cell.locked") : "")
+                    : wrong
+                      ? t("cell.wrongEmpty")
+                      : t("cell.empty") +
+                        (notes[i]?.length ? t("cell.notes", { list: notes[i].join(", ") }) : "")) +
+                  (diagonals.has(i) ? t("cell.diagonal") : "") +
+                  (cage ? t("cell.cage", { total: cage.total }) : "")
+                }
                 disabled={props.lost}
                 onClick={() => props.onSelect(i)}
                 className={`${puzzle[i] ? "given" : "entered"} ${selected === i ? "sel" : ""} ${props.isRelated(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${locked ? "confirmed" : ""} ${failed ? "unverified" : ""} ${diagonals.has(i) ? "diag" : ""} ${cage ? `cage ${[...cage.edges].map((e) => `cage-${e}`).join(" ")}` : ""} ${props.hintTarget === i ? "hint-target" : props.patternCells.has(i) ? "hint-pattern" : props.hintCells.has(i) ? "hint-unit" : ""}`}

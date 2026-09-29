@@ -1,5 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/app/lib/i18n";
+import { levelName } from "@/app/lib/i18n-core";
 import { authHeaders } from "@/app/lib/auth-headers";
 import { localJudge, type Judge } from "@/app/lib/judge";
 import {
@@ -57,6 +59,7 @@ export function SoloGame({
     [error, setError] = useState(false),
     [expired, setExpired] = useState(false),
     [offline, setOffline] = useState(false);
+  const { t } = useI18n();
   const userId = account.user?.id ?? null;
   const signedIn = !!userId;
   // A variant has no logical hints to give: its judge answers digits only.
@@ -135,32 +138,32 @@ export function SoloGame({
   if (expired)
     return (
       <div className="panel weekly-state error">
-        <p>Cette partie n’est plus disponible : une autre grille a été lancée depuis.</p>
+        <p>{t("solo.expired")}</p>
         <button className="primary" onClick={() => void start()}>
-          Nouvelle grille
+          {t("solo.newGrid")}
         </button>
       </div>
     );
   if (error)
     return (
       <div className="panel weekly-state error">
-        <p>Impossible de charger une grille. Vérifiez votre connexion.</p>
+        <p>{t("solo.loadError")}</p>
         <button className="primary" onClick={() => void start()}>
-          Réessayer
+          {t("solo.retry")}
         </button>
       </div>
     );
   if (!game || !judge)
     return (
       <div className="game-card" role="status">
-        Préparation d’une nouvelle grille {difficulty}…
+        {t("solo.preparing", { level: levelName(t, difficulty) })}
       </div>
     );
   return (
     <>
       {offline && (
         <p className="offline-note" role="status">
-          Hors ligne : partie d’entraînement, sans XP ni classement.
+          {t("solo.offlineNote")}
         </p>
       )}
       <SudokuBoard
@@ -170,7 +173,7 @@ export function SoloGame({
         difficulty={difficulty}
         geometry={geometry}
         hintsAllowed={variant ? 0 : undefined}
-        title="Entraînement solo"
+        title={t("solo.title")}
         soloExperience
         onConnect={openAuth}
         resume={board}

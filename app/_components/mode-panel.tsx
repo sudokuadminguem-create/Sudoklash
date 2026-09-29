@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { History } from "lucide-react";
+import { useI18n } from "@/app/lib/i18n";
+import { levelName, type MessageKey } from "@/app/lib/i18n-core";
 import { formatClock } from "@/app/lib/format-time";
 import { useSettings } from "@/app/lib/settings";
 import { loadSoloSave, saveProgress, type SoloLevel, type SoloSave } from "@/app/lib/solo-save";
@@ -34,9 +36,10 @@ export function ModePanel({
     [saved, setSaved] = useState<SoloSave | null>(null),
     [replacing, setReplacing] = useState<SoloLevel | null>(null);
   const { settings } = useSettings();
+  const { t } = useI18n();
   const pick = (d: SoloLevel) => {
     setChosen(d);
-    notify(`Grille ${d} chargée`);
+    notify(t("solo.loaded", { level: levelName(t, d) }));
   };
   const userId = account.user?.id ?? null;
   // Look for a game to resume each time the difficulty picker shows up.
@@ -54,10 +57,10 @@ export function ModePanel({
               setResuming(undefined);
             }}
           >
-            ← Changer de difficulté
+            {t("solo.change")}
           </button>
-          <b>{chosen}</b>
-          <span>Grille valide · solution unique</span>
+          <b>{levelName(t, chosen)}</b>
+          <span>{t("solo.valid")}</span>
         </div>
         <SoloGame
           key={chosen}
@@ -73,12 +76,9 @@ export function ModePanel({
         <NearChallenges account={account} cosmetics={cosmetics} />
         <div className="panel">
           <div className="panel-head">
-            <span className="eyebrow">ENTRAÎNEMENT</span>
-            <h2>Choisis ta difficulté</h2>
-            <p className="panel-copy">
-              Chaque niveau utilise une grille 9×9 validée et une difficulté fondée sur les
-              techniques nécessaires pour la résoudre.
-            </p>
+            <span className="eyebrow">{t("solo.trainingEyebrow")}</span>
+            <h2>{t("solo.pickTitle")}</h2>
+            <p className="panel-copy">{t("solo.pickCopy")}</p>
           </div>
           {saved && (
             <button
@@ -90,10 +90,13 @@ export function ModePanel({
             >
               <History />
               <span>
-                <b>Reprendre ma partie</b>
+                <b>{t("solo.resume")}</b>
                 <small>
-                  {saved.difficulty} · {formatClock(saved.board.seconds)} · {saveProgress(saved)}%
-                  complétée
+                  {t("solo.resumeInfo", {
+                    level: levelName(t, saved.difficulty),
+                    time: formatClock(saved.board.seconds),
+                    percent: saveProgress(saved),
+                  })}
                 </small>
               </span>
             </button>
@@ -106,26 +109,15 @@ export function ModePanel({
                 key={d}
               >
                 <span>{["🌱", "●", "◆", "▲", "⬢", "♛"][i]}</span>
-                <b>{d}</b>
-                <small>
-                  {
-                    [
-                      "Cases à chiffre unique",
-                      "Chiffre unique dans une ligne ou un bloc",
-                      "Candidats bloqués",
-                      "Paires",
-                      "Triples et X-Wing",
-                      "Techniques au-delà de l’Expert",
-                    ][i]
-                  }
-                </small>
+                <b>{levelName(t, d)}</b>
+                <small>{t(`levelHint.${d}` as MessageKey)}</small>
                 <span className="difficulty-xp">+{soloXpFor(d)} XP</span>
               </button>
             ))}
           </div>
           <div className="panel-head variant-head">
-            <span className="eyebrow">VARIANTES</span>
-            <h3>Change de règles</h3>
+            <span className="eyebrow">{t("solo.variantsEyebrow")}</span>
+            <h3>{t("solo.variantsTitle")}</h3>
           </div>
           <div className="difficulty-grid variant-grid">
             {variantIds.map((id) => (
@@ -138,18 +130,21 @@ export function ModePanel({
                 }
               >
                 <span>{{ mini: "▦", diagonal: "╳", killer: "Σ" }[id]}</span>
-                <b>{variantInfo[id].label}</b>
-                <small>{variantInfo[id].tagline}</small>
+                <b>{levelName(t, variantInfo[id].label)}</b>
+                <small>{t(`variant.${id}` as MessageKey)}</small>
                 <span className="difficulty-xp">+{variantInfo[id].xp} XP</span>
               </button>
             ))}
           </div>
           {replacing && saved && (
             <ConfirmDialog
-              title="Remplacer ta partie en cours ?"
-              message={`Ta partie ${saved.difficulty} commencée sera perdue si tu lances une nouvelle grille ${replacing}.`}
-              confirmLabel="Nouvelle grille"
-              cancelLabel="Garder ma partie"
+              title={t("solo.replaceTitle")}
+              message={t("solo.replaceMessage", {
+                current: levelName(t, saved.difficulty),
+                next: levelName(t, replacing),
+              })}
+              confirmLabel={t("solo.replaceConfirm")}
+              cancelLabel={t("solo.replaceCancel")}
               onCancel={() => setReplacing(null)}
               onConfirm={() => {
                 setReplacing(null);

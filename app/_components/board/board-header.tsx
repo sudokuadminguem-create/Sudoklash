@@ -1,5 +1,6 @@
 import { Flame, Heart, Timer } from "lucide-react";
 import { MAX_MISTAKES } from "@/app/lib/board-logic";
+import { useI18n } from "@/app/lib/i18n";
 
 type BoardHeaderProps = {
   eyebrow: string;
@@ -11,6 +12,7 @@ type BoardHeaderProps = {
 
 /** Title of the game with the lives left and the clock. */
 export function BoardHeader({ eyebrow, title, mistakes, time, showTimer }: BoardHeaderProps) {
+  const { t } = useI18n();
   const lives = MAX_MISTAKES - mistakes;
   return (
     <div className="game-top">
@@ -22,7 +24,7 @@ export function BoardHeader({ eyebrow, title, mistakes, time, showTimer }: Board
         <div
           className="lives"
           role="status"
-          aria-label={`${Math.max(0, lives)} ${lives === 1 ? "vie restante" : "vies restantes"} sur 3`}
+          aria-label={t("header.lives", { count: Math.max(0, lives) })}
         >
           {[0, 1, 2].map((i) => (
             <Heart
@@ -47,19 +49,17 @@ type ReadyGateProps = { label: string; busy: boolean; onReady: () => void };
 
 /** Hides the grid of a timed challenge until the player says they are ready. */
 export function ReadyGate({ label, busy, onReady }: ReadyGateProps) {
+  const { t } = useI18n();
   return (
     <div className="ready-gate">
       <Flame />
       <span>{label}</span>
-      <h3>À vous de jouer</h3>
-      <p>
-        La grille restera masquée jusqu’au départ. Le chronomètre démarre dès que vous appuyez sur «
-        Prêt ».
-      </p>
+      <h3>{t("gate.title")}</h3>
+      <p>{t("gate.copy")}</p>
       <button onClick={onReady} disabled={busy}>
-        {busy ? "Démarrage…" : "Je suis prêt"}
+        {busy ? t("gate.busy") : t("gate.ready")}
       </button>
-      <small>Une seule tentative jusqu’à la prochaine grille</small>
+      <small>{t("gate.note")}</small>
     </div>
   );
 }

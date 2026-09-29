@@ -1,108 +1,73 @@
 "use client";
+import { useI18n } from "@/app/lib/i18n";
 import { useInstall } from "@/app/lib/pwa";
+import { locales, type MessageKey } from "@/app/lib/i18n-core";
 import {
   defaultSettings,
   fontScales,
+  oneHandedModes,
   useSettings,
-  type FontScale,
-  type OneHanded,
   type Settings,
 } from "@/app/lib/settings";
 
 /** The settings that are a simple on/off switch. */
 type Switch = Exclude<keyof Settings, "fontScale" | "oneHanded">;
 
-const hands: [OneHanded, string][] = [
-  ["off", "Désactivé"],
-  ["right", "Main droite"],
-  ["left", "Main gauche"],
-];
-
-const fontScaleLabels: Record<FontScale, string> = {
-  normal: "Normale",
-  large: "Grande",
-  xlarge: "Très grande",
-};
-
-const groups: { title: string; items: [Switch, string, string][] }[] = [
+const groups: { title: MessageKey; items: Switch[] }[] = [
   {
-    title: "Grille",
-    items: [
-      [
-        "highlightUnits",
-        "Surligner ligne, colonne et bloc",
-        "Met en évidence les cases liées à la case sélectionnée.",
-      ],
-      [
-        "highlightSame",
-        "Surligner les chiffres identiques",
-        "Fait ressortir toutes les cases qui contiennent le chiffre sélectionné.",
-      ],
-      [
-        "autoRemoveNotes",
-        "Nettoyer les notes automatiquement",
-        "Un chiffre posé disparaît des notes de sa ligne, de sa colonne et de son bloc.",
-      ],
-      ["largeDigits", "Grands chiffres", "Agrandit les chiffres de la grille et des notes."],
-    ],
+    title: "settings.group.grid",
+    items: ["highlightUnits", "highlightSame", "autoRemoveNotes", "largeDigits"],
   },
+  { title: "settings.group.display", items: ["highContrast", "colorblind"] },
   {
-    title: "Affichage",
-    items: [
-      [
-        "highContrast",
-        "Contraste élevé",
-        "Fond noir, texte blanc et bordures épaisses. Activé de lui-même si votre système le demande.",
-      ],
-      [
-        "colorblind",
-        "Mode daltonien",
-        "Les erreurs sont marquées par une croix et des rayures, pas seulement par la couleur rouge.",
-      ],
-    ],
-  },
-  {
-    title: "Partie",
-    items: [
-      ["showTimer", "Afficher le chronomètre", "Le temps reste mesuré même quand il est masqué."],
-      [
-        "confirmNewGrid",
-        "Confirmer avant une nouvelle grille",
-        "Demande une confirmation avant d’abandonner une grille commencée.",
-      ],
-      [
-        "vibrate",
-        "Vibrer en cas d’erreur",
-        "Sur les appareils qui le permettent, surtout les téléphones.",
-      ],
-      [
-        "hapticKeys",
-        "Retour haptique du clavier",
-        "Un léger tic à chaque chiffre posé. Non disponible sur iPhone.",
-      ],
-    ],
+    title: "settings.group.game",
+    items: ["showTimer", "confirmNewGrid", "vibrate", "hapticKeys"],
   },
 ];
 
 /** Player preferences, saved on this device. */
 export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
   const { settings, update } = useSettings();
+  const { t, locale, setLocale } = useI18n();
   const install = useInstall();
   return (
     <div className="panel settings-panel">
       <div className="panel-head">
-        <span className="eyebrow">PRÉFÉRENCES</span>
-        <h2>Paramètres de jeu</h2>
-        <p className="panel-copy">Ces réglages sont enregistrés sur cet appareil.</p>
+        <span className="eyebrow">{t("settings.eyebrow")}</span>
+        <h2>{t("settings.title")}</h2>
+        <p className="panel-copy">{t("settings.copy")}</p>
       </div>
+      <section className="settings-group">
+        <h3>{t("language.title")}</h3>
+        <div className="setting-row" role="radiogroup" aria-labelledby="language-label">
+          <span>
+            <b id="language-label">{t("language.label")}</b>
+            <small>{t("language.help")}</small>
+          </span>
+          <span className="language-choices">
+            {locales.map((code) => (
+              <button
+                key={code}
+                role="radio"
+                aria-checked={locale === code}
+                lang={code}
+                className={locale === code ? "active" : ""}
+                onClick={() => setLocale(code)}
+              >
+                {t(`language.${code}`)}
+              </button>
+            ))}
+          </span>
+        </div>
+      </section>
       {groups.map((group) => (
         <section key={group.title} className="settings-group">
-          <h3>{group.title}</h3>
-          {group.items.map(([key, label, help]) => (
+          <h3>{t(group.title)}</h3>
+          {group.items.map((key) => (
             <label key={key} className="setting-row">
               <span>
-                <b>{label}</b>
-                <small>{help}</small>
+                <b>{t(`settings.${key}` as MessageKey)}</b>
+                <small>{t(`settings.${key}.help` as MessageKey)}</small>
               </span>
               <input
                 type="checkbox"
@@ -116,14 +81,14 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
         </section>
       ))}
       <section className="settings-group">
-        <h3>Mobile</h3>
+        <h3>{t("settings.group.mobile")}</h3>
         <div className="setting-row one-handed" role="radiogroup" aria-labelledby="one-handed">
           <span>
-            <b id="one-handed">Mode une main</b>
-            <small>Range le clavier en bas de l’écran, à portée du pouce.</small>
+            <b id="one-handed">{t("oneHanded.label")}</b>
+            <small>{t("oneHanded.help")}</small>
           </span>
           <span className="hand-choices">
-            {hands.map(([value, label]) => (
+            {oneHandedModes.map((value) => (
               <button
                 key={value}
                 role="radio"
@@ -131,20 +96,20 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
                 className={settings.oneHanded === value ? "active" : ""}
                 onClick={() => update({ oneHanded: value })}
               >
-                {label}
+                {t(`oneHanded.${value}`)}
               </button>
             ))}
           </span>
         </div>
       </section>
       <section className="settings-group">
-        <h3>Taille du texte</h3>
+        <h3>{t("settings.group.textSize")}</h3>
         <div className="setting-row font-scale-row">
           <span>
-            <b>Taille de l’affichage</b>
-            <small>Agrandit tout ce qui est à l’écran, comme un zoom.</small>
+            <b>{t("settings.fontScale")}</b>
+            <small>{t("settings.fontScale.help")}</small>
           </span>
-          <div className="font-scale" role="radiogroup" aria-label="Taille du texte">
+          <div className="font-scale" role="radiogroup" aria-label={t("settings.group.textSize")}>
             {fontScales.map((scale) => (
               <button
                 key={scale}
@@ -153,7 +118,7 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
                 className={settings.fontScale === scale ? "active" : ""}
                 onClick={() => update({ fontScale: scale })}
               >
-                {fontScaleLabels[scale]}
+                {t(`fontScale.${scale}`)}
               </button>
             ))}
           </div>
@@ -161,16 +126,14 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
       </section>
       {install && (
         <section className="settings-group">
-          <h3>Application</h3>
+          <h3>{t("install.title")}</h3>
           <div className="setting-row">
             <span>
-              <b>Installer Sudoklash</b>
-              <small>
-                Ajoute l’icône à l’écran d’accueil ; le solo fonctionne aussi hors ligne.
-              </small>
+              <b>{t("install.label")}</b>
+              <small>{t("install.help")}</small>
             </span>
             <button className="primary" onClick={() => void install()}>
-              Installer
+              {t("install.button")}
             </button>
           </div>
         </section>
@@ -179,10 +142,10 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
         className="settings-reset"
         onClick={() => {
           update(defaultSettings);
-          notify("Paramètres par défaut rétablis");
+          notify(t("shell.settingsReset"));
         }}
       >
-        Rétablir les réglages par défaut
+        {t("settings.reset")}
       </button>
     </div>
   );
