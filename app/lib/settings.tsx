@@ -1,67 +1,54 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  applyDisplay,
+  defaultSettings,
+  parseSettings,
+  preferredSettings,
+  STORAGE_KEY,
+  type Settings,
+} from "./settings-model";
 
-/** Player preferences, kept on this device. */
-export type Settings = {
-  /** Shade the row, column and box of the selected cell. */
-  highlightUnits: boolean;
-  /** Brighten every cell holding the selected digit. */
-  highlightSame: boolean;
-  /** Drop a placed digit from the notes of its row, column and box. */
-  autoRemoveNotes: boolean;
-  /** Ask before a new grid throws away the one in progress. */
-  confirmNewGrid: boolean;
-  showTimer: boolean;
-  /** Vibrate on a wrong digit, where the device can. */
-  vibrate: boolean;
-  /** A short tick under the finger on every keypad press. */
-  hapticKeys: boolean;
-  largeDigits: boolean;
-  /** Dock the keypad at the bottom of the screen, under the thumb of this hand. */
-  oneHanded: OneHanded;
-};
-
-export const oneHandedModes = ["off", "right", "left"] as const;
-export type OneHanded = (typeof oneHandedModes)[number];
-
-export const defaultSettings: Settings = {
-  highlightUnits: true,
-  highlightSame: true,
-  autoRemoveNotes: true,
-  confirmNewGrid: true,
-  showTimer: true,
-  vibrate: false,
-  hapticKeys: false,
-  largeDigits: false,
-  oneHanded: "off",
-};
-
-const STORAGE_KEY = "sudoklash:settings";
+export {
+  applyDisplay,
+  defaultSettings,
+  displayScript,
+  fontScales,
+  oneHandedModes,
+  parseSettings,
+  preferredSettings,
+  type FontScale,
+  type OneHanded,
+  type Settings,
+} from "./settings-model";
 
 type SettingsContext = { settings: Settings; update: (change: Partial<Settings>) => void };
 const Context = createContext<SettingsContext>({ settings: defaultSettings, update: () => {} });
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState(defaultSettings);
+  // Until the saved settings are read, the page keeps what the script in <head> gave it.
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
+    let next: Settings = defaultSettings;
     try {
-      const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}") as object;
-      // Keep only known keys with the right type, so an old or tampered value is harmless.
-      const known = Object.fromEntries(
-        Object.entries(saved).filter(
-          ([key, value]) =>
-            key in defaultSettings &&
-            (key === "oneHanded"
-              ? oneHandedModes.includes(value as OneHanded)
-              : typeof value === "boolean"),
-        ),
-      );
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSettings({ ...defaultSettings, ...known });
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      next = stored
+        ? { ...defaultSettings, ...parseSettings(JSON.parse(stored)) }
+        : {
+            ...defaultSettings,
+            ...preferredSettings(window.matchMedia?.("(prefers-contrast: more)").matches ?? false),
+          };
     } catch {
       // Unreadable storage: defaults it is.
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSettings(next);
+    setLoaded(true);
   }, []);
+  useEffect(() => {
+    if (loaded) applyDisplay(settings);
+  }, [loaded, settings]);
   const update = useCallback((change: Partial<Settings>) => {
     setSettings((current) => {
       const next = { ...current, ...change };

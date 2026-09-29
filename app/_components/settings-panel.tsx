@@ -1,15 +1,15 @@
 "use client";
-import { defaultSettings, useSettings, type OneHanded } from "@/app/lib/settings";
+import {
+  defaultSettings,
+  fontScales,
+  useSettings,
+  type FontScale,
+  type OneHanded,
+  type Settings,
+} from "@/app/lib/settings";
 
-type ToggleKey =
-  | "highlightUnits"
-  | "highlightSame"
-  | "autoRemoveNotes"
-  | "largeDigits"
-  | "showTimer"
-  | "confirmNewGrid"
-  | "vibrate"
-  | "hapticKeys";
+/** The settings that are a simple on/off switch. */
+type Switch = Exclude<keyof Settings, "fontScale" | "oneHanded">;
 
 const hands: [OneHanded, string][] = [
   ["off", "Désactivé"],
@@ -17,7 +17,13 @@ const hands: [OneHanded, string][] = [
   ["left", "Main gauche"],
 ];
 
-const groups: { title: string; items: [ToggleKey, string, string][] }[] = [
+const fontScaleLabels: Record<FontScale, string> = {
+  normal: "Normale",
+  large: "Grande",
+  xlarge: "Très grande",
+};
+
+const groups: { title: string; items: [Switch, string, string][] }[] = [
   {
     title: "Grille",
     items: [
@@ -37,6 +43,21 @@ const groups: { title: string; items: [ToggleKey, string, string][] }[] = [
         "Un chiffre posé disparaît des notes de sa ligne, de sa colonne et de son bloc.",
       ],
       ["largeDigits", "Grands chiffres", "Agrandit les chiffres de la grille et des notes."],
+    ],
+  },
+  {
+    title: "Affichage",
+    items: [
+      [
+        "highContrast",
+        "Contraste élevé",
+        "Fond noir, texte blanc et bordures épaisses. Activé de lui-même si votre système le demande.",
+      ],
+      [
+        "colorblind",
+        "Mode daltonien",
+        "Les erreurs sont marquées par une croix et des rayures, pas seulement par la couleur rouge.",
+      ],
     ],
   },
   {
@@ -112,6 +133,28 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
               </button>
             ))}
           </span>
+        </div>
+      </section>
+      <section className="settings-group">
+        <h3>Taille du texte</h3>
+        <div className="setting-row font-scale-row">
+          <span>
+            <b>Taille de l’affichage</b>
+            <small>Agrandit tout ce qui est à l’écran, comme un zoom.</small>
+          </span>
+          <div className="font-scale" role="radiogroup" aria-label="Taille du texte">
+            {fontScales.map((scale) => (
+              <button
+                key={scale}
+                role="radio"
+                aria-checked={settings.fontScale === scale}
+                className={settings.fontScale === scale ? "active" : ""}
+                onClick={() => update({ fontScale: scale })}
+              >
+                {fontScaleLabels[scale]}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
       <button
