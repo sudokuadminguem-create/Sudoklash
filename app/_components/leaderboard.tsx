@@ -20,7 +20,7 @@ export function Leaderboard() {
     [error, setError] = useState(false);
   useEffect(() => {
     let live = true;
-    fetch("/api/ranked?leaderboard=1", { cache: "no-store" })
+    fetch("/api/players/leaderboard", { cache: "no-store" })
       .then((r) => {
         if (!r.ok) throw new Error("classement");
         return r.json() as Promise<{ players: Row[] }>;
@@ -58,7 +58,7 @@ export function Leaderboard() {
             {players.slice(0, 3).map((r, i) => (
               <div className={`pod p${i + 1}`} key={r.position}>
                 <div className="pod-avatar">
-                  <PlayerAvatar avatarId={r.avatarId} image={r.image} frameId={r.frameId} />
+                  <PlayerAvatar avatarId={r.avatarId} frameId={r.frameId} image={r.image} />
                   {i === 0 && <Crown className="pod-crown" aria-hidden="true" />}
                 </div>
                 <b>{r.username}</b>
@@ -79,7 +79,12 @@ export function Leaderboard() {
               <div className="tr" key={r.position}>
                 <b>#{r.position}</b>
                 <span>
-                  <PlayerAvatar avatarId={r.avatarId} image={r.image} frameId={r.frameId} size="small" />
+                  <PlayerAvatar
+                    avatarId={r.avatarId}
+                    frameId={r.frameId}
+                    image={r.image}
+                    size="small"
+                  />
                   {r.username}
                 </span>
                 <span>{r.rank.label}</span>
@@ -95,4 +100,3 @@ export function Leaderboard() {
     </div>
   );
 }
-

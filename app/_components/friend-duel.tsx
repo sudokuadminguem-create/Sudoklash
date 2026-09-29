@@ -2,11 +2,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Handshake, Swords, Trophy, X } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
+import { usePlayerAppearances } from "@/app/lib/use-player-appearances";
 import { formatClock } from "@/app/lib/format-time";
 import type { Judge } from "@/app/lib/judge";
 import type { Account } from "@/hooks/use-account";
 import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
 import { LockedPanel } from "./locked-panel";
+import { PlayerAvatar } from "./player-cosmetics";
 import { SudokuBoard } from "./sudoku-board";
 import "../friend-duel.css";
 
@@ -115,6 +117,20 @@ export function FriendDuel({
     [error, setError] = useState("");
   const userId = account.user?.id;
   const playing = state?.duel?.status === "playing";
+  const appearances = usePlayerAppearances([
+    ...friends.map((friend) => friend.id),
+    ...(state?.incoming.map((invite) => invite.from.id) ?? []),
+    state?.outgoing?.to.id ?? "",
+    state?.duel?.opponent.id ?? "",
+    picked?.id ?? "",
+  ]);
+  const avatar = (id: string) => (
+    <PlayerAvatar
+      avatarId={appearances[id]?.avatarId}
+      frameId={appearances[id]?.frameId}
+      image={appearances[id]?.image}
+    />
+  );
 
   const refresh = useCallback(async () => {
     try {
@@ -199,6 +215,7 @@ export function FriendDuel({
         <p>
           Contre {duel.opponent.username} · Grille {duel.difficulty} · {reasonText(duel, won)}
         </p>
+        {avatar(duel.opponent.id)}
         <div className="ranked-summary">
           <div>
             <span>Durée</span>
@@ -267,6 +284,7 @@ export function FriendDuel({
       {state?.incoming.map((invite) => (
         <div className="duel-card incoming" key={invite.id} role="status">
           <Swords />
+          {avatar(invite.from.id)}
           <div>
             <b>{invite.from.username} te défie !</b>
             <small>Grille {invite.difficulty}</small>
@@ -291,6 +309,7 @@ export function FriendDuel({
       {state?.outgoing ? (
         <div className="duel-card waiting" role="status">
           <span className="ranked-spinner" />
+          {avatar(state.outgoing.to.id)}
           <div>
             <b>En attente de {state.outgoing.to.username}</b>
             <small>Grille {state.outgoing.difficulty} · le défi expire dans 10 minutes</small>
@@ -305,6 +324,7 @@ export function FriendDuel({
         </div>
       ) : picked ? (
         <div className="duel-card composing">
+          {avatar(picked.id)}
           <div>
             <b>Défier {picked.username}</b>
             <div className="duel-levels" role="radiogroup" aria-label="Difficulté du duel">
@@ -342,6 +362,7 @@ export function FriendDuel({
           ) : (
             friends.map((friend) => (
               <div className="duel-friend" key={friend.id}>
+                {avatar(friend.id)}
                 <b>{friend.username}</b>
                 <button
                   disabled={busy || (state?.incoming.length ?? 0) > 0}
