@@ -17,4 +17,15 @@ describe("sudoku solver", () => {
     expect(hasUniqueSolution(puzzle)).toBe(true);
     expect(hasUniqueSolution("0".repeat(81))).toBe(false);
   });
+  it("rejects grids whose given digits clash", () => {
+    expect(solvePuzzle("1".repeat(81))).toBeNull();
+    expect(hasUniqueSolution("1".repeat(81))).toBe(false);
+    // Two 5s in the first row of an otherwise valid puzzle.
+    const clash = "55" + puzzle.slice(2);
+    expect(solvePuzzle(clash)).toBeNull();
+    expect(hasUniqueSolution(clash)).toBe(false);
+    // A completed grid is accepted only when it is a valid solution.
+    expect(solvePuzzle(solution)?.join("")).toBe(solution);
+    expect(solvePuzzle("2" + solution.slice(1))).toBeNull();
+  });
 });
