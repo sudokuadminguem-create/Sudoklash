@@ -66,6 +66,15 @@ export function stepBack(last: HistoryStep, verdicts: Verdicts, current: readonl
   return { cells, notes };
 }
 
+/** Most steps kept for undo: a whole game is a few hundred moves. */
+export const MAX_HISTORY = 500;
+
+/** The history with one more step, oldest steps dropped past the limit. */
+export const pushHistory = (history: HistoryStep[], step: HistoryStep) => [
+  ...history.slice(-(MAX_HISTORY - 1)),
+  step,
+];
+
 /** Digits confirmed in all nine places: there is nowhere left to put them. */
 export function completedDigitsOf(
   cells: readonly number[],

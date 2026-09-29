@@ -9,6 +9,7 @@ import {
   notesAfterPlacing,
   personalRecord,
   progressPercent,
+  pushHistory,
   sameUnit,
   shareText,
   stepBack,
@@ -104,6 +105,8 @@ export function SudokuBoard({
     [experience, setExperience] = useState<ExperienceState>(null),
     [experienceTotal, setExperienceTotal] = useState<number | null>(null),
     [history, setHistory] = useState<HistoryStep[]>([]),
+    // Steps undone and not yet replaced by a new move: what redo brings back.
+    [future, setFuture] = useState<HistoryStep[]>([]),
     [mistakes, setMistakes] = useState(resume?.mistakes ?? initialMistakes),
     [hintsUsed, setHintsUsed] = useState(resume?.hintsUsed ?? 0),
     // Digits whose check could not reach the judge.
@@ -199,6 +202,9 @@ export function SudokuBoard({
       if (verdict.correct) {
         clearError(entry.index);
         recordVerdict(entry, true);
+        // Confirmed: the digit is no longer a candidate in its row, column and box.
+        if (settings.autoRemoveNotes)
+          setCellNotes((prev) => notesAfterPlacing(prev, entry.index, entry.number, true));
         // Other digits may have been placed since: count against the board as it is now.
         let current = cellsRef.current;
         if (current[entry.index] !== entry.number) {
@@ -251,7 +257,7 @@ export function SudokuBoard({
       cells[index] === n
     )
       return;
-    setHistory((h) => [...h.slice(-39), { cells: [...cells], notes: { ...cellNotes } }]);
+    remember();
     if (noteMode && !competitive && !forceValue) {
       setCellNotes((prev) => toggleNote(prev, index, n));
       return;
@@ -267,9 +273,15 @@ export function SudokuBoard({
       setVerdicts(next);
     }
     updateCells(c);
-    // The placed digit is no longer a candidate in its row, column and box.
-    setCellNotes((prev) => notesAfterPlacing(prev, index, n, settings.autoRemoveNotes));
+    // The digit's own cell has no notes left. Its peers lose the candidate only once the
+    // judge confirms the digit: a wrong one must not wipe out notes that are still right.
+    setCellNotes((prev) => notesAfterPlacing(prev, index, n, false));
     void submit({ index, number: n, id: crypto.randomUUID() }, c);
+  };
+  // A new move: keep the board as it was for undo, and forget what could have been redone.
+  const remember = () => {
+    setHistory((h) => pushHistory(h, { cells: [...cells], notes: { ...cellNotes } }));
+    setFuture([]);
   };
   const erase = () => {
     if (
@@ -279,7 +291,7 @@ export function SudokuBoard({
       mistakes >= 3
     )
       return;
-    setHistory((h) => [...h, { cells: [...cells], notes: { ...cellNotes } }]);
+    remember();
     const c = [...cells];
     c[selected] = 0;
     updateCells(c);
@@ -290,9 +302,21 @@ export function SudokuBoard({
     const last = history.at(-1);
     if (!last) return;
     const restored = stepBack(last, verdictsRef.current, cellsRef.current);
+    setFuture((f) => pushHistory(f, { cells: [...cellsRef.current], notes: { ...cellNotes } }));
     updateCells(restored.cells);
     setCellNotes(restored.notes);
     setHistory((h) => h.slice(0, -1));
+  };
+  const redo = () => {
+    if (mistakes >= 3) return;
+    const next = future.at(-1);
+    if (!next) return;
+    // Judged digits keep their verdict: redo cannot bring back a rejected one.
+    const restored = stepBack(next, verdictsRef.current, cellsRef.current);
+    setHistory((h) => pushHistory(h, { cells: [...cellsRef.current], notes: { ...cellNotes } }));
+    updateCells(restored.cells);
+    setCellNotes(restored.notes);
+    setFuture((f) => f.slice(0, -1));
   };
   // Digits restored from a save whose check never came back: ask again, with the same ids
   // so a mistake the server already counted is not counted twice.
@@ -323,6 +347,7 @@ export function SudokuBoard({
       if (!competitive) setNoteMode((v) => !v);
     },
     undo,
+    redo,
   });
   const filled = cells.filter(Boolean).length,
     givens = puzzle.filter(Boolean).length,
@@ -439,6 +464,7 @@ export function SudokuBoard({
         competitive={competitive}
         noteMode={noteMode}
         canUndo={history.length > 0}
+        canRedo={future.length > 0}
         hintsLeft={hintLimit - hintsUsed}
         hintDisabled={
           !active ||
@@ -454,6 +480,7 @@ export function SudokuBoard({
         onToggleNotes={() => setNoteMode(!noteMode)}
         onErase={erase}
         onUndo={undo}
+        onRedo={redo}
         onHint={() => void requestHint()}
         onAbandon={newGame}
       />
