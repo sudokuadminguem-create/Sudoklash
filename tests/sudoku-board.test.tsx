@@ -169,6 +169,9 @@ describe("sudoku board", () => {
     const digit = solution[sameRow];
     const other = (digit % 9) + 1;
     await noteKey();
+    const notesButton = container.querySelector<HTMLButtonElement>(".game-actions .notes-toggle")!;
+    expect(notesButton.className).toContain("active");
+    expect(notesButton.getAttribute("aria-pressed")).toBe("true");
     await play(annotated, digit);
     await play(annotated, other);
     await play(elsewhere, digit);
@@ -176,6 +179,7 @@ describe("sudoku board", () => {
     expect(cellButtons()[annotated].className).toContain("sel");
     expect(cellButtons()[annotated].getAttribute("aria-label")).toContain("notes");
     await noteKey();
+    expect(notesButton.getAttribute("aria-pressed")).toBe("false");
     await play(sameRow, digit);
     expect(notesOf(annotated)).toEqual([String(other)]);
     expect(notesOf(elsewhere)).toEqual([String(digit)]);

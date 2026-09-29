@@ -550,9 +550,10 @@ export function SudokuBoard({
       <div className="game-actions">
         <button
           aria-label="Activer ou désactiver les notes"
+          aria-pressed={noteMode}
           disabled={competitive || mistakes >= 3}
           onClick={() => setNoteMode(!noteMode)}
-          className={noteMode ? "active" : ""}
+          className={noteMode ? "notes-toggle active" : "notes-toggle"}
         >
           <Pencil />
           Notes <small>N</small>

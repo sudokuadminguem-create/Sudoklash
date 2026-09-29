@@ -82,6 +82,16 @@
   color: #ff5d78;
   stroke-width: 3;
 }
+.game-actions button.notes-toggle.active {
+  color: #fff2dc;
+  background: #70350d;
+  border-color: #ff9d3b;
+  box-shadow: 0 0 0 1px #ff9d3b66, 0 0 15px #ff8a2133;
+}
+.game-actions button.notes-toggle.active svg {
+  color: #ffb454;
+  stroke-width: 2.6;
+}
 .game-actions button.abandon-grid:hover,
 .game-actions button.abandon-grid:focus-visible {
   background: #5d1d32;
