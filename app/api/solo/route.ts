@@ -8,6 +8,7 @@ import {
   isEntryId,
   isGridOf,
   matchesSolution,
+  mistakeKey,
   MAX_MISTAKES,
 } from "@/lib/entry-validation";
 import { pickPuzzle } from "@/lib/puzzle-picker";
@@ -84,11 +85,12 @@ export async function POST(request: Request) {
     if (game.puzzle[index] !== "0") return json({ error: "invalid_entry" }, 422);
     if (game.solution[index] === String(number))
       return json({ correct: true, mistakes: game.mistakes });
+    const key = mistakeKey(mistakeId, index, number);
     await env
       .DB!.prepare(
         "UPDATE solo_games SET mistakes = mistakes + 1, last_mistake_id = ? WHERE id = ? AND completed_at IS NULL AND mistakes < 3 AND (last_mistake_id IS NULL OR last_mistake_id != ?)",
       )
-      .bind(mistakeId, game.id, mistakeId)
+      .bind(key, game.id, key)
       .run();
     const updated = await gameFor(user.userId, game.id);
     return json({ correct: false, mistakes: updated?.mistakes ?? game.mistakes + 1 });
