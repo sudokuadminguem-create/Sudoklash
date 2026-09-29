@@ -1681,8 +1681,13 @@ button {
     padding-bottom: max(18px, env(safe-area-inset-bottom));
   }
 
-  .side nav button { min-height: 44px; flex: none; }
-  .side .season { flex: none; }
+  .side nav button {
+    min-height: 44px;
+    flex: none;
+  }
+  .side .season {
+    flex: none;
+  }
 
   .side.open {
     box-shadow: 22px 0 70px #000a;
