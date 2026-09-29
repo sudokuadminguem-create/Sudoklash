@@ -160,8 +160,8 @@ export function SoloGame({
           grid,
         });
         window.dispatchEvent(new Event("sudoklash:progress"));
-        void cosmetics.refresh();
-        return result;
+        const updated = await cosmetics.refresh();
+        return { ...result, totalXp: updated?.xp };
       }}
     />
   );

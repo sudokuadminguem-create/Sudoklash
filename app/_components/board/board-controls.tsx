@@ -1,4 +1,4 @@
-import { Eraser, Lightbulb, Pencil, RotateCcw, X } from "lucide-react";
+import { Eraser, Lightbulb, Pencil, Redo2, RotateCcw, X } from "lucide-react";
 import { DIGITS } from "@/app/lib/board-logic";
 import type { ShownHint } from "./types";
 import { hintText } from "@/app/lib/hint-text";
@@ -35,6 +35,7 @@ type GameActionsProps = {
   competitive: boolean;
   noteMode: boolean;
   canUndo: boolean;
+  canRedo: boolean;
   hintsLeft: number;
   hintDisabled: boolean;
   /** Shown only when the player can start a new grid. */
@@ -42,6 +43,7 @@ type GameActionsProps = {
   onToggleNotes: () => void;
   onErase: () => void;
   onUndo: () => void;
+  onRedo: () => void;
   onHint: () => void;
   onAbandon: () => void;
 };
@@ -72,6 +74,14 @@ export function GameActions(props: GameActionsProps) {
       >
         <RotateCcw />
         Annuler
+      </button>
+      <button
+        aria-label="Rétablir l’action annulée"
+        onClick={props.onRedo}
+        disabled={!props.canRedo || lost}
+      >
+        <Redo2 />
+        Rétablir
       </button>
       <button
         aria-label={`Afficher un indice, ${Math.max(0, hintsLeft)} restant${hintsLeft === 1 ? "" : "s"}`}
@@ -105,7 +115,19 @@ export function HintPanel({ hint, onReveal, onDismiss }: HintPanelProps) {
       <Lightbulb />
       <div>
         <b>{text.title}</b>
+        {text.techniques.length > 0 && (
+          <ul className="hint-techniques" aria-label="Techniques à utiliser">
+            {text.techniques.map((name) => (
+              <li key={name}>{name}</li>
+            ))}
+          </ul>
+        )}
         <p>{text.text}</p>
+        {hint.step?.pattern && (
+          <small className="hint-legend">
+            Les cases cerclées de bleu forment la technique ; la case dorée est celle à remplir.
+          </small>
+        )}
         <div className="hint-actions">
           <button onClick={onReveal}>Révéler le chiffre</button>
           <button className="hint-dismiss" onClick={onDismiss}>

@@ -19,6 +19,7 @@ import {
   Zap,
 } from "lucide-react";
 import "./sudoku-grid.css";
+import "./hint-techniques.css";
 import { AccountButton } from "./_components/account-button";
 import { AchievementBoard } from "./_components/achievement-board";
 import { ChallengeAnnouncer } from "./_components/challenge-announcer";
@@ -311,6 +312,7 @@ export default function Home() {
                 {mode === "classée" ? (
                   <RankedMatch
                     account={account}
+                    cosmetics={cosmetics}
                     openAuth={() => setAuthOpen(true)}
                     renderGame={(match, refresh) => (
                       <RankedGame match={match} refresh={refresh} account={account} />
