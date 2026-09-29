@@ -10,9 +10,11 @@ import {
   type SoloSave,
   type StartedGame,
 } from "@/app/lib/solo-save";
+import { takeOfflineGrid } from "@/app/lib/offline-pack";
 import { recordSoloWin, soloRecord } from "@/app/lib/solo-records";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
+import { isSoloDifficulty } from "@/lib/difficulties";
 import { geometryOf, variantByLabel } from "@/lib/variants";
 import { SudokuBoard } from "./sudoku-board";
 
@@ -53,7 +55,8 @@ export function SoloGame({
   const [game, setGame] = useState<StartedGame | null>(resume?.game ?? null),
     [board, setBoard] = useState<BoardSnapshot | undefined>(resume?.board),
     [error, setError] = useState(false),
-    [expired, setExpired] = useState(false);
+    [expired, setExpired] = useState(false),
+    [offline, setOffline] = useState(false);
   const userId = account.user?.id ?? null;
   const signedIn = !!userId;
   // A variant has no logical hints to give: its judge answers digits only.
@@ -66,9 +69,17 @@ export function SoloGame({
       );
       setBoard(undefined);
       setExpired(false);
+      setOffline(false);
       setGame(started);
     } catch {
-      setError(true);
+      // No server: fall back on a spare practice grid stocked earlier, if this level has one.
+      const spare = !variant && isSoloDifficulty(difficulty) ? takeOfflineGrid(difficulty) : null;
+      if (spare) {
+        setBoard(undefined);
+        setExpired(false);
+        setOffline(true);
+        setGame({ guest: true, ...spare });
+      } else setError(true);
     }
   }, [difficulty, variant]);
   useEffect(() => {
@@ -146,36 +157,43 @@ export function SoloGame({
       </div>
     );
   return (
-    <SudokuBoard
-      key={game.guest ? game.puzzle.join("") : game.gameId}
-      puzzle={game.puzzle}
-      judge={judge}
-      difficulty={difficulty}
-      geometry={geometry}
-      hintsAllowed={variant ? 0 : undefined}
-      title="Entraînement solo"
-      soloExperience
-      onConnect={openAuth}
-      resume={board}
-      previousBest={previousBest}
-      onSnapshot={(snapshot) => {
-        // Guest games stay with the guest, even if the player signs in meanwhile.
-        if (snapshot) storeSoloSave(owner, { difficulty, game, board: snapshot });
-        else clearSoloSave(owner);
-      }}
-      onNewGame={() => void start()}
-      onSolved={async (grid, seconds) => {
-        recordSoloWin(owner, difficulty, seconds);
-        if (game.guest) return null;
-        const result = await soloRequest<{ xpGained: number }>({
-          action: "complete",
-          gameId: game.gameId,
-          grid,
-        });
-        window.dispatchEvent(new Event("sudoklash:progress"));
-        const updated = await cosmetics.refresh();
-        return { ...result, totalXp: updated?.xp };
-      }}
-    />
+    <>
+      {offline && (
+        <p className="offline-note" role="status">
+          Hors ligne : partie d’entraînement, sans XP ni classement.
+        </p>
+      )}
+      <SudokuBoard
+        key={game.guest ? game.puzzle.join("") : game.gameId}
+        puzzle={game.puzzle}
+        judge={judge}
+        difficulty={difficulty}
+        geometry={geometry}
+        hintsAllowed={variant ? 0 : undefined}
+        title="Entraînement solo"
+        soloExperience
+        onConnect={openAuth}
+        resume={board}
+        previousBest={previousBest}
+        onSnapshot={(snapshot) => {
+          // Guest games stay with the guest, even if the player signs in meanwhile.
+          if (snapshot) storeSoloSave(owner, { difficulty, game, board: snapshot });
+          else clearSoloSave(owner);
+        }}
+        onNewGame={() => void start()}
+        onSolved={async (grid, seconds) => {
+          recordSoloWin(owner, difficulty, seconds);
+          if (game.guest) return null;
+          const result = await soloRequest<{ xpGained: number }>({
+            action: "complete",
+            gameId: game.gameId,
+            grid,
+          });
+          window.dispatchEvent(new Event("sudoklash:progress"));
+          const updated = await cosmetics.refresh();
+          return { ...result, totalXp: updated?.xp };
+        }}
+      />
+    </>
   );
 }

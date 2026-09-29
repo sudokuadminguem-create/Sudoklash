@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import "./sudoku-grid.css";
 import "./hint-techniques.css";
+import "./pwa.css";
 import { AccountButton } from "./_components/account-button";
 import { AchievementBoard } from "./_components/achievement-board";
 import { ChallengeAnnouncer } from "./_components/challenge-announcer";
@@ -33,6 +34,7 @@ import { RankedMatch } from "./_components/ranked-match";
 import { FriendDuel } from "./_components/friend-duel";
 import { RealFriends } from "./_components/real-friends";
 import { useDuelInvites } from "./lib/use-duel-invites";
+import { PwaStatus } from "./_components/pwa-status";
 import { SettingsPanel } from "./_components/settings-panel";
 import { Shop } from "./_components/shop";
 import { authHeaders } from "./lib/auth-headers";
@@ -175,6 +177,7 @@ export default function Home() {
           } as CSSProperties
         }
       >
+        <PwaStatus />
         <ChallengeAnnouncer
           account={account}
           cosmetics={cosmetics}

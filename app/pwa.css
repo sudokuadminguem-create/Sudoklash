@@ -1,0 +1,27 @@
+/* Fixed, because the shell is a grid: the banner must not take a column of it. */
+.offline-banner {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-bottom: 1px solid #6f5a1f;
+  background: #2b2410;
+  color: #f4d98a;
+  font-size: 13px;
+}
+
+.offline-banner svg {
+  width: 16px;
+  flex: none;
+}
+
+.offline-note {
+  margin: 0 0 8px;
+  color: #f4d98a;
+  font-size: 13px;
+  text-align: center;
+}

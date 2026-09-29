@@ -22,7 +22,13 @@ export const metadata: Metadata = {
     title: "Sudoku Clash — Le Sudoku compétitif",
     description: "Jouez au Sudoku en ligne et relevez les défis quotidiens et hebdomadaires.",
   },
-  icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/icons/apple-touch-icon.png",
+  },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Sudoklash", statusBarStyle: "black-translucent" },
 };
 export const viewport: Viewport = {
   width: "device-width",

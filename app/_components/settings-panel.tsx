@@ -1,4 +1,5 @@
 "use client";
+import { useInstall } from "@/app/lib/pwa";
 import { defaultSettings, useSettings, type Settings } from "@/app/lib/settings";
 
 const groups: { title: string; items: [keyof Settings, string, string][] }[] = [
@@ -44,6 +45,7 @@ const groups: { title: string; items: [keyof Settings, string, string][] }[] = [
 /** Player preferences, saved on this device. */
 export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
   const { settings, update } = useSettings();
+  const install = useInstall();
   return (
     <div className="panel settings-panel">
       <div className="panel-head">
@@ -71,6 +73,22 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
           ))}
         </section>
       ))}
+      {install && (
+        <section className="settings-group">
+          <h3>Application</h3>
+          <div className="setting-row">
+            <span>
+              <b>Installer Sudoklash</b>
+              <small>
+                Ajoute l’icône à l’écran d’accueil ; le solo fonctionne aussi hors ligne.
+              </small>
+            </span>
+            <button className="primary" onClick={() => void install()}>
+              Installer
+            </button>
+          </div>
+        </section>
+      )}
       <button
         className="settings-reset"
         onClick={() => {
