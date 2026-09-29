@@ -1,0 +1,95 @@
+.duel-lobby {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+}
+.duel-lobby > svg {
+  width: 30px;
+  height: 30px;
+  color: var(--gold);
+}
+.duel-lobby h2,
+.duel-lobby p {
+  margin: 0;
+}
+.duel-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #38588d;
+  border-radius: 14px;
+  background: #101b30;
+}
+.duel-card.incoming {
+  border-color: #ffb454;
+  background: #2a2412;
+}
+.duel-card > div {
+  flex: 1 1 200px;
+}
+.duel-card b {
+  display: block;
+}
+.duel-card small {
+  color: #91a3be;
+}
+.duel-card > svg {
+  width: 24px;
+  color: var(--gold);
+}
+.duel-levels {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.duel-levels button {
+  border: 1px solid #38588d;
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: #13213a;
+  color: #cddbf2;
+  font-size: 13px;
+  font-weight: 700;
+}
+.duel-levels button.active {
+  border-color: #54c8ff;
+  background: #16406b;
+  color: #fff;
+}
+.duel-friends {
+  width: 100%;
+}
+.duel-friends h3 {
+  margin: 4px 0 8px;
+  font-size: 15px;
+  color: #97a8c2;
+}
+.duel-friend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid #263551;
+}
+.duel-friend button,
+.duel-card button,
+.duel-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.duel-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.duel-confirm {
+  display: inline-flex;
+  gap: 8px;
+}

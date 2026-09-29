@@ -6,6 +6,7 @@ import {
   Coins,
   Flame,
   Gamepad2,
+  Handshake,
   Medal,
   LockKeyhole,
   Menu,
@@ -29,7 +30,9 @@ import { ModePanel } from "./_components/mode-panel";
 import { PlayerAvatar } from "./_components/player-cosmetics";
 import { RankedGame } from "./_components/ranked-game";
 import { RankedMatch } from "./_components/ranked-match";
+import { FriendDuel } from "./_components/friend-duel";
 import { RealFriends } from "./_components/real-friends";
+import { useDuelInvites } from "./lib/use-duel-invites";
 import { SettingsPanel } from "./_components/settings-panel";
 import { Shop } from "./_components/shop";
 import { authHeaders } from "./lib/auth-headers";
@@ -54,6 +57,7 @@ const modeTabs = [
   ["solo", "Solo", Zap],
   ["daily", "Grille du jour", CalendarDays],
   ["hebdo", "Grille hebdo", Flame],
+  ["duel", "Duel d’amis", Handshake],
   ["privée", "Salon privé", Users],
 ] as const;
 
@@ -67,6 +71,8 @@ export default function Home() {
       isAdmin: false,
       displayName: null,
     }),
+    // A friend picked in the friends list, waiting to be challenged on the duel screen.
+    [duelTarget, setDuelTarget] = useState<{ id: string; username: string } | null>(null),
     [authOpen, setAuthOpen] = useState(false),
     [recovery, setRecovery] = useState(false),
     [recoveryStatus, setRecoveryStatus] = useState<"checking" | "ready" | "expired">("checking");
@@ -154,6 +160,9 @@ export default function Home() {
         })[view],
       [view],
     );
+  const duelInvites = useDuelInvites(account.user?.id, (from) =>
+    notify(`${from} te défie ! Rendez-vous dans « Duel d’amis ».`),
+  );
   const activeTheme = gridThemes.find((t) => t.id === cosmetics.state?.themeId) ?? gridThemes[0];
   return (
     <SettingsProvider>
@@ -296,6 +305,7 @@ export default function Home() {
                       <I />
                       {label}
                       {id === "hebdo" && <small>+500</small>}
+                      {id === "duel" && duelInvites > 0 && <small>{duelInvites}</small>}
                     </button>
                   ))}
                 </div>
@@ -307,6 +317,14 @@ export default function Home() {
                     renderGame={(match, refresh) => (
                       <RankedGame match={match} refresh={refresh} account={account} />
                     )}
+                  />
+                ) : mode === "duel" ? (
+                  <FriendDuel
+                    account={account}
+                    openAuth={() => setAuthOpen(true)}
+                    notify={notify}
+                    target={duelTarget}
+                    onTargetUsed={() => setDuelTarget(null)}
                   />
                 ) : (
                   <ModePanel
@@ -337,7 +355,16 @@ export default function Home() {
             )}
             {view === "classement" && <Leaderboard />}
             {view === "amis" && (
-              <RealFriends account={account} notify={notify} openAuth={() => setAuthOpen(true)} />
+              <RealFriends
+                account={account}
+                notify={notify}
+                openAuth={() => setAuthOpen(true)}
+                onChallenge={(friend) => {
+                  setDuelTarget(friend);
+                  setMode("duel");
+                  setView("jouer");
+                }}
+              />
             )}
             {view === "parametres" && <SettingsPanel notify={notify} />}
             {view === "boutique" && (

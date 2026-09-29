@@ -39,6 +39,8 @@ type SudokuBoardProps = {
   difficulty?: Difficulty;
   competitive?: boolean;
   title?: string;
+  /** Replaces the kind of game shown above the title ("PARTIE CLASSÉE", "DÉFI"…). */
+  modeLabel?: string;
   active?: boolean;
   initialSeconds?: number;
   initialMistakes?: number;
@@ -73,6 +75,7 @@ export function SudokuBoard({
   difficulty = "Intermédiaire",
   competitive = false,
   title = "Arène éclair",
+  modeLabel,
   active = true,
   initialSeconds = 0,
   initialMistakes = 0,
@@ -403,13 +406,14 @@ export function SudokuBoard({
   const record = personalRecord(previousBest, seconds);
   const lost = mistakes >= MAX_MISTAKES;
   const eyebrow = `${
-    hintsAllowed === 0 && race
+    modeLabel ??
+    (hintsAllowed === 0 && race
       ? "PARTIE CLASSÉE"
       : race
         ? "PARTIE PRIVÉE"
         : competitive
           ? "DÉFI"
-          : "PARTIE NORMALE"
+          : "PARTIE NORMALE")
   } · ${difficulty.toUpperCase()}`;
   return (
     <div
