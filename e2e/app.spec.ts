@@ -14,7 +14,7 @@ test("the home page loads without errors in the console", async ({ page }) => {
 });
 
 test("anonymous visitors are told to sign in on protected APIs", async ({ request }) => {
-  for (const path of ["/api/account", "/api/cosmetics", "/api/friends"]) {
+  for (const path of ["/api/account", "/api/cosmetics", "/api/friends", "/api/duels"]) {
     const response = await request.get(path);
     expect(response.status(), path).toBe(401);
   }
@@ -22,4 +22,13 @@ test("anonymous visitors are told to sign in on protected APIs", async ({ reques
 
 test("the admin API pretends not to exist", async ({ request }) => {
   expect((await request.get("/api/admin/challenges")).status()).toBe(404);
+});
+
+test("the duel tab asks a visitor to sign in", async ({ page }) => {
+  const hydrated = page.waitForResponse((response) => response.url().endsWith("/api/me"));
+  await page.goto("/");
+  await hydrated;
+  await page.getByRole("button", { name: /Duel d’amis/ }).click();
+  await expect(page.getByRole("heading", { name: "Défie tes amis" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Se connecter ou créer un compte/ })).toBeVisible();
 });

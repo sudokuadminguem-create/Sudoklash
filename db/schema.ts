@@ -207,3 +207,44 @@ export const soloGames = sqliteTable(
   },
   (table) => [index("idx_solo_games_user").on(table.userId, table.completedAt)],
 );
+
+// Duels between friends: one player challenges another, who accepts or declines. Once
+// accepted, the server keeps the solution and judges the game like a ranked match, but
+// nothing is rated. "challenger_*" and "opponent_*" columns belong to each side.
+export const friendDuels = sqliteTable(
+  "friend_duels",
+  {
+    id: text("id").primaryKey(),
+    challengerId: text("challenger_id").notNull(),
+    opponentId: text("opponent_id").notNull(),
+    difficulty: text("difficulty").notNull(),
+    // pending, playing, finished, declined, cancelled or expired
+    status: text("status").notNull().default("pending"),
+    puzzle: text("puzzle").notNull().default(""),
+    solution: text("solution").notNull().default(""),
+    createdAt: integer("created_at").notNull(),
+    startedAt: integer("started_at"),
+    finishedAt: integer("finished_at"),
+    winnerId: text("winner_id"),
+    // completed, three_mistakes or forfeit
+    finishReason: text("finish_reason"),
+    // Cells the server has confirmed for each side: 81 characters of 0/1, "" at the start.
+    challengerSolved: text("challenger_solved").notNull().default(""),
+    opponentSolved: text("opponent_solved").notNull().default(""),
+    challengerProgress: integer("challenger_progress").notNull().default(0),
+    opponentProgress: integer("opponent_progress").notNull().default(0),
+    challengerMistakes: integer("challenger_mistakes").notNull().default(0),
+    opponentMistakes: integer("opponent_mistakes").notNull().default(0),
+    challengerLastMistake: text("challenger_last_mistake"),
+    opponentLastMistake: text("opponent_last_mistake"),
+    challengerSeenAt: integer("challenger_seen_at"),
+    opponentSeenAt: integer("opponent_seen_at"),
+    // Set once a player has closed the result screen.
+    challengerDismissed: integer("challenger_dismissed").notNull().default(0),
+    opponentDismissed: integer("opponent_dismissed").notNull().default(0),
+  },
+  (table) => [
+    index("idx_friend_duels_challenger").on(table.challengerId, table.status),
+    index("idx_friend_duels_opponent").on(table.opponentId, table.status),
+  ],
+);

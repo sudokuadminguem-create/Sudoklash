@@ -26,9 +26,12 @@ const emptyData: FriendsData = { players: [], nextOffset: null, relationships: [
 export default function FriendsDirectory({
   account,
   notify,
+  onChallenge,
 }: {
   account: Account;
   notify: (message: string) => void;
+  /** Opens the duel screen with this friend ready to be challenged. */
+  onChallenge?: (friend: { id: string; username: string }) => void;
 }) {
   const [tab, setTab] = useState<"players" | "friends" | "requests">("players");
   const [query, setQuery] = useState("");
@@ -91,7 +94,8 @@ export default function FriendsDirectory({
     setSelectedFriend(null);
     try {
       const response = await fetch(`/api/friends/profile?id=${encodeURIComponent(friendId)}`, {
-        cache: "no-store", headers: await authHeaders(),
+        cache: "no-store",
+        headers: await authHeaders(),
       });
       if (!response.ok) throw new Error("profile_unavailable");
       setSelectedFriend((await response.json()) as FriendProfile);
@@ -102,12 +106,21 @@ export default function FriendsDirectory({
     }
   };
 
-  const avatar = (person: { username: string; avatarId: string; frameId: string; image?: string | null }) => (
+  const avatar = (person: {
+    username: string;
+    avatarId: string;
+    frameId: string;
+    image?: string | null;
+  }) => (
     <PlayerAvatar
       avatarId={person.avatarId}
       frameId={person.frameId}
       image={person.image}
-      fallback={person.avatarId === "custom" && !person.image ? person.username.slice(0, 2).toUpperCase() : undefined}
+      fallback={
+        person.avatarId === "custom" && !person.image
+          ? person.username.slice(0, 2).toUpperCase()
+          : undefined
+      }
     />
   );
 
@@ -262,9 +275,19 @@ export default function FriendsDirectory({
                 <>
                   <div className="friend-profile-heading">
                     <h3>Profil de {selectedFriend.username}</h3>
-                    <button className="subtle" onClick={() => setSelectedFriend(null)} aria-label="Fermer le profil"><X /> Fermer</button>
+                    <button
+                      className="subtle"
+                      onClick={() => setSelectedFriend(null)}
+                      aria-label="Fermer le profil"
+                    >
+                      <X /> Fermer
+                    </button>
                   </div>
-                  <ProfileCardDisplay username={selectedFriend.username} stats={selectedFriend} look={selectedFriend} />
+                  <ProfileCardDisplay
+                    username={selectedFriend.username}
+                    stats={selectedFriend}
+                    look={selectedFriend}
+                  />
                 </>
               )}
             </section>
@@ -283,7 +306,11 @@ export default function FriendsDirectory({
               </div>
               <button onClick={() => void showProfile(row.otherUserId)}>Voir profil</button>
               <button
-                onClick={() => notify(`Invitez ${row.username} avec le code de votre salon privé`)}
+                onClick={() =>
+                  onChallenge
+                    ? onChallenge({ id: row.otherUserId, username: row.username })
+                    : notify(`Invitez ${row.username} avec le code de votre salon privé`)
+                }
               >
                 <Swords />
                 Défier

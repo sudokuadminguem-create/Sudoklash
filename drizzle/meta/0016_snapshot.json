@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a3b46c63-3c2b-46d9-a210-a6d3959c5827",
-  "prevId": "ea1956af-c3e6-47e3-8380-8b9018af73be",
+  "id": "fdead790-7dda-44dc-aa2e-e627b47257c4",
+  "prevId": "a3b46c63-3c2b-46d9-a210-a6d3959c5827",
   "tables": {
     "achievement_unlocks": {
       "name": "achievement_unlocks",
@@ -1050,6 +1050,22 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "variant": {
+          "name": "variant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'classic'"
+        },
+        "cages": {
+          "name": "cages",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
         }
       },
       "indexes": {
