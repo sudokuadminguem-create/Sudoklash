@@ -12,6 +12,7 @@ import { soloXpFor } from "@/lib/cosmetics";
 import { PrivateLobby } from "./private-lobby";
 import { RoomGame } from "./room-game";
 import { SoloGame } from "./solo-game";
+import { NearChallenges } from "./near-challenges";
 import { TimedChallenge } from "./timed-challenge";
 
 export function ModePanel({
@@ -67,6 +68,8 @@ export function ModePanel({
         />
       </div>
     ) : (
+      <div className="solo-picker">
+      <NearChallenges account={account} />
       <div className="panel">
         <div className="panel-head">
           <span className="eyebrow">ENTRAÎNEMENT</span>
@@ -132,6 +135,7 @@ export function ModePanel({
             }}
           />
         )}
+      </div>
       </div>
     );
   if (mode === "daily") return <TimedChallenge kind="daily" openAuth={openAuth} />;

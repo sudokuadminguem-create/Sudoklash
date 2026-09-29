@@ -159,6 +159,7 @@ export function SoloGame({
           gameId: game.gameId,
           grid,
         });
+        window.dispatchEvent(new Event("sudoklash:progress"));
         void cosmetics.refresh();
         return result;
       }}
