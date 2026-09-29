@@ -73,15 +73,15 @@ export type ProgressCounts = {
 };
 /** Solo rewards rise with the technique needed; old results use the same schedule. */
 export const soloWinXp: Record<Difficulty, number> = {
-  Débutant: 10,
-  Facile: 20,
-  Intermédiaire: 30,
-  Difficile: 40,
-  Expert: 50,
-  Maître: 60,
+  Débutant: 20,
+  Facile: 35,
+  Intermédiaire: 55,
+  Difficile: 80,
+  Expert: 110,
+  Maître: 150,
 };
 export function soloXpFor(difficulty: string): number {
-  return difficulty in soloWinXp ? soloWinXp[difficulty as Difficulty] : 10;
+  return difficulty in soloWinXp ? soloWinXp[difficulty as Difficulty] : 35;
 }
 export const levelFrames = [
   { level: 1, id: "starter", name: "Initial", color: "#526688" },

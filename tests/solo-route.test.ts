@@ -103,7 +103,7 @@ describe("solo games", () => {
     vi.advanceTimersByTime((MIN_SOLO_SECONDS - 1) * 1000);
     expect((await callRoute(POST, complete)).body).toEqual({ error: "too_fast" });
     vi.advanceTimersByTime(60_000);
-    expect((await callRoute(POST, complete)).body).toMatchObject({ saved: true, xpGained: 20 });
+    expect((await callRoute(POST, complete)).body).toMatchObject({ saved: true, xpGained: 35 });
     expect((await callRoute(POST, complete)).status).toBe(409);
     const results = db
       .prepare("SELECT user_id, difficulty, elapsed_seconds FROM solo_results")
@@ -115,12 +115,12 @@ describe("solo games", () => {
 
   it("awards difficulty-based XP and includes past results in the player's total", async () => {
     for (const [difficulty, reward] of [
-      ["Débutant", 10],
-      ["Facile", 20],
-      ["Intermédiaire", 30],
-      ["Difficile", 40],
-      ["Expert", 50],
-      ["Maître", 60],
+      ["Débutant", 20],
+      ["Facile", 35],
+      ["Intermédiaire", 55],
+      ["Difficile", 80],
+      ["Expert", 110],
+      ["Maître", 150],
     ] as const) {
       const { body } = await callRoute(POST, { action: "start", difficulty });
       const grid = solveGrid(body.puzzle)!;
@@ -130,7 +130,7 @@ describe("solo games", () => {
     }
     const profile = await callRoute(cosmetics);
     expect(profile.status).toBe(200);
-    expect(profile.body).toMatchObject({ xp: 210, counts: { solo: 6, soloXp: 210 } });
+    expect(profile.body).toMatchObject({ xp: 450, counts: { solo: 6, soloXp: 450 } });
   });
 
   it("rejects wrong grids and other players' games", async () => {
