@@ -14,8 +14,15 @@ export type Settings = {
   showTimer: boolean;
   /** Vibrate on a wrong digit, where the device can. */
   vibrate: boolean;
+  /** A short tick under the finger on every keypad press. */
+  hapticKeys: boolean;
   largeDigits: boolean;
+  /** Dock the keypad at the bottom of the screen, under the thumb of this hand. */
+  oneHanded: OneHanded;
 };
+
+export const oneHandedModes = ["off", "right", "left"] as const;
+export type OneHanded = (typeof oneHandedModes)[number];
 
 export const defaultSettings: Settings = {
   highlightUnits: true,
@@ -24,7 +31,9 @@ export const defaultSettings: Settings = {
   confirmNewGrid: true,
   showTimer: true,
   vibrate: false,
+  hapticKeys: false,
   largeDigits: false,
+  oneHanded: "off",
 };
 
 const STORAGE_KEY = "sudoklash:settings";
@@ -40,7 +49,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       // Keep only known keys with the right type, so an old or tampered value is harmless.
       const known = Object.fromEntries(
         Object.entries(saved).filter(
-          ([key, value]) => key in defaultSettings && typeof value === "boolean",
+          ([key, value]) =>
+            key in defaultSettings &&
+            (key === "oneHanded"
+              ? oneHandedModes.includes(value as OneHanded)
+              : typeof value === "boolean"),
         ),
       );
       // eslint-disable-next-line react-hooks/set-state-in-effect

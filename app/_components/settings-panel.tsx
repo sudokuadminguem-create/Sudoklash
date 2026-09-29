@@ -1,7 +1,23 @@
 "use client";
-import { defaultSettings, useSettings, type Settings } from "@/app/lib/settings";
+import { defaultSettings, useSettings, type OneHanded } from "@/app/lib/settings";
 
-const groups: { title: string; items: [keyof Settings, string, string][] }[] = [
+type ToggleKey =
+  | "highlightUnits"
+  | "highlightSame"
+  | "autoRemoveNotes"
+  | "largeDigits"
+  | "showTimer"
+  | "confirmNewGrid"
+  | "vibrate"
+  | "hapticKeys";
+
+const hands: [OneHanded, string][] = [
+  ["off", "Désactivé"],
+  ["right", "Main droite"],
+  ["left", "Main gauche"],
+];
+
+const groups: { title: string; items: [ToggleKey, string, string][] }[] = [
   {
     title: "Grille",
     items: [
@@ -37,6 +53,11 @@ const groups: { title: string; items: [keyof Settings, string, string][] }[] = [
         "Vibrer en cas d’erreur",
         "Sur les appareils qui le permettent, surtout les téléphones.",
       ],
+      [
+        "hapticKeys",
+        "Retour haptique du clavier",
+        "Un léger tic à chaque chiffre posé. Non disponible sur iPhone.",
+      ],
     ],
   },
 ];
@@ -71,6 +92,28 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
           ))}
         </section>
       ))}
+      <section className="settings-group">
+        <h3>Mobile</h3>
+        <div className="setting-row one-handed" role="radiogroup" aria-labelledby="one-handed">
+          <span>
+            <b id="one-handed">Mode une main</b>
+            <small>Range le clavier en bas de l’écran, à portée du pouce.</small>
+          </span>
+          <span className="hand-choices">
+            {hands.map(([value, label]) => (
+              <button
+                key={value}
+                role="radio"
+                aria-checked={settings.oneHanded === value}
+                className={settings.oneHanded === value ? "active" : ""}
+                onClick={() => update({ oneHanded: value })}
+              >
+                {label}
+              </button>
+            ))}
+          </span>
+        </div>
+      </section>
       <button
         className="settings-reset"
         onClick={() => {
