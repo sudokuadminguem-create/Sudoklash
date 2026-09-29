@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./a11y.css";
 import "./themes.css";
 import { displayScript } from "./lib/settings-model";
 export const metadata: Metadata = {

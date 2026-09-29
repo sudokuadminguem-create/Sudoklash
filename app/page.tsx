@@ -183,6 +183,9 @@ export default function Home() {
             void cosmetics.refresh();
           }}
         />
+        <a className="skip-link" href="#contenu">
+          Aller au contenu
+        </a>
         <aside id="main-menu" className={mobile ? "side open" : "side"}>
           <div className="brand">
             <div className="brandmark">9</div>
@@ -253,7 +256,7 @@ export default function Home() {
               />
             </div>
           </header>
-          <div className="content">
+          <div className="content" id="contenu" tabIndex={-1}>
             {view === "jouer" && (
               <>
                 <section className="welcome">
@@ -378,7 +381,7 @@ export default function Home() {
           </div>
         </section>
         {toast && (
-          <div className="toast">
+          <div className="toast" role="status" aria-live="polite">
             <Check />
             {toast}
           </div>

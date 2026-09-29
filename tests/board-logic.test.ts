@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  cellPlace,
+  isMoveKey,
+  moveSelection,
+  verdictAnnouncement,
   completedDigitsOf,
   hintUnitCells,
   isConfirmed,
@@ -161,5 +165,80 @@ describe("history", () => {
     expect(history).toHaveLength(MAX_HISTORY);
     expect(history[0].cells[0]).toBe(20);
     expect(history.at(-1)!.cells[0]).toBe(MAX_HISTORY + 19);
+  });
+});
+
+describe("keyboard navigation", () => {
+  it("recognises the keys that move around the grid", () => {
+    for (const key of [
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "Home",
+      "End",
+      "PageUp",
+      "PageDown",
+    ])
+      expect(isMoveKey(key)).toBe(true);
+    for (const key of ["a", "1", "Enter", "Tab", "Escape", " "]) expect(isMoveKey(key)).toBe(false);
+    expect(moveSelection(40, "Enter", 9)).toBeNull();
+  });
+
+  it("moves one cell with the arrows", () => {
+    expect(moveSelection(40, "ArrowUp", 9)).toBe(31);
+    expect(moveSelection(40, "ArrowDown", 9)).toBe(49);
+    expect(moveSelection(40, "ArrowLeft", 9)).toBe(39);
+    expect(moveSelection(40, "ArrowRight", 9)).toBe(41);
+  });
+
+  it("stops at the edges instead of wrapping around", () => {
+    expect(moveSelection(4, "ArrowUp", 9)).toBe(4);
+    expect(moveSelection(76, "ArrowDown", 9)).toBe(76);
+    expect(moveSelection(9, "ArrowLeft", 9)).toBe(9); // first column: not the end of the row above
+    expect(moveSelection(17, "ArrowRight", 9)).toBe(17); // last column: not the next row
+  });
+
+  it("jumps to the ends of the row and the column", () => {
+    expect(moveSelection(40, "Home", 9)).toBe(36);
+    expect(moveSelection(40, "End", 9)).toBe(44);
+    expect(moveSelection(40, "PageUp", 9)).toBe(4);
+    expect(moveSelection(40, "PageDown", 9)).toBe(76);
+  });
+
+  it("starts from the first cell when nothing is selected", () => {
+    for (const key of ["ArrowDown", "ArrowLeft", "End", "PageDown"])
+      expect(moveSelection(null, key, 9)).toBe(0);
+  });
+
+  it("works on a 6×6 grid", () => {
+    expect(moveSelection(14, "ArrowRight", 6)).toBe(15);
+    expect(moveSelection(5, "ArrowRight", 6)).toBe(5);
+    expect(moveSelection(14, "End", 6)).toBe(17);
+    expect(moveSelection(14, "PageDown", 6)).toBe(32);
+    expect(moveSelection(14, "ArrowDown", 6)).toBe(20);
+  });
+});
+
+describe("announcements", () => {
+  it("says where a cell is", () => {
+    expect(cellPlace(0, 9)).toBe("ligne 1, colonne 1");
+    expect(cellPlace(40, 9)).toBe("ligne 5, colonne 5");
+    expect(cellPlace(14, 6)).toBe("ligne 3, colonne 3");
+  });
+
+  it("confirms a right digit", () => {
+    expect(verdictAnnouncement({ correct: true, number: 5, index: 20, size: 9, mistakes: 1 })).toBe(
+      "Chiffre 5 validé, ligne 3, colonne 3.",
+    );
+  });
+
+  it("reports a wrong digit with the lives left, in the singular and the plural", () => {
+    const wrong = (mistakes: number) =>
+      verdictAnnouncement({ correct: false, number: 7, index: 0, size: 9, mistakes });
+    expect(wrong(1)).toBe("Chiffre 7 refusé, ligne 1, colonne 1. 2 vies restantes.");
+    expect(wrong(2)).toBe("Chiffre 7 refusé, ligne 1, colonne 1. 1 vie restante.");
+    expect(wrong(3)).toContain("grille perdue");
+    expect(wrong(4)).toContain("grille perdue"); // never a negative count
   });
 });
