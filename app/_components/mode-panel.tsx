@@ -160,8 +160,10 @@ export function ModePanel({
         </div>
       </div>
     );
-  if (mode === "daily") return <TimedChallenge kind="daily" openAuth={openAuth} cosmetics={cosmetics} />;
-  if (mode === "hebdo") return <TimedChallenge kind="weekly" openAuth={openAuth} cosmetics={cosmetics} />;
+  if (mode === "daily")
+    return <TimedChallenge kind="daily" openAuth={openAuth} cosmetics={cosmetics} />;
+  if (mode === "hebdo")
+    return <TimedChallenge kind="weekly" openAuth={openAuth} cosmetics={cosmetics} />;
   return (
     <PrivateLobby
       account={account}
