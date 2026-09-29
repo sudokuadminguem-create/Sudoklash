@@ -48,13 +48,61 @@ describe("sudoku board", () => {
     expect(container.querySelector(".victory")).not.toBeNull();
   });
 
-  it("shows wrong digits and uses the server's mistake count", async () => {
-    const judge: Judge = { check: async () => ({ correct: false, mistakes: 2 }) };
+  it("clears a wrong digit, marks the empty cell red and keeps the server's mistake count", async () => {
+    const judge: Judge = {
+      check: async ({ index, number }) => ({
+        correct: solution[index] === number,
+        mistakes: 2,
+      }),
+    };
     await render(judge);
     const index = empties[0];
     await play(index, (solution[index] % 9) + 1);
+    expect(cellButtons()[index].textContent).toBe("");
     expect(cellButtons()[index].className).toContain("wrong");
+    expect(cellButtons()[index].getAttribute("aria-invalid")).toBe("true");
     expect(container.querySelectorAll(".lives .full")).toHaveLength(1);
+    await act(async () =>
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true })),
+    );
+    expect(cellButtons()[index].textContent).toBe("");
+    await play(index, solution[index]);
+    expect(cellButtons()[index].className).not.toContain("wrong");
+    expect(cellButtons()[index].className).toContain("confirmed");
+  });
+
+  it("locks a confirmed digit against replacement, erasing, notes and undo", async () => {
+    const check = vi.fn(localJudge(puzzle, solution).check);
+    await render({ check });
+    const first = empties[0];
+    await play(first, solution[first]);
+    expect(cellButtons()[first].getAttribute("aria-readonly")).toBe("true");
+    expect(cellButtons()[first].className).toContain("confirmed");
+    await play(first, (solution[first] % 9) + 1);
+    await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace" })));
+    await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "n" })));
+    await play(first, (solution[first] % 9) + 1);
+    await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "n" })));
+    await act(async () =>
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", ctrlKey: true })),
+    );
+    expect(cellButtons()[first].textContent).toBe(String(solution[first]));
+    expect(check).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not let a late wrong verdict erase a newer confirmed digit", async () => {
+    const answers: ((correct: boolean) => void)[] = [];
+    const check: Judge["check"] = () =>
+      new Promise((resolve) => answers.push((correct) => resolve({ correct })));
+    await render({ check });
+    const index = empties[0];
+    await play(index, (solution[index] % 9) + 1);
+    await play(index, solution[index]);
+    await act(async () => answers[1](true));
+    await act(async () => answers[0](false));
+    expect(cellButtons()[index].textContent).toBe(String(solution[index]));
+    expect(cellButtons()[index].className).toContain("confirmed");
+    expect(container.querySelectorAll(".lives .full")).toHaveLength(2);
   });
 
   it("lets the player retry when the check fails", async () => {
@@ -124,6 +172,9 @@ describe("sudoku board", () => {
     await play(annotated, digit);
     await play(annotated, other);
     await play(elsewhere, digit);
+    await act(async () => cellButtons()[annotated].click());
+    expect(cellButtons()[annotated].className).toContain("sel");
+    expect(cellButtons()[annotated].getAttribute("aria-label")).toContain("notes");
     await noteKey();
     await play(sameRow, digit);
     expect(notesOf(annotated)).toEqual([String(other)]);
@@ -178,6 +229,7 @@ describe("sudoku board", () => {
     const snapshot = onSnapshot.mock.lastCall![0];
     expect(snapshot.cells[empties[0]]).toBe(solution[empties[0]]);
     expect(snapshot.mistakes).toBe(1);
+    expect(snapshot.cells[empties[1]]).toBe(0);
     expect(snapshot.verdicts.correct[empties[0]]).toBe(solution[empties[0]]);
     expect(snapshot.pending).toEqual([]);
 

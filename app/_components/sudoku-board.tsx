@@ -99,7 +99,11 @@ export function SudokuBoard({
 }: SudokuBoardProps) {
   const { settings } = useSettings();
   const replayable = !!onNewGame;
-  const [cells, setCells] = useState(() => [...(resume?.cells ?? puzzle)]),
+  const [cells, setCells] = useState(() =>
+    (resume?.cells ?? puzzle).map((value, index) =>
+      value && resume?.verdicts.wrong[index] === value ? 0 : value,
+    ),
+  ),
     [selected, setSelected] = useState<number | null>(null),
     [noteMode, setNoteMode] = useState(false),
     [cellNotes, setCellNotes] = useState<Record<number, number[]>>(() => resume?.notes ?? {}),
@@ -109,14 +113,13 @@ export function SudokuBoard({
     [history, setHistory] = useState<{ cells: number[]; notes: Record<number, number[]> }[]>([]),
     [mistakes, setMistakes] = useState(resume?.mistakes ?? initialMistakes),
     [hintsUsed, setHintsUsed] = useState(resume?.hintsUsed ?? 0),
-    // Digits whose check failed. Checks never block the board: verdicts land when they come back.
+    // Digits whose check could not reach the judge.
     [failedEntries, setFailedEntries] = useState<Entry[]>([]),
     [mistakesLoaded, setMistakesLoaded] = useState(!storageKey),
     [shownHint, setShownHint] = useState<ShownHint | null>(null),
     [confirmingNewGame, setConfirmingNewGame] = useState(false),
     [shared, setShared] = useState(false);
-  // Digits the judge accepted or rejected, by cell. A cell shows as correct or wrong only
-  // while it still holds that digit, so erasing and undoing stay consistent.
+  // Accepted digits are locked. Rejected digits keep their empty cell marked until retried.
   const [verdicts, setVerdicts] = useState<{
     correct: Record<number, number>;
     wrong: Record<number, number>;
@@ -132,13 +135,18 @@ export function SudokuBoard({
   };
   const isCorrect = (grid: number[], i: number) =>
     !!puzzle[i] || (!!grid[i] && verdictsRef.current.correct[i] === grid[i]);
-  const isWrong = (i: number) => !!cells[i] && verdicts.wrong[i] === cells[i];
+  const isWrong = (i: number) =>
+    !puzzle[i] && verdicts.wrong[i] !== undefined && (!cells[i] || verdicts.wrong[i] === cells[i]);
   const recordVerdict = (entry: Entry, correct: boolean) => {
-    const key = correct ? "correct" : "wrong";
     const next = {
       ...verdictsRef.current,
-      [key]: { ...verdictsRef.current[key], [entry.index]: entry.number },
+      correct: correct
+        ? { ...verdictsRef.current.correct, [entry.index]: entry.number }
+        : verdictsRef.current.correct,
+      wrong: { ...verdictsRef.current.wrong },
     };
+    if (correct) delete next.wrong[entry.index];
+    else next.wrong[entry.index] = entry.number;
     verdictsRef.current = next;
     setVerdicts(next);
   };
@@ -175,14 +183,26 @@ export function SudokuBoard({
       const verdict = await judge.check(entry, grid).finally(() => {
         delete pendingRef.current[entry.id];
       });
-      recordVerdict(entry, verdict.correct);
       if (verdict.correct) {
+        recordVerdict(entry, true);
         // Other digits may have been placed since: count against the board as it is now.
-        const current = cellsRef.current;
+        let current = cellsRef.current;
+        if (current[entry.index] !== entry.number) {
+          current = [...current];
+          current[entry.index] = entry.number;
+          updateCells(current);
+        }
         const correctCells = current.filter((_, i) => isCorrect(current, i)).length;
         onProgress?.(correctCells, current);
         if (correctCells === 81) finish(current);
         return;
+      }
+      // A late wrong verdict must not erase a newer entry in the same cell.
+      if (cellsRef.current[entry.index] === entry.number) {
+        recordVerdict(entry, false);
+        const current = [...cellsRef.current];
+        current[entry.index] = 0;
+        updateCells(current);
       }
       if (settings.vibrate) navigator.vibrate?.(180);
       // Several checks can be in flight and answer out of order: never let the count go back.
@@ -216,6 +236,7 @@ export function SudokuBoard({
       !active ||
       index === null ||
       puzzle[index] ||
+      isCorrect(cellsRef.current, index) ||
       done ||
       mistakes >= 3 ||
       cells[index] === n
@@ -233,6 +254,13 @@ export function SudokuBoard({
     }
     const c = [...cells];
     c[index] = n;
+    if (verdictsRef.current.wrong[index] !== undefined) {
+      const wrong = { ...verdictsRef.current.wrong };
+      delete wrong[index];
+      const next = { ...verdictsRef.current, wrong };
+      verdictsRef.current = next;
+      setVerdicts(next);
+    }
     updateCells(c);
     // The placed digit is no longer a candidate in its row, column and box.
     setCellNotes((prev) =>
@@ -248,7 +276,7 @@ export function SudokuBoard({
     void submit({ index, number: n, id: crypto.randomUUID() }, c);
   };
   const erase = () => {
-    if (selected === null || puzzle[selected] || mistakes >= 3) return;
+    if (selected === null || puzzle[selected] || isCorrect(cellsRef.current, selected) || mistakes >= 3) return;
     setHistory((h) => [...h, { cells: [...cells], notes: { ...cellNotes } }]);
     const c = [...cells];
     c[selected] = 0;
@@ -259,8 +287,19 @@ export function SudokuBoard({
     if (mistakes >= 3) return;
     const last = history.at(-1);
     if (!last) return;
-    updateCells(last.cells);
-    setCellNotes(last.notes);
+    const restored = [...last.cells];
+    const notes = { ...last.notes };
+    for (const [key, number] of Object.entries(verdictsRef.current.wrong))
+      if (restored[Number(key)] === number) restored[Number(key)] = 0;
+    for (const [key, number] of Object.entries(verdictsRef.current.correct)) {
+      const index = Number(key);
+      if (cellsRef.current[index] === number) {
+        restored[index] = number;
+        notes[index] = [];
+      }
+    }
+    updateCells(restored);
+    setCellNotes(notes);
     setHistory((h) => h.slice(0, -1));
   };
   // Digits restored from a save whose check never came back: ask again, with the same ids
@@ -461,6 +500,7 @@ export function SudokuBoard({
               const i = row * 9 + col,
                 sameValue = settings.highlightSame && selectedValue > 0 && v === selectedValue,
                 wrong = isWrong(i),
+                locked = isCorrect(cells, i) && !puzzle[i],
                 failed = !!v && unverified.some((e) => e.index === i && e.number === v);
               return (
                 <button
@@ -469,10 +509,12 @@ export function SudokuBoard({
                   aria-rowindex={row + 1}
                   aria-colindex={col + 1}
                   aria-selected={selected === i}
-                  aria-label={`Case ligne ${row + 1}, colonne ${col + 1}${v ? `, chiffre ${v}${wrong ? ", incorrect" : ""}` : ", vide"}`}
+                  aria-readonly={!!puzzle[i] || locked}
+                  aria-invalid={wrong || undefined}
+                  aria-label={`Case ligne ${row + 1}, colonne ${col + 1}${v ? `, chiffre ${v}${locked ? ", validé et verrouillé" : ""}` : wrong ? ", erreur, case vide" : `, vide${cellNotes[i]?.length ? `, notes ${cellNotes[i].join(", ")}` : ""}`}`}
                   disabled={mistakes >= 3}
                   onClick={() => active && setSelected(i)}
-                  className={`${puzzle[i] ? "given" : "entered"} ${selected === i ? "sel" : ""} ${related(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${failed ? "unverified" : ""} ${hint?.index === i ? "hint-target" : hintCells.has(i) ? "hint-unit" : ""}`}
+                  className={`${puzzle[i] ? "given" : "entered"} ${selected === i ? "sel" : ""} ${related(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${locked ? "confirmed" : ""} ${failed ? "unverified" : ""} ${hint?.index === i ? "hint-target" : hintCells.has(i) ? "hint-unit" : ""}`}
                   style={done ? ({ "--wave": row + col } as CSSProperties) : undefined}
                 >
                   {v ||
