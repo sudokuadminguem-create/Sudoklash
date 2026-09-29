@@ -16,6 +16,8 @@ type SudokuGridProps = {
   won: boolean;
   hintTarget: number | undefined;
   hintCells: ReadonlySet<number>;
+  /** Cells of the technique a hint teaches (a pair, an X-Wing…). */
+  patternCells: ReadonlySet<number>;
   isWrong: (index: number) => boolean;
   isLocked: (index: number) => boolean;
   isUnverified: (index: number) => boolean;
@@ -56,7 +58,7 @@ export function SudokuGrid(props: SudokuGridProps) {
                 aria-label={`Case ligne ${row + 1}, colonne ${col + 1}${v ? `, chiffre ${v}${locked ? ", validé et verrouillé" : ""}` : wrong ? ", erreur, case vide" : `, vide${notes[i]?.length ? `, notes ${notes[i].join(", ")}` : ""}`}`}
                 disabled={props.lost}
                 onClick={() => props.onSelect(i)}
-                className={`${puzzle[i] ? "given" : "entered"} ${selected === i ? "sel" : ""} ${props.isRelated(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${locked ? "confirmed" : ""} ${failed ? "unverified" : ""} ${props.hintTarget === i ? "hint-target" : props.hintCells.has(i) ? "hint-unit" : ""}`}
+                className={`${puzzle[i] ? "given" : "entered"} ${selected === i ? "sel" : ""} ${props.isRelated(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${locked ? "confirmed" : ""} ${failed ? "unverified" : ""} ${props.hintTarget === i ? "hint-target" : props.patternCells.has(i) ? "hint-pattern" : props.hintCells.has(i) ? "hint-unit" : ""}`}
                 style={props.won ? ({ "--wave": row + col } as CSSProperties) : undefined}
               >
                 {v ||

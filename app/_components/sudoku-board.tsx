@@ -341,6 +341,7 @@ export function SudokuBoard({
       ? shownHint
       : null;
   const hintCells = hint ? hintUnitCells(hint.index, hint.step?.unit?.cells) : new Set<number>();
+  const patternCells = new Set(hint?.step?.pattern?.cells ?? []);
   const requestHint = async () => {
     if (
       !judge.hint ||
@@ -420,6 +421,7 @@ export function SudokuBoard({
         won={done}
         hintTarget={hint?.index}
         hintCells={hintCells}
+        patternCells={patternCells}
         isWrong={isWrong}
         isLocked={(i) => isCorrect(cells, i) && !puzzle[i]}
         isUnverified={(i) => unverified.some((e) => e.index === i && e.number === cells[i])}
