@@ -1,0 +1,106 @@
+/* Touch ergonomics: bigger targets, no accidental zoom or selection, and the one-handed dock. */
+
+.sudoku,
+.keypad,
+.game-actions {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.keypad button,
+.game-actions button {
+  -webkit-touch-callout: none;
+}
+
+/* The dock is invisible unless one-handed mode asks for it. */
+.board-dock {
+  display: contents;
+}
+
+@media (max-width: 600px) {
+  .keypad button {
+    height: 52px;
+  }
+
+  .game-actions button {
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 720px) {
+  /* "hidden" would make the card a scroll container and stop the dock from sticking. */
+  .game-card:has(.board-dock:not([data-hand="off"])) {
+    overflow: clip;
+  }
+
+  .board-dock:not([data-hand="off"]) {
+    --thumb: 64px;
+    display: grid;
+    grid-template-columns: minmax(0, 0.55fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 8px;
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin: 0 -4px;
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--bg, #0b1220) 82%, transparent);
+  }
+
+  /* Left-handed: the digits go to the left edge and the actions to the right. */
+  .board-dock[data-hand="left"] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.55fr);
+  }
+
+  .board-dock[data-hand="right"] .keypad {
+    order: 2;
+  }
+
+  .board-dock:not([data-hand="off"]) .keypad {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px;
+    margin: 0;
+    width: auto;
+  }
+
+  .board-dock:not([data-hand="off"]) .keypad button {
+    height: var(--thumb);
+    font-size: 26px;
+  }
+
+  .board-dock:not([data-hand="off"]) .game-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: 1fr;
+    gap: 6px;
+  }
+
+  .board-dock:not([data-hand="off"]) .game-actions button {
+    min-height: 44px;
+    font-size: 12px;
+    justify-content: center;
+    padding: 4px;
+  }
+}
+
+.hand-choices {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hand-choices button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #101a2d;
+  color: #b7c3d8;
+}
+
+.hand-choices button.active {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}

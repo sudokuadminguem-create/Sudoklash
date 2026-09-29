@@ -28,6 +28,7 @@ import type { BoardSnapshot } from "@/app/lib/solo-save";
 import { areRelated, CLASSIC, cellCount, type Geometry } from "@/lib/variants";
 import { nextLogicalStep } from "@/lib/sudoku-grader";
 import { BoardHeader, RaceBar, ReadyGate } from "./board/board-header";
+import { haptic } from "@/app/lib/haptics";
 import { GameActions, HintPanel, Keypad } from "./board/board-controls";
 import { BoardNotices, GameFooter, LossResult, VictoryPanel } from "./board/game-results";
 import "../board-variants.css";
@@ -210,6 +211,7 @@ export function SudokuBoard({
   };
   const finish = (grid: number[]) => {
     setDone(true);
+    if (settings.hapticKeys) haptic("win");
     announce(t("say.won", { time: formatClock(seconds) }));
     if (soloExperience) {
       setExperience("saving");
@@ -271,7 +273,7 @@ export function SudokuBoard({
         updateCells(current);
         flashError(entry.index);
       }
-      if (settings.vibrate) navigator.vibrate?.(180);
+      if (settings.vibrate) haptic("bad");
       // Several checks can be in flight and answer out of order: never let the count go back.
       const count = Math.min(
         3,
@@ -522,38 +524,43 @@ export function SudokuBoard({
         isRelated={related}
         onSelect={(i) => active && setSelected(i)}
       />
-      <Keypad
-        size={geometry.size}
-        selectedValue={selectedValue}
-        completed={completedDigits}
-        disabled={lost}
-        onDigit={(n) => input(n)}
-      />
-      <GameActions
-        lost={lost}
-        competitive={competitive}
-        noteMode={noteMode}
-        canUndo={history.length > 0}
-        canRedo={future.length > 0}
-        hintsLeft={hintLimit - hintsUsed}
-        hintDisabled={
-          !active ||
-          !judge.hint ||
-          !mistakesLoaded ||
-          done ||
-          hintLimit === 0 ||
-          hintsUsed >= hintLimit ||
-          lost ||
-          !unsolved
-        }
-        canAbandon={replayable}
-        onToggleNotes={() => setNoteMode(!noteMode)}
-        onErase={erase}
-        onUndo={undo}
-        onRedo={redo}
-        onHint={() => void requestHint()}
-        onAbandon={newGame}
-      />
+      <div className="board-dock" data-hand={settings.oneHanded}>
+        <Keypad
+          size={geometry.size}
+          selectedValue={selectedValue}
+          completed={completedDigits}
+          disabled={lost}
+          onDigit={(n) => {
+            if (settings.hapticKeys) haptic("tap");
+            input(n);
+          }}
+        />
+        <GameActions
+          lost={lost}
+          competitive={competitive}
+          noteMode={noteMode}
+          canUndo={history.length > 0}
+          canRedo={future.length > 0}
+          hintsLeft={hintLimit - hintsUsed}
+          hintDisabled={
+            !active ||
+            !judge.hint ||
+            !mistakesLoaded ||
+            done ||
+            hintLimit === 0 ||
+            hintsUsed >= hintLimit ||
+            lost ||
+            !unsolved
+          }
+          canAbandon={replayable}
+          onToggleNotes={() => setNoteMode(!noteMode)}
+          onErase={erase}
+          onUndo={undo}
+          onRedo={redo}
+          onHint={() => void requestHint()}
+          onAbandon={newGame}
+        />
+      </div>
       {hint && <HintPanel hint={hint} onReveal={revealHint} onDismiss={() => setShownHint(null)} />}
       <GameFooter
         hintLimit={hintLimit}

@@ -1,10 +1,16 @@
 "use client";
 import { useI18n } from "@/app/lib/i18n";
 import { locales, type MessageKey } from "@/app/lib/i18n-core";
-import { defaultSettings, fontScales, useSettings, type Settings } from "@/app/lib/settings";
+import {
+  defaultSettings,
+  fontScales,
+  oneHandedModes,
+  useSettings,
+  type Settings,
+} from "@/app/lib/settings";
 
 /** The settings that are a simple on/off switch. */
-type Switch = Exclude<keyof Settings, "fontScale">;
+type Switch = Exclude<keyof Settings, "fontScale" | "oneHanded">;
 
 const groups: { title: MessageKey; items: Switch[] }[] = [
   {
@@ -12,7 +18,10 @@ const groups: { title: MessageKey; items: Switch[] }[] = [
     items: ["highlightUnits", "highlightSame", "autoRemoveNotes", "largeDigits"],
   },
   { title: "settings.group.display", items: ["highContrast", "colorblind"] },
-  { title: "settings.group.game", items: ["showTimer", "confirmNewGrid", "vibrate"] },
+  {
+    title: "settings.group.game",
+    items: ["showTimer", "confirmNewGrid", "vibrate", "hapticKeys"],
+  },
 ];
 
 /** Player preferences, saved on this device. */
@@ -69,6 +78,28 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
           ))}
         </section>
       ))}
+      <section className="settings-group">
+        <h3>{t("settings.group.mobile")}</h3>
+        <div className="setting-row one-handed" role="radiogroup" aria-labelledby="one-handed">
+          <span>
+            <b id="one-handed">{t("oneHanded.label")}</b>
+            <small>{t("oneHanded.help")}</small>
+          </span>
+          <span className="hand-choices">
+            {oneHandedModes.map((value) => (
+              <button
+                key={value}
+                role="radio"
+                aria-checked={settings.oneHanded === value}
+                className={settings.oneHanded === value ? "active" : ""}
+                onClick={() => update({ oneHanded: value })}
+              >
+                {t(`oneHanded.${value}`)}
+              </button>
+            ))}
+          </span>
+        </div>
+      </section>
       <section className="settings-group">
         <h3>{t("settings.group.textSize")}</h3>
         <div className="setting-row font-scale-row">
