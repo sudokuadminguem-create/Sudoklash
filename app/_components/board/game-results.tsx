@@ -38,7 +38,7 @@ export function BoardNotices(props: { mistakes: number; unverified: number; onRe
   return (
     <>
       {mistakes > 0 && mistakes < 3 && (
-        <p className="grid-invalid" role="status">
+        <p className="grid-invalid">
           Chiffre incorrect. {3 - mistakes} {3 - mistakes === 1 ? "vie restante" : "vies restantes"}
           .
         </p>

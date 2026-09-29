@@ -125,7 +125,7 @@ button {
 .eyebrow {
   font-size: 12px;
   letter-spacing: 0.13em;
-  color: #71809b;
+  color: #8a99b3;
   font-weight: 800;
 }
 .season b {
@@ -355,7 +355,8 @@ header h1 {
   position: absolute;
   top: -8px;
   right: 10px;
-  background: var(--violet);
+  background: #6f3fe0;
+  color: #fff;
   padding: 2px 6px;
   border-radius: 7px;
   font-size: 9px;
