@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import { PlayerAvatar } from "./player-cosmetics";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
@@ -27,8 +27,7 @@ export function AchievementBoard({
     [error, setError] = useState(false);
   const [tab, setTab] = useState<"todo" | "done" | "frames">("todo"),
     [category, setCategory] = useState<Category>("all"),
-    [busy, setBusy] = useState(""),
-    [reveal, setReveal] = useState<Item | null>(null);
+    [busy, setBusy] = useState("");
   useEffect(() => {
     if (!account.user) {
       setData(null);
@@ -46,16 +45,6 @@ export function AchievementBoard({
       .then((payload) => {
         if (!live) return;
         setData(payload);
-        const key = `sudoklash-secret-revealed:${account.user?.id}`;
-        const previous = localStorage.getItem(key);
-        const earnedSecrets = payload.achievements.filter(
-          (a) => a.rarity !== "simple" && a.unlocked,
-        );
-        let known: string[] = [];
-        try { known = previous ? JSON.parse(previous) as string[] : []; } catch { /* stale browser data */ }
-        const first = earnedSecrets.find((a) => payload.newlyUnlocked?.includes(a.id) || !known.includes(a.id));
-        if (first) setReveal(first);
-        localStorage.setItem(key, JSON.stringify(earnedSecrets.map((a) => a.id)));
       })
       .catch(() => {
         if (live) setError(true);
@@ -220,41 +209,6 @@ export function AchievementBoard({
             </p>
           )}
         </>
-      )}
-      {reveal && (
-        <div
-          className="challenge-reveal"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="secret-title"
-        >
-          <div>
-            <Sparkles aria-hidden="true" />
-            <span>DÉFI {reveal.rarity === "epic" ? "ÉPIQUE" : "LÉGENDAIRE"} ACCOMPLI</span>
-            <PlayerAvatar
-              avatarId={cosmetics.state?.avatarId}
-              image={cosmetics.state?.customAvatar}
-              frameId={reveal.id}
-              size="large"
-            />
-            <h2 id="secret-title">{reveal.name}</h2>
-            <p>{reveal.requirement}</p>
-            <strong>
-              {reveal.rarity === "epic" ? "Cadre épique" : "Cadre légendaire"} débloqué
-            </strong>
-            <button
-              className="primary"
-              onClick={() => {
-                setReveal(null);
-                setTab("done");
-                setCategory(reveal.rarity);
-                void cosmetics.refresh();
-              }}
-            >
-              Découvrir mon cadre
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );

@@ -24,7 +24,7 @@ export async function GET(request: Request) {
           })),
         visibleTotal: 100,
         secretUnlocked: [...earned].filter((id) => id.startsWith("challenge-e-") || id.startsWith("challenge-l-")).length,
-        newlyUnlocked:newAwards.filter(id=>id.startsWith("challenge-e-")||id.startsWith("challenge-l-")),
+        newlyUnlocked:newAwards,
       },
       { headers: { "Cache-Control": "private, no-store" } },
     );
