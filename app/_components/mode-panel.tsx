@@ -70,94 +70,94 @@ export function ModePanel({
       </div>
     ) : (
       <div className="solo-picker">
-      <NearChallenges account={account} />
-      <div className="panel">
-        <div className="panel-head">
-          <span className="eyebrow">ENTRAÎNEMENT</span>
-          <h2>Choisis ta difficulté</h2>
-          <p className="panel-copy">
-            Chaque niveau utilise une grille 9×9 validée et une difficulté fondée sur les techniques
-            nécessaires pour la résoudre.
-          </p>
-        </div>
-        {saved && (
-          <button
-            className="resume-game"
-            onClick={() => {
-              setResuming(saved);
-              setChosen(saved.difficulty);
-            }}
-          >
-            <History />
-            <span>
-              <b>Reprendre ma partie</b>
-              <small>
-                {saved.difficulty} · {formatClock(saved.board.seconds)} · {saveProgress(saved)}%
-                complétée
-              </small>
-            </span>
-          </button>
-        )}
-        <div className="difficulty-grid">
-          {soloDifficulties.map((d, i) => (
+        <NearChallenges account={account} />
+        <div className="panel">
+          <div className="panel-head">
+            <span className="eyebrow">ENTRAÎNEMENT</span>
+            <h2>Choisis ta difficulté</h2>
+            <p className="panel-copy">
+              Chaque niveau utilise une grille 9×9 validée et une difficulté fondée sur les
+              techniques nécessaires pour la résoudre.
+            </p>
+          </div>
+          {saved && (
             <button
-              // A new grid replaces the saved one: ask first.
-              onClick={() => (saved && settings.confirmNewGrid ? setReplacing(d) : pick(d))}
-              key={d}
+              className="resume-game"
+              onClick={() => {
+                setResuming(saved);
+                setChosen(saved.difficulty);
+              }}
             >
-              <span>{["🌱", "●", "◆", "▲", "⬢", "♛"][i]}</span>
-              <b>{d}</b>
-              <small>
-                {
-                  [
-                    "Cases à chiffre unique",
-                    "Chiffre unique dans une ligne ou un bloc",
-                    "Candidats bloqués",
-                    "Paires",
-                    "Triples et X-Wing",
-                    "Techniques au-delà de l’Expert",
-                  ][i]
+              <History />
+              <span>
+                <b>Reprendre ma partie</b>
+                <small>
+                  {saved.difficulty} · {formatClock(saved.board.seconds)} · {saveProgress(saved)}%
+                  complétée
+                </small>
+              </span>
+            </button>
+          )}
+          <div className="difficulty-grid">
+            {soloDifficulties.map((d, i) => (
+              <button
+                // A new grid replaces the saved one: ask first.
+                onClick={() => (saved && settings.confirmNewGrid ? setReplacing(d) : pick(d))}
+                key={d}
+              >
+                <span>{["🌱", "●", "◆", "▲", "⬢", "♛"][i]}</span>
+                <b>{d}</b>
+                <small>
+                  {
+                    [
+                      "Cases à chiffre unique",
+                      "Chiffre unique dans une ligne ou un bloc",
+                      "Candidats bloqués",
+                      "Paires",
+                      "Triples et X-Wing",
+                      "Techniques au-delà de l’Expert",
+                    ][i]
+                  }
+                </small>
+                <span className="difficulty-xp">+{soloXpFor(d)} XP</span>
+              </button>
+            ))}
+          </div>
+          <div className="panel-head variant-head">
+            <span className="eyebrow">VARIANTES</span>
+            <h3>Change de règles</h3>
+          </div>
+          <div className="difficulty-grid variant-grid">
+            {variantIds.map((id) => (
+              <button
+                key={id}
+                onClick={() =>
+                  saved && settings.confirmNewGrid
+                    ? setReplacing(variantInfo[id].label)
+                    : pick(variantInfo[id].label)
                 }
-              </small>
-              <span className="difficulty-xp">+{soloXpFor(d)} XP</span>
-            </button>
-          ))}
+              >
+                <span>{{ mini: "▦", diagonal: "╳", killer: "Σ" }[id]}</span>
+                <b>{variantInfo[id].label}</b>
+                <small>{variantInfo[id].tagline}</small>
+                <span className="difficulty-xp">+{variantInfo[id].xp} XP</span>
+              </button>
+            ))}
+          </div>
+          {replacing && saved && (
+            <ConfirmDialog
+              title="Remplacer ta partie en cours ?"
+              message={`Ta partie ${saved.difficulty} commencée sera perdue si tu lances une nouvelle grille ${replacing}.`}
+              confirmLabel="Nouvelle grille"
+              cancelLabel="Garder ma partie"
+              onCancel={() => setReplacing(null)}
+              onConfirm={() => {
+                setReplacing(null);
+                pick(replacing);
+              }}
+            />
+          )}
         </div>
-        <div className="panel-head variant-head">
-          <span className="eyebrow">VARIANTES</span>
-          <h3>Change de règles</h3>
-        </div>
-        <div className="difficulty-grid variant-grid">
-          {variantIds.map((id) => (
-            <button
-              key={id}
-              onClick={() =>
-                saved && settings.confirmNewGrid
-                  ? setReplacing(variantInfo[id].label)
-                  : pick(variantInfo[id].label)
-              }
-            >
-              <span>{{ mini: "▦", diagonal: "╳", killer: "Σ" }[id]}</span>
-              <b>{variantInfo[id].label}</b>
-              <small>{variantInfo[id].tagline}</small>
-              <span className="difficulty-xp">+{variantInfo[id].xp} XP</span>
-            </button>
-          ))}
-        </div>
-        {replacing && saved && (
-          <ConfirmDialog
-            title="Remplacer ta partie en cours ?"
-            message={`Ta partie ${saved.difficulty} commencée sera perdue si tu lances une nouvelle grille ${replacing}.`}
-            confirmLabel="Nouvelle grille"
-            cancelLabel="Garder ma partie"
-            onCancel={() => setReplacing(null)}
-            onConfirm={() => {
-              setReplacing(null);
-              pick(replacing);
-            }}
-          />
-        )}
-      </div>
       </div>
     );
   if (mode === "daily") return <TimedChallenge kind="daily" openAuth={openAuth} />;

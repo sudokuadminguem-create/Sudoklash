@@ -156,38 +156,43 @@ describe("generator", () => {
 });
 
 describe("variant bank", () => {
+  // Checking a grid means solving it. Batches keep each test short even when the run is slowed
+  // down by coverage instrumentation, and the whole bank is still checked.
+  const BATCH = 10;
+  const seen = new Set<string>();
   for (const id of variantIds) {
-    it(`serves only valid ${variantInfo[id].label} grids with one solution`, () => {
-      expect(variantBank[id].length).toBeGreaterThanOrEqual(30);
-      const seen = new Set<string>();
-      for (const entry of variantBank[id]) {
-        const cages = entry.cages ? cagesFromText(entry.cages) : [];
-        const geometry = geometryOf(id, cages);
-        const puzzle = toGrid(entry.puzzle);
-        const solution = toGrid(entry.solution);
-        expect(puzzle).toHaveLength(geometry.size ** 2);
-        expect(solution).toHaveLength(geometry.size ** 2);
-        expect(seen.has(entry.puzzle)).toBe(false);
-        seen.add(entry.puzzle);
-        puzzle.forEach((digit, i) => digit && expect(digit).toBe(solution[i]));
-        // The solution obeys every rule of the variant…
-        for (const unit of distinctUnits({ ...geometry, cages: [] }))
-          expect(new Set(unit.map((cell) => solution[cell])).size).toBe(geometry.size);
-        for (const cage of cages) {
-          const digits = cage.cells.map((cell) => solution[cell]);
-          expect(new Set(digits).size).toBe(digits.length);
-          expect(digits.reduce((a, b) => a + b, 0)).toBe(cage.sum);
+    for (let from = 0; from < variantBank[id].length; from += BATCH) {
+      it(`serves only valid ${variantInfo[id].label} grids with one solution (${from + 1}-${Math.min(from + BATCH, variantBank[id].length)})`, () => {
+        if (from === 0) expect(variantBank[id].length).toBeGreaterThanOrEqual(30);
+        for (const entry of variantBank[id].slice(from, from + BATCH)) {
+          const cages = entry.cages ? cagesFromText(entry.cages) : [];
+          const geometry = geometryOf(id, cages);
+          const puzzle = toGrid(entry.puzzle);
+          const solution = toGrid(entry.solution);
+          expect(puzzle).toHaveLength(geometry.size ** 2);
+          expect(solution).toHaveLength(geometry.size ** 2);
+          expect(seen.has(entry.puzzle)).toBe(false);
+          seen.add(entry.puzzle);
+          puzzle.forEach((digit, i) => digit && expect(digit).toBe(solution[i]));
+          // The solution obeys every rule of the variant…
+          for (const unit of distinctUnits({ ...geometry, cages: [] }))
+            expect(new Set(unit.map((cell) => solution[cell])).size).toBe(geometry.size);
+          for (const cage of cages) {
+            const digits = cage.cells.map((cell) => solution[cell]);
+            expect(new Set(digits).size).toBe(digits.length);
+            expect(digits.reduce((a, b) => a + b, 0)).toBe(cage.sum);
+          }
+          // …and is the only one.
+          const found = solveVariant(geometry, puzzle);
+          expect(found.count).toBe(1);
+          expect(found.solution!.join("")).toBe(entry.solution);
+          if (id === "killer")
+            expect(cages.flatMap((c) => c.cells).sort((a, b) => a - b)).toEqual([
+              ...Array(81).keys(),
+            ]);
         }
-        // …and is the only one.
-        const found = solveVariant(geometry, puzzle);
-        expect(found.count).toBe(1);
-        expect(found.solution!.join("")).toBe(entry.solution);
-        if (id === "killer")
-          expect(cages.flatMap((c) => c.cells).sort((a, b) => a - b)).toEqual([
-            ...Array(81).keys(),
-          ]);
-      }
-    });
+      });
+    }
   }
 
   it("keeps clue counts within what each variant promises", () => {
