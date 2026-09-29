@@ -2348,7 +2348,10 @@ button {
 }
 
 /* Cadres de défis et collection */
-.solo-picker { display: grid; gap: 12px; }
+/* minmax(0, 1fr) : sans ça, la colonne implicite (auto) prend la largeur du
+   carrousel de défis et déborde de l'écran sur Chromium/Brave. */
+.solo-picker { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.solo-picker > * { min-width: 0; }
 .near-challenges {
   padding: 12px 14px;
   border: 1px solid #354d74;
@@ -2371,7 +2374,7 @@ button {
 .near-challenge.epic .challenge-rarity { color: #c0a4ff; }
 .near-challenge.legendary .challenge-rarity { color: #ffda87; }
 @media (max-width: 700px) {
-  .near-challenges-list { display: flex; overflow-x: auto; padding: 3px 4px 8px; scroll-snap-type: x mandatory; }
+  .near-challenges-list { display: flex; min-width: 0; max-width: 100%; overflow-x: auto; padding: 3px 4px 8px; scroll-snap-type: x mandatory; }
   .near-challenge { flex: 0 0 min(80vw, 265px); scroll-snap-align: start; }
 }
 
