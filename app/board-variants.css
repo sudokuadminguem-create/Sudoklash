@@ -1,0 +1,50 @@
+/* Variants: the diagonals of a diagonal grid and the cages of a killer grid. */
+.sudoku .sudoku-row button.diag,
+.sudoku .sudoku-row button.cage {
+  position: relative;
+  isolation: isolate;
+}
+.sudoku .sudoku-row button.diag::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(84, 200, 255, 0.13);
+  pointer-events: none;
+}
+.sudoku .sudoku-row button.cage::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 0 dashed #d9b95f;
+  pointer-events: none;
+}
+.sudoku .sudoku-row button.cage-t::after {
+  border-top-width: 1.5px;
+}
+.sudoku .sudoku-row button.cage-r::after {
+  border-right-width: 1.5px;
+}
+.sudoku .sudoku-row button.cage-b::after {
+  border-bottom-width: 1.5px;
+}
+.sudoku .sudoku-row button.cage-l::after {
+  border-left-width: 1.5px;
+}
+.cage-sum {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  z-index: 1;
+  color: #e4c66a;
+  font-size: clamp(8px, 1vw, 11px);
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+.variant-head {
+  margin-top: 26px;
+}
+.variant-head h3 {
+  margin: 0;
+}

@@ -10,7 +10,6 @@ import {
   personalRecord,
   progressPercent,
   pushHistory,
-  sameUnit,
   shareText,
   stepBack,
   toggleNote,
@@ -22,11 +21,12 @@ import { useBoardShortcuts, useGameClock } from "@/app/lib/board-hooks";
 import type { Entry, Judge } from "@/app/lib/judge";
 import { useSettings } from "@/app/lib/settings";
 import type { BoardSnapshot } from "@/app/lib/solo-save";
-import type { Difficulty } from "@/lib/difficulties";
+import { areRelated, CLASSIC, cellCount, type Geometry } from "@/lib/variants";
 import { nextLogicalStep } from "@/lib/sudoku-grader";
 import { BoardHeader, RaceBar, ReadyGate } from "./board/board-header";
 import { GameActions, HintPanel, Keypad } from "./board/board-controls";
 import { BoardNotices, GameFooter, LossResult, VictoryPanel } from "./board/game-results";
+import "../board-variants.css";
 import { SudokuGrid } from "./board/sudoku-grid";
 import type { ExperienceState, ShownHint, SolveResult } from "./board/types";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -36,7 +36,10 @@ type SudokuBoardProps = {
   puzzle: number[];
   /** Says whether each placed digit is correct. */
   judge: Judge;
-  difficulty?: Difficulty;
+  /** A classic level, or the label of a variant. */
+  difficulty?: string;
+  /** Size, boxes, diagonals and cages of a variant; the classic 9×9 grid when left out. */
+  geometry?: Geometry;
   competitive?: boolean;
   title?: string;
   /** Replaces the kind of game shown above the title ("PARTIE CLASSÉE", "DÉFI"…). */
@@ -73,6 +76,7 @@ export function SudokuBoard({
   puzzle,
   judge,
   difficulty = "Intermédiaire",
+  geometry = CLASSIC,
   competitive = false,
   title = "Arène éclair",
   modeLabel,
@@ -189,7 +193,9 @@ export function SudokuBoard({
       void Promise.resolve()
         .then(() => onSolved?.(grid, Math.max(1, seconds), puzzle))
         .then((result) => {
-          setExperienceTotal(result && typeof result === "object" ? result.totalXp ?? null : null);
+          setExperienceTotal(
+            result && typeof result === "object" ? (result.totalXp ?? null) : null,
+          );
           setExperience(result && typeof result === "object" ? result.xpGained : "guest");
         })
         .catch(() => setExperience("error"));
@@ -207,7 +213,9 @@ export function SudokuBoard({
         recordVerdict(entry, true);
         // Confirmed: the digit is no longer a candidate in its row, column and box.
         if (settings.autoRemoveNotes)
-          setCellNotes((prev) => notesAfterPlacing(prev, entry.index, entry.number, true));
+          setCellNotes((prev) =>
+            notesAfterPlacing(prev, entry.index, entry.number, true, geometry),
+          );
         // Other digits may have been placed since: count against the board as it is now.
         let current = cellsRef.current;
         if (current[entry.index] !== entry.number) {
@@ -217,7 +225,7 @@ export function SudokuBoard({
         }
         const correctCells = current.filter((_, i) => isCorrect(current, i)).length;
         onProgress?.(correctCells, current);
-        if (correctCells === 81) finish(current);
+        if (correctCells === cellCount(geometry)) finish(current);
         return;
       }
       // A late wrong verdict must not erase a newer entry in the same cell.
@@ -242,13 +250,14 @@ export function SudokuBoard({
   // Entries whose check failed and whose digit is still on the board; the others are moot.
   const unverified = failedEntries.filter((e) => cells[e.index] === e.number);
   // Digits confirmed in all nine places: there is nowhere left to put them.
-  const completedDigits = completedDigitsOf(cells, puzzle, verdicts);
+  const completedDigits = completedDigitsOf(cells, puzzle, verdicts, geometry.size);
   const retryFailed = () => {
     setFailedEntries([]);
     for (const entry of unverified) void submit(entry, cells);
   };
   const input = (n: number, index = selected, forceValue = false) => {
     if (
+      n > geometry.size ||
       completedDigits.has(n) ||
       !mistakesLoaded ||
       !active ||
@@ -278,7 +287,7 @@ export function SudokuBoard({
     updateCells(c);
     // The digit's own cell has no notes left. Its peers lose the candidate only once the
     // judge confirms the digit: a wrong one must not wipe out notes that are still right.
-    setCellNotes((prev) => notesAfterPlacing(prev, index, n, false));
+    setCellNotes((prev) => notesAfterPlacing(prev, index, n, false, geometry));
     void submit({ index, number: n, id: crypto.randomUUID() }, c);
   };
   // A new move: keep the board as it was for undo, and forget what could have been redone.
@@ -358,11 +367,11 @@ export function SudokuBoard({
       ? cells.filter((_, i) => !puzzle[i] && isCorrect(cells, i)).length
       : filled,
     unsolved = cells.some((_, i) => !isCorrect(cells, i)),
-    raceTotal = race?.totalToFill ?? 81,
+    raceTotal = race?.totalToFill ?? cellCount(geometry),
     time = formatClock(seconds),
     selectedValue = selected === null ? 0 : cells[selected];
   const related = (i: number) =>
-    settings.highlightUnits && selected !== null && sameUnit(i, selected);
+    settings.highlightUnits && selected !== null && areRelated(geometry, i, selected);
   // A hint is over once its digit is on the board, or the game is.
   const hint =
     shownHint && cells[shownHint.index] !== shownHint.number && !done && mistakes < 3
@@ -439,6 +448,7 @@ export function SudokuBoard({
         />
       )}
       <SudokuGrid
+        geometry={geometry}
         cells={cells}
         puzzle={puzzle}
         notes={cellNotes}
@@ -458,6 +468,7 @@ export function SudokuBoard({
         onSelect={(i) => active && setSelected(i)}
       />
       <Keypad
+        size={geometry.size}
         selectedValue={selectedValue}
         completed={completedDigits}
         disabled={lost}
@@ -492,7 +503,7 @@ export function SudokuBoard({
       <GameFooter
         hintLimit={hintLimit}
         hintsUsed={hintsUsed}
-        progress={progressPercent(filled, givens)}
+        progress={progressPercent(filled, givens, cellCount(geometry))}
         competitive={competitive}
       />
       <BoardNotices mistakes={mistakes} unverified={unverified.length} onRetry={retryFailed} />

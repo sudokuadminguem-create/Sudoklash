@@ -1,4 +1,5 @@
 import type { Difficulty } from "@/lib/difficulties";
+import { variantByLabel, variantInfo } from "@/lib/variants";
 
 export const freeAvatars = [
   { id: "nova", name: "Nova", symbol: "✦", colors: ["#284bba", "#6edafa"] },
@@ -81,7 +82,9 @@ export const soloWinXp: Record<Difficulty, number> = {
   Maître: 150,
 };
 export function soloXpFor(difficulty: string): number {
-  return difficulty in soloWinXp ? soloWinXp[difficulty as Difficulty] : 35;
+  if (difficulty in soloWinXp) return soloWinXp[difficulty as Difficulty];
+  const variant = variantByLabel(difficulty);
+  return variant ? variantInfo[variant].xp : 35;
 }
 export const levelFrames = [
   { level: 1, id: "starter", name: "Initial", color: "#526688" },

@@ -132,7 +132,9 @@ export function VictoryPanel(props: VictoryProps) {
               </span>
               <strong key={experience}>+{experience} XP</strong>
               <small>Expérience ajoutée à ton compte</small>
-              {props.experienceTotal !== null && <ExperienceProgress gained={experience} totalXp={props.experienceTotal} />}
+              {props.experienceTotal !== null && (
+                <ExperienceProgress gained={experience} totalXp={props.experienceTotal} />
+              )}
             </>
           ) : experience === "saving" ? (
             <small>Enregistrement de ton expérience…</small>

@@ -1,6 +1,7 @@
 // Pure rules of the Sudoku board, kept out of the React component so they can be tested alone.
 
 import { formatClock } from "@/app/lib/format-time";
+import { areRelated, CLASSIC, type Geometry } from "@/lib/variants";
 
 /** Pencil marks by cell index. */
 export type Notes = Record<number, number[]>;
@@ -10,6 +11,8 @@ export type Verdicts = { correct: Record<number, number>; wrong: Record<number, 
 export type HistoryStep = { cells: number[]; notes: Notes };
 
 export const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+/** The digits of a grid of the given side. */
+export const digitsFor = (size: number) => DIGITS.filter((n) => n <= size);
 export const MAX_MISTAKES = 3;
 
 /** Whether two cells share a row, a column or a 3×3 box. */
@@ -37,12 +40,16 @@ export function notesAfterPlacing(
   index: number,
   n: number,
   removeFromUnit: boolean,
+  geometry: Geometry = CLASSIC,
 ): Notes {
   return Object.fromEntries(
     Object.entries(notes).map(([key, marks]) => {
       const i = Number(key);
       if (i === index) return [key, []];
-      return [key, removeFromUnit && sameUnit(i, index) ? marks.filter((x) => x !== n) : marks];
+      return [
+        key,
+        removeFromUnit && areRelated(geometry, i, index) ? marks.filter((x) => x !== n) : marks,
+      ];
     }),
   );
 }
@@ -80,12 +87,13 @@ export function completedDigitsOf(
   cells: readonly number[],
   puzzle: readonly number[],
   verdicts: Verdicts,
+  size = 9,
 ) {
   return new Set<number>(
-    DIGITS.filter(
+    digitsFor(size).filter(
       (n) =>
         cells.filter((v, i) => v === n && (puzzle[i] === n || verdicts.correct[i] === n)).length ===
-        9,
+        size,
     ),
   );
 }
@@ -113,8 +121,8 @@ export function personalRecord(previousBest: number | null | undefined, seconds:
 }
 
 /** Share of the empty cells that are filled, as a whole percentage. */
-export const progressPercent = (filled: number, givens: number) =>
-  Math.round(((filled - givens) / (81 - givens)) * 100);
+export const progressPercent = (filled: number, givens: number, total = 81) =>
+  Math.round(((filled - givens) / (total - givens)) * 100);
 
 /** The text a player shares after a game. */
 export function shareText(game: {

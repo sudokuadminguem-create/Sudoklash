@@ -12,6 +12,8 @@ import {
   MAX_MISTAKES,
 } from "@/lib/entry-validation";
 import { pickPuzzle } from "@/lib/puzzle-picker";
+import { pickVariantGame } from "@/lib/variant-picker";
+import { cagesToText, isVariantId, sizeOfCells, variantInfo } from "@/lib/variants";
 import { MAX_SOLO_HINTS, MIN_SOLO_SECONDS } from "@/lib/solo-rules";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +27,8 @@ type Game = {
   mistakes: number;
   hints_used: number;
   completed_at: number | null;
+  variant: string;
+  cages: string;
 };
 type Body = {
   action?: unknown;
@@ -34,6 +38,7 @@ type Body = {
   number?: unknown;
   mistakeId?: unknown;
   grid?: unknown;
+  variant?: unknown;
 };
 
 const json = (value: unknown, status = 200) =>
@@ -54,6 +59,33 @@ export async function POST(request: Request) {
   const user = await getSiteUser(request);
 
   if (body.action === "start") {
+    if (body.variant !== undefined) {
+      if (!isVariantId(body.variant)) return json({ error: "invalid_variant" }, 400);
+      const variant = body.variant;
+      const { puzzle, solution, cages } = pickVariantGame(variant);
+      if (!user) return json({ guest: true, variant, puzzle, solution, cages });
+      const id = crypto.randomUUID();
+      await env.DB!.batch([
+        env
+          .DB!.prepare("DELETE FROM solo_games WHERE user_id = ? AND completed_at IS NULL")
+          .bind(user.userId),
+        env
+          .DB!.prepare(
+            "INSERT INTO solo_games (id, user_id, difficulty, puzzle, solution, started_at, variant, cages) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          )
+          .bind(
+            id,
+            user.userId,
+            variantInfo[variant].label,
+            puzzle.join(""),
+            solution.join(""),
+            Date.now(),
+            variant,
+            cagesToText(cages),
+          ),
+      ]);
+      return json({ guest: false, gameId: id, variant, puzzle, cages });
+    }
     if (!isSoloDifficulty(body.difficulty)) return json({ error: "invalid_difficulty" }, 400);
     const { puzzle, solution } = pickPuzzle(body.difficulty);
     // Guests practise without an account: nothing is saved, so they may check locally.
@@ -80,7 +112,8 @@ export async function POST(request: Request) {
 
   if (body.action === "check") {
     const { index, number, mistakeId } = body;
-    if (!isCellIndex(index) || !isDigit(number) || !isEntryId(mistakeId))
+    const size = sizeOfCells(game.puzzle.length) ?? 9;
+    if (!isCellIndex(index, game.puzzle.length) || !isDigit(number, size) || !isEntryId(mistakeId))
       return json({ error: "invalid_entry" }, 400);
     if (game.puzzle[index] !== "0") return json({ error: "invalid_entry" }, 422);
     if (game.solution[index] === String(number))
@@ -97,6 +130,8 @@ export async function POST(request: Request) {
   }
 
   if (body.action === "hint") {
+    // Hints teach classic techniques; the variants have none to teach yet.
+    if (game.variant !== "classic") return json({ error: "hints_unavailable" }, 409);
     if (!isGridOf(game.puzzle, body.grid)) return json({ error: "invalid_grid" }, 400);
     const grid = body.grid;
     if (game.hints_used >= MAX_SOLO_HINTS) return json({ error: "no_hints_left" }, 409);

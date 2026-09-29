@@ -6,13 +6,14 @@ import {
   clearSoloSave,
   storeSoloSave,
   type BoardSnapshot,
+  type SoloLevel,
   type SoloSave,
   type StartedGame,
 } from "@/app/lib/solo-save";
 import { recordSoloWin, soloRecord } from "@/app/lib/solo-records";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
-import type { Difficulty } from "@/lib/difficulties";
+import { geometryOf, variantByLabel } from "@/lib/variants";
 import { SudokuBoard } from "./sudoku-board";
 
 async function soloRequest<T>(body: Record<string, unknown>): Promise<T> {
@@ -42,7 +43,7 @@ export function SoloGame({
   openAuth,
   resume,
 }: {
-  difficulty: Difficulty;
+  difficulty: SoloLevel;
   account: Account;
   cosmetics: Cosmetics;
   openAuth: () => void;
@@ -55,17 +56,21 @@ export function SoloGame({
     [expired, setExpired] = useState(false);
   const userId = account.user?.id ?? null;
   const signedIn = !!userId;
+  // A variant has no logical hints to give: its judge answers digits only.
+  const variant = variantByLabel(difficulty);
   const start = useCallback(async () => {
     setError(false);
     try {
-      const started = await soloRequest<StartedGame>({ action: "start", difficulty });
+      const started = await soloRequest<StartedGame>(
+        variant ? { action: "start", variant } : { action: "start", difficulty },
+      );
       setBoard(undefined);
       setExpired(false);
       setGame(started);
     } catch {
       setError(true);
     }
-  }, [difficulty]);
+  }, [difficulty, variant]);
   useEffect(() => {
     // A resumed game is kept as long as it belongs to who is playing.
     if (game && game.guest === !signedIn) return;
@@ -75,7 +80,10 @@ export function SoloGame({
 
   const judge = useMemo<Judge | null>(() => {
     if (!game) return null;
-    if (game.guest) return localJudge(game.puzzle, game.solution);
+    if (game.guest) {
+      const local = localJudge(game.puzzle, game.solution);
+      return variant ? { check: local.check } : local;
+    }
     const { gameId } = game;
     return {
       check: ({ index, number, id }) =>
@@ -92,17 +100,20 @@ export function SoloGame({
           }
           throw e;
         }),
-      hint: async (grid, preferred) =>
-        (
-          await soloRequest<{ hint: { index: number; number: number } | null }>({
-            action: "hint",
-            gameId,
-            grid,
-            index: preferred,
-          })
-        ).hint,
+      hint: variant
+        ? undefined
+        : async (grid, preferred) =>
+            (
+              await soloRequest<{ hint: { index: number; number: number } | null }>({
+                action: "hint",
+                gameId,
+                grid,
+                index: preferred,
+              })
+            ).hint,
     };
-  }, [game, userId]);
+  }, [game, userId, variant]);
+  const geometry = useMemo(() => geometryOf(game?.variant, game?.cages), [game]);
 
   // Records are per player, like saves: a guest game stays the guest's.
   const owner = game && !game.guest ? userId : null;
@@ -140,6 +151,8 @@ export function SoloGame({
       puzzle={game.puzzle}
       judge={judge}
       difficulty={difficulty}
+      geometry={geometry}
+      hintsAllowed={variant ? 0 : undefined}
       title="Entraînement solo"
       soloExperience
       onConnect={openAuth}

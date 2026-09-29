@@ -15,24 +15,27 @@ export function mistakeKey(id: string, index: number, number: number) {
   return `${id}:${index}:${number}`;
 }
 
-export function isCellIndex(value: unknown): value is number {
-  return Number.isInteger(value) && (value as number) >= 0 && (value as number) < 81;
+/** A cell of a grid with `cells` cells (81 for the classic grid). */
+export function isCellIndex(value: unknown, cells = 81): value is number {
+  return Number.isInteger(value) && (value as number) >= 0 && (value as number) < cells;
 }
 
-export function isDigit(value: unknown): value is number {
-  return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= 9;
+/** A digit of a grid of side `size` (9 for the classic grid). */
+export function isDigit(value: unknown, size = 9): value is number {
+  return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= size;
 }
 
-/** An 81-cell grid of digits (0 = empty) that keeps every given of `puzzle`. */
+/** A grid of the puzzle's size, digits 0 (empty) to its side, keeping every given of `puzzle`. */
 export function isGridOf(puzzle: string, grid: unknown): grid is number[] {
+  const size = Math.round(Math.sqrt(puzzle.length));
   return (
     Array.isArray(grid) &&
-    grid.length === 81 &&
+    grid.length === puzzle.length &&
     grid.every(
       (value, i) =>
         Number.isInteger(value) &&
         value >= 0 &&
-        value <= 9 &&
+        value <= size &&
         (puzzle[i] === "0" || value === Number(puzzle[i])),
     )
   );
@@ -42,7 +45,7 @@ export function isGridOf(puzzle: string, grid: unknown): grid is number[] {
 export function matchesSolution(solution: string, grid: unknown) {
   return (
     Array.isArray(grid) &&
-    grid.length === 81 &&
+    grid.length === solution.length &&
     grid.every((value, i) => value === Number(solution[i]))
   );
 }

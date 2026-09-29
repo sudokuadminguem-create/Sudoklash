@@ -1,9 +1,11 @@
 import { Eraser, Lightbulb, Pencil, Redo2, RotateCcw, X } from "lucide-react";
-import { DIGITS } from "@/app/lib/board-logic";
+import { digitsFor } from "@/app/lib/board-logic";
 import type { ShownHint } from "./types";
 import { hintText } from "@/app/lib/hint-text";
 
 type KeypadProps = {
+  /** Side of the grid: the pad has one button per digit up to it. */
+  size?: number;
   selectedValue: number;
   completed: ReadonlySet<number>;
   disabled: boolean;
@@ -11,10 +13,14 @@ type KeypadProps = {
 };
 
 /** The digit buttons. */
-export function Keypad({ selectedValue, completed, disabled, onDigit }: KeypadProps) {
+export function Keypad({ size = 9, selectedValue, completed, disabled, onDigit }: KeypadProps) {
   return (
-    <div className="keypad" aria-label="Clavier numérique">
-      {DIGITS.map((n) => (
+    <div
+      className="keypad"
+      aria-label="Clavier numérique"
+      style={size === 9 ? undefined : { gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
+    >
+      {digitsFor(size).map((n) => (
         <button
           key={n}
           aria-label={completed.has(n) ? `Chiffre ${n} complété` : `Placer le chiffre ${n}`}
