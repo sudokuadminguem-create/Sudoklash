@@ -70,7 +70,7 @@ export function ModePanel({
       </div>
     ) : (
       <div className="solo-picker">
-        <NearChallenges account={account} />
+        <NearChallenges account={account} cosmetics={cosmetics} />
         <div className="panel">
           <div className="panel-head">
             <span className="eyebrow">ENTRAÎNEMENT</span>

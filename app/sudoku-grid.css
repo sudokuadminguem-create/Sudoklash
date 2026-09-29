@@ -2338,28 +2338,31 @@ button {
 }
 
 /* Cadres de défis et collection */
-.solo-picker { display: grid; gap: 18px; }
+.solo-picker { display: grid; gap: 12px; }
 .near-challenges {
-  padding: 18px;
+  padding: 12px 14px;
   border: 1px solid #354d74;
   border-radius: 16px;
   background: linear-gradient(120deg, #172642, #101c32);
 }
-.near-challenges-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-.near-challenges-heading h3 { margin: 0; font-size: 18px; }
-.near-challenges-heading small { color: #b5c7e0; font-size: 13px; }
-.near-challenges-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.near-challenge { display: grid; gap: 7px; min-width: 0; padding: 14px; border: 1px solid #344968; border-radius: 12px; background: #111d34; }
+.near-challenges-heading { margin-bottom: 9px; }
+.near-challenges-heading h3 { margin: 0; font-size: 16px; }
+.near-challenges-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.near-challenge { display: grid; gap: 5px; min-width: 0; padding: 9px 11px; border: 1px solid #344968; border-radius: 12px; background: #111d34; }
 .near-challenge.epic { border-color: #7355a7; }
 .near-challenge.legendary { border-color: #a48143; }
-.near-challenge strong { font-size: 15px; }
-.near-challenge > small { color: #b5c5df; font-size: 13px; line-height: 1.35; }
-.near-challenge > b { color: #d7e5fa; font-size: 13px; text-align: right; }
+.near-challenge-reward { display: flex; align-items: center; gap: 11px; min-width: 0; padding: 2px 2px 2px 5px; }
+.near-challenge-labels { display: grid; gap: 3px; min-width: 0; }
+.near-challenge-labels strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.near-challenge .challenge-rarity { font-size: 12px; letter-spacing: 0.02em; }
+.near-challenge > small { color: #b5c5df; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.near-challenge > b { color: #d7e5fa; font-size: 12px; text-align: right; }
+.near-challenge .challenge-progress { height: 6px; }
 .near-challenge.epic .challenge-rarity { color: #c0a4ff; }
 .near-challenge.legendary .challenge-rarity { color: #ffda87; }
 @media (max-width: 700px) {
-  .near-challenges-heading { display: grid; }
-  .near-challenges-list { grid-template-columns: 1fr; }
+  .near-challenges-list { display: flex; overflow-x: auto; padding: 3px 4px 8px; scroll-snap-type: x mandatory; }
+  .near-challenge { flex: 0 0 min(80vw, 265px); scroll-snap-align: start; }
 }
 
 .player-avatar.achievement-frame {
