@@ -724,6 +724,9 @@ header h1 {
   font-weight: 900;
   margin-top: -47px;
 }
+.pod > .pod-avatar { position: relative; }
+.pod-avatar .player-avatar { width: 48px; height: 48px; }
+.pod-avatar .pod-crown { position: absolute; right: -12px; top: -15px; width: 24px; height: 24px; color: #ffe595; filter: drop-shadow(0 2px 3px #111a2e); }
 .pod b {
   margin-top: 12px;
 }
@@ -1133,3 +1136,4 @@ header h1 {
 .solo-bar span {
   margin-left: auto;
 }
+
