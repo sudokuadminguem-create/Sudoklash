@@ -7,10 +7,12 @@ export function RealFriends({
   account,
   notify,
   openAuth,
+  onChallenge,
 }: {
   account: Account;
   notify: (s: string) => void;
   openAuth: () => void;
+  onChallenge?: (friend: { id: string; username: string }) => void;
 }) {
   if (!account.user)
     return (
@@ -20,5 +22,5 @@ export function RealFriends({
         action={openAuth}
       />
     );
-  return <FriendsDirectory account={account} notify={notify} />;
+  return <FriendsDirectory account={account} notify={notify} onChallenge={onChallenge} />;
 }
