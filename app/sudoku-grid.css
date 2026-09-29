@@ -72,24 +72,6 @@
   box-shadow: inset 0 0 0 3px #ff6d82 !important;
 }
 
-.sudoku .sudoku-row button.confirmed {
-  position: relative;
-}
-.sudoku .sudoku-row button.confirmed:not(.sel):not(.same) {
-  color: #8fffe1;
-  background: #123d40;
-}
-.sudoku .sudoku-row button.confirmed::after {
-  content: "✓";
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  color: #74ffd1;
-  font-size: 10px;
-  font-weight: 900;
-  line-height: 1;
-}
-
 .sudoku .cell-notes {
   color: #d5eaff;
   font-size: clamp(10px, 1.2vw, 14px);
