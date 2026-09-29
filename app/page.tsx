@@ -21,6 +21,7 @@ import "./sudoku-grid.css";
 import "./hint-techniques.css";
 import { AccountButton } from "./_components/account-button";
 import { AchievementBoard } from "./_components/achievement-board";
+import { ChallengeAnnouncer } from "./_components/challenge-announcer";
 import { AccountOverview } from "./_components/account-overview";
 import { AuthDialog } from "./_components/auth-dialog";
 import { Leaderboard } from "./_components/leaderboard";
@@ -165,6 +166,10 @@ export default function Home() {
           } as CSSProperties
         }
       >
+        <ChallengeAnnouncer account={account} cosmetics={cosmetics} onDiscover={() => {
+          setView("defis");
+          void cosmetics.refresh();
+        }} />
         <aside id="main-menu" className={mobile ? "side open" : "side"}>
           <div className="brand">
             <div className="brandmark">9</div>

@@ -119,6 +119,7 @@ export function TimedChallenge({
       if (!response.ok) throw new Error("challenge_save");
       setData(await response.json());
       setPendingGrid(null);
+      if (action === "complete") window.dispatchEvent(new Event("sudoklash:progress"));
     } catch {
       setError("Impossible d’enregistrer la tentative. Vérifiez votre connexion puis réessayez.");
     } finally {
