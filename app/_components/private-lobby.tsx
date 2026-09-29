@@ -6,7 +6,6 @@ import { supabase } from "@/app/lib/supabase";
 import type { Account, Profile } from "@/hooks/use-account";
 import { solvePuzzle } from "@/lib/sudoku-solver";
 import { LockedPanel } from "./locked-panel";
-import { PlayerAvatar } from "./player-cosmetics";
 
 export type Room = {
   id: string;
@@ -43,21 +42,8 @@ export function PrivateLobby({
   const [room, setRoom] = useState<Room | null>(null),
     [players, setPlayers] = useState<RoomPlayer[]>([]),
     [code, setCode] = useState(""),
-    [busy, setBusy] = useState(false),
-    [appearances, setAppearances] = useState<Record<string, { avatarId: string; frameId: string; image: string | null }>>({});
+    [busy, setBusy] = useState(false);
   const me = account.user?.id;
-  const playerIds = players.map((player) => player.user_id).join(",");
-  useEffect(() => {
-    if (!playerIds) return;
-    let active = true;
-    fetch(`/api/players/appearance?ids=${encodeURIComponent(playerIds)}`, { cache: "no-store" })
-      .then((response) => response.json() as Promise<{ appearances?: Array<{ id: string; avatarId: string; frameId: string; image: string | null }> }>)
-      .then((data) => {
-        if (active) setAppearances(Object.fromEntries((data.appearances ?? []).map(({ id, ...appearance }) => [id, appearance])));
-      })
-      .catch(() => {});
-    return () => { active = false; };
-  }, [playerIds]);
   const load = useCallback(async (roomId: string) => {
     const [{ data: r }, { data: p }] = await Promise.all([
       supabase.from("rooms").select("*").eq("id", roomId).single(),
@@ -195,7 +181,7 @@ export function PrivateLobby({
       <div className="lobby-list">
         {players.map((p) => (
           <div key={p.user_id}>
-            <PlayerAvatar avatarId={appearances[p.user_id]?.avatarId} frameId={appearances[p.user_id]?.frameId} image={appearances[p.user_id]?.image} />
+            <div className="avatar">{(p.profile?.username || "?").slice(0, 2).toUpperCase()}</div>
             <span>
               <b>{p.profile?.username || "Joueur"}</b>
               <small>{p.user_id === room.host_id ? "Hôte" : "Invité"}</small>
@@ -219,4 +205,3 @@ export function PrivateLobby({
     </div>
   );
 }
-
