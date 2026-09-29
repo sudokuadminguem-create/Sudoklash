@@ -33,6 +33,20 @@ describe("solo games", () => {
     expect(db.prepare("SELECT COUNT(*) AS n FROM solo_games").get()).toEqual({ n: 0 });
   });
 
+  it("hands a signed-in player a practice grid without touching their open game", async () => {
+    const { gameId } = await startGame();
+    const { body } = await callRoute(POST, {
+      action: "start",
+      difficulty: "Facile",
+      practice: true,
+    });
+    expect(body.guest).toBe(true);
+    expect(solveGrid(body.puzzle)).toEqual(body.solution);
+    expect(db.prepare("SELECT id FROM solo_games WHERE completed_at IS NULL").all()).toEqual([
+      { id: gameId },
+    ]);
+  });
+
   it("never sends the solution to signed-in players", async () => {
     const { body } = await callRoute(POST, { action: "start", difficulty: "Expert" });
     expect(body.guest).toBe(false);

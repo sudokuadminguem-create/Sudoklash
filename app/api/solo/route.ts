@@ -39,6 +39,8 @@ type Body = {
   mistakeId?: unknown;
   grid?: unknown;
   variant?: unknown;
+  /** Asks for a guest grid even when signed in: nothing is saved, nothing is abandoned. */
+  practice?: unknown;
 };
 
 const json = (value: unknown, status = 200) =>
@@ -56,7 +58,9 @@ const gameFor = (userId: string, gameId: unknown) =>
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as Body | null;
   if (!body) return json({ error: "invalid_request" }, 400);
-  const user = await getSiteUser(request);
+  // A practice start never touches the player's open game: it is how the app stocks spare grids.
+  const user =
+    body.action === "start" && body.practice === true ? null : await getSiteUser(request);
 
   if (body.action === "start") {
     if (body.variant !== undefined) {

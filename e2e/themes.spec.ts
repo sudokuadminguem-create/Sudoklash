@@ -22,7 +22,9 @@ async function startGame(page: Page) {
   const started = page.waitForResponse(
     (response) =>
       response.url().endsWith("/api/solo") &&
-      response.request().postData()?.includes('"start"') === true,
+      response.request().postData()?.includes('"start"') === true &&
+      // Not the background "practice" starts that stock the offline grids.
+      !response.request().postData()?.includes('"practice"'),
   );
   await page
     .locator(".difficulty-grid button")

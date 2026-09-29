@@ -1,5 +1,6 @@
 "use client";
 import { useI18n } from "@/app/lib/i18n";
+import { useInstall } from "@/app/lib/pwa";
 import { locales, type MessageKey } from "@/app/lib/i18n-core";
 import {
   defaultSettings,
@@ -28,6 +29,7 @@ const groups: { title: MessageKey; items: Switch[] }[] = [
 export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
   const { settings, update } = useSettings();
   const { t, locale, setLocale } = useI18n();
+  const install = useInstall();
   return (
     <div className="panel settings-panel">
       <div className="panel-head">
@@ -122,6 +124,20 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
           </div>
         </div>
       </section>
+      {install && (
+        <section className="settings-group">
+          <h3>{t("install.title")}</h3>
+          <div className="setting-row">
+            <span>
+              <b>{t("install.label")}</b>
+              <small>{t("install.help")}</small>
+            </span>
+            <button className="primary" onClick={() => void install()}>
+              {t("install.button")}
+            </button>
+          </div>
+        </section>
+      )}
       <button
         className="settings-reset"
         onClick={() => {

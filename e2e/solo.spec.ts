@@ -2,8 +2,11 @@ import { expect, test, type Page } from "@playwright/test";
 
 type Started = { guest: boolean; puzzle: number[]; solution: number[] };
 
+// Not the "practice" starts the app makes in the background to stock its offline grids.
 const isStart = (request: { url(): string; postData(): string | null }) =>
-  request.url().endsWith("/api/solo") && request.postData()?.includes('"start"') === true;
+  request.url().endsWith("/api/solo") &&
+  request.postData()?.includes('"start"') === true &&
+  !request.postData()?.includes('"practice"');
 
 const difficultyButton = (page: Page, name: string) =>
   page.locator(".difficulty-grid button").filter({
