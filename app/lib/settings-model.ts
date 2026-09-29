@@ -5,6 +5,9 @@
 export const fontScales = ["normal", "large", "xlarge"] as const;
 export type FontScale = (typeof fontScales)[number];
 
+export const oneHandedModes = ["off", "right", "left"] as const;
+export type OneHanded = (typeof oneHandedModes)[number];
+
 /** Player preferences, kept on this device. */
 export type Settings = {
   /** Shade the row, column and box of the selected cell. */
@@ -18,7 +21,11 @@ export type Settings = {
   showTimer: boolean;
   /** Vibrate on a wrong digit, where the device can. */
   vibrate: boolean;
+  /** A short tick under the finger on every keypad press. */
+  hapticKeys: boolean;
   largeDigits: boolean;
+  /** Dock the keypad at the bottom of the screen, under the thumb of this hand. */
+  oneHanded: OneHanded;
   /** Black and white, thick borders: for low vision and bright light. */
   highContrast: boolean;
   /** Errors and states shown with shapes and patterns, not red versus green. */
@@ -34,7 +41,9 @@ export const defaultSettings: Settings = {
   confirmNewGrid: true,
   showTimer: true,
   vibrate: false,
+  hapticKeys: false,
   largeDigits: false,
+  oneHanded: "off",
   highContrast: false,
   colorblind: false,
   fontScale: "normal",
@@ -51,8 +60,13 @@ export function parseSettings(raw: unknown): Partial<Settings> {
   const kept: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(raw)) {
     if (!(key in defaultSettings)) continue;
-    if (key === "fontScale" ? fontScales.includes(value as FontScale) : typeof value === "boolean")
-      kept[key] = value;
+    const valid =
+      key === "fontScale"
+        ? fontScales.includes(value as FontScale)
+        : key === "oneHanded"
+          ? oneHandedModes.includes(value as OneHanded)
+          : typeof value === "boolean";
+    if (valid) kept[key] = value;
   }
   return kept as Partial<Settings>;
 }

@@ -14,9 +14,11 @@ export {
   defaultSettings,
   displayScript,
   fontScales,
+  oneHandedModes,
   parseSettings,
   preferredSettings,
   type FontScale,
+  type OneHanded,
   type Settings,
 } from "./settings-model";
 

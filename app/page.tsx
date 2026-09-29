@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import "./sudoku-grid.css";
 import "./hint-techniques.css";
+import "./mobile.css";
 import "./pwa.css";
 import { AccountButton } from "./_components/account-button";
 import { AchievementBoard } from "./_components/achievement-board";
