@@ -1,6 +1,7 @@
 // The catalogue is shared by the server (awards) and the client (presentation).
 // Progress is derived exclusively from completed, server-recorded results.
 export type Metric =
+  | "killer"
   | "solo"
   | "beginner"
   | "easy"
@@ -288,6 +289,7 @@ export const achievementFrames = [
   ...make(epic, "epic", "e"),
   ...make(legendary, "legendary", "l"),
   ...make(majestic, "majestic", "m"),
+  { id: "challenge-l-026", name: "Ascension divine", requirement: "Super méga défi : réussir 1 grille Killer", metric: "killer" as const, target: 1, rarity: "legendary" as const, color: "#ffe9a3", accent: "#b87d26", symbol: "☀" },
 ];
 export type AchievementProgress = Record<Metric, number>;
 export function earnedAchievements(progress: AchievementProgress, alreadyEarned:Iterable<string>=[]) {
@@ -300,7 +302,7 @@ export function earnedAchievements(progress: AchievementProgress, alreadyEarned:
     for(const a of achievementFrames){
       if(earned.has(a.id))continue;
       // The two original collection finales count their original 150 frames.
-      const originalCount=[...earned].filter(id=>!id.startsWith("challenge-m-")).length;
+      const originalCount=[...earned].filter(id=>!id.startsWith("challenge-m-")&&id!=="challenge-l-026").length;
       const count=a.metric==="frames"?visible:a.metric==="epicFrames"?epic:a.metric==="otherFrames"?originalCount:progress[a.metric];
       if(count>=a.target){earned.add(a.id);changed=true}
     }

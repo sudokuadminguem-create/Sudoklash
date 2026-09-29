@@ -1,0 +1,21 @@
+.player-avatar[data-divine="true"] {
+  position: relative;
+  overflow: visible;
+  border-color: #ffe9a3;
+  box-shadow: 0 0 0 2px #b87d26, 0 0 22px #ffda7866;
+}
+.player-avatar[data-divine="true"] > .divine-halo {
+  position: absolute;
+  width: 145%;
+  height: 87%;
+  top: -62%;
+  left: -22.5%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 5;
+  filter: drop-shadow(0 0 4px #ffd369);
+}
+.divine-halo-glow { fill: #ffe9a32e; stroke: #ffe9a33d; stroke-width: 6; }
+.divine-halo-ring { fill: none; stroke: #fff6cb; stroke-width: 3; }
+.divine-halo-inner { fill: none; stroke: #e8b755; stroke-width: 1; }
+.divine-halo-rays { fill: #fff6cb; stroke: #ffe9a3; stroke-width: 2; stroke-linecap: round; }

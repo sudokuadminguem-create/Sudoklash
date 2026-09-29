@@ -19,7 +19,7 @@ export async function GET(request: Request) {
           .filter((a) => a.rarity !== "majestic")
           .map((a) => ({
             ...a,
-            progress:a.metric==="frames"?visibleCount:a.metric==="epicFrames"?epicCount:a.metric==="otherFrames"?[...earned].filter(id=>!id.startsWith("challenge-m-")).length-(earned.has(a.id)?1:0):progress[a.metric],
+            progress:a.metric==="frames"?visibleCount:a.metric==="epicFrames"?epicCount:a.metric==="otherFrames"?[...earned].filter(id=>!id.startsWith("challenge-m-")&&id!=="challenge-l-026").length-(earned.has(a.id)?1:0):progress[a.metric],
             unlocked: earned.has(a.id),
           })),
         visibleTotal: 100,

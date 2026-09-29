@@ -1,7 +1,7 @@
 import type { AchievementProgress } from "./achievement-frames";
 import { progressFor, soloXpFor } from "./cosmetics";
 
-type SoloRow = { difficulty: string; elapsed_seconds: number; completed_at: number; mistakes:number|null; hints_used:number|null };
+type SoloRow = { difficulty: string; elapsed_seconds: number; completed_at: number; mistakes:number|null; hints_used:number|null; variant:string|null };
 type PeriodRow = { id: string; mistakes: number; elapsed_seconds:number|null; completed_at:number };
 type MatchRow = {
   player1_id: string;
@@ -40,7 +40,7 @@ export async function achievementProgress(
   const [solos, dailies, weeklies, matches, friends] = await Promise.all([
     db
       .prepare(
-        "SELECT r.difficulty,r.elapsed_seconds,r.completed_at,g.mistakes,g.hints_used FROM solo_results r LEFT JOIN solo_games g ON g.id=r.id AND g.user_id=r.user_id WHERE r.user_id=? ORDER BY r.completed_at",
+        "SELECT r.difficulty,r.elapsed_seconds,r.completed_at,g.mistakes,g.hints_used,g.variant FROM solo_results r LEFT JOIN solo_games g ON g.id=r.id AND g.user_id=r.user_id WHERE r.user_id=? ORDER BY r.completed_at",
       )
       .bind(userId)
       .all<SoloRow>(),
@@ -115,6 +115,7 @@ export async function achievementProgress(
     losses: ranked.length - wins.length,
   });
   return {
+    killer: solo.filter((row) => row.variant === "killer").length,
     solo: solo.length,
     beginner: solo.filter((r) => r.difficulty === "Débutant").length,
     easy: solo.filter((r) => r.difficulty === "Facile").length,

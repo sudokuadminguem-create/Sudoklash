@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/solo/route";
-import { GET as cosmetics } from "@/app/api/cosmetics/route";
+import { GET as cosmetics, POST as equip } from "@/app/api/cosmetics/route";
 import { MIN_SOLO_SECONDS } from "@/lib/solo-rules";
 import { callRoute, installTestDatabase } from "./support/d1";
 import { signIn } from "./support/site-auth";
@@ -31,6 +31,20 @@ const stored = () =>
   };
 
 describe("variant games", () => {
+  it("awards the divine halo only after a server-validated Killer win", async () => {
+    await start("killer");
+    const game = stored();
+    expect((await callRoute(cosmetics)).body.unlockedFrames).not.toContain("challenge-l-026");
+    vi.advanceTimersByTime(MIN_SOLO_SECONDS * 1000);
+    const result = await callRoute(POST, { action: "complete", gameId: game.id, grid: game.solution.split("").map(Number) });
+    expect(result.status).toBe(200);
+    expect((await callRoute(cosmetics)).body.unlockedFrames).toContain("challenge-l-026");
+    const equipped = await callRoute(equip, { action: "equip_frame", id: "challenge-l-026" });
+    expect(equipped.status).toBe(200);
+    expect(equipped.body.frameId).toBe("challenge-l-026");
+    await callRoute(cosmetics);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM achievement_unlocks WHERE achievement_id='challenge-l-026'").get()).toEqual({ n: 1 });
+  });
   it("rejects unknown variants", async () => {
     for (const bad of ["classic", "hyper", 3, null, ""])
       expect((await start(bad)).body.error).toBe("invalid_variant");

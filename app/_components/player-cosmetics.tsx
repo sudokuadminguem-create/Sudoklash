@@ -5,6 +5,7 @@ import type { AccountState } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
 import { challengeFrameStyle, elementLabels } from "@/lib/achievement-styles";
 import { ElementalFrame } from "./elemental-frame";
+import "../divine-frame.css";
 import {
   achievementAvatars,
   avatars,
@@ -35,6 +36,7 @@ export function PlayerAvatar({
     <span
       className={`player-avatar ${size}${rankFrame ? " ranked-avatar" : ""}${achievement ? " achievement-frame" : ""}${achievement?.rarity === "epic" ? " epic-frame" : ""}${achievement?.rarity === "legendary" ? " legendary-frame" : ""}${achievement?.rarity === "majestic" ? " majestic-frame" : ""}${frameId === "none" ? " frameless-avatar" : ""}`}
       data-rank={rankFrame?.id}
+      data-divine={frameId === "challenge-l-026" ? "true" : undefined}
       data-frame-pattern={achievement?.pattern}
       style={
         {
@@ -57,6 +59,14 @@ export function PlayerAvatar({
         <span>{fallback ?? avatar.symbol}</span>
       )}
       {achievement && <ElementalFrame element={achievement.element} variant={achievement.variant} motif={achievement.motif} legendary={achievement.rarity === "legendary" || achievement.rarity === "majestic"} />}
+      {frameId === "challenge-l-026" && (
+        <svg className="divine-halo" viewBox="0 0 100 60" aria-hidden="true">
+          <ellipse className="divine-halo-glow" cx="50" cy="35" rx="33" ry="11" />
+          <ellipse className="divine-halo-ring" cx="50" cy="35" rx="30" ry="8" />
+          <ellipse className="divine-halo-inner" cx="50" cy="35" rx="24" ry="5" />
+          <path className="divine-halo-rays" d="M50 5v9 M27 10l4 8 M73 10l-4 8 M12 22l8 4 M88 22l-8 4 M45 16l5-6 5 6-5 6Z" />
+        </svg>
+      )}
     </span>
   );
 }

@@ -122,7 +122,7 @@ export function AchievementBoard({
           ["all", "Tous", tab === "todo" ? remaining.length : done.length],
           ["simple", "Classiques", tab === "todo" ? 100 - visible.filter((a) => a.unlocked).length : visible.filter((a) => a.unlocked).length],
           ["epic", "Épiques", tab === "todo" ? 25 - epicCount : epicCount],
-          ["legendary", "Légendaires", tab === "todo" ? 25 - legendaryCount : legendaryCount],
+          ["legendary", "Légendaires", tab === "todo" ? (data?.achievements.filter(a=>a.rarity==="legendary").length ?? 26) - legendaryCount : legendaryCount],
         ] as const).map(([id, label, count]) => (
           <button
             key={id}
