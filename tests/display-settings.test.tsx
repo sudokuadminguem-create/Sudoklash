@@ -47,7 +47,7 @@ describe("display settings", () => {
   it("offers contrast, colour-blind mode and text size in an « Affichage » group", async () => {
     await render();
     const groups = [...container.querySelectorAll(".settings-group h3")].map((h) => h.textContent);
-    expect(groups).toEqual(["Grille", "Affichage", "Partie", "Taille du texte"]);
+    expect(groups).toEqual(["Langue", "Grille", "Affichage", "Partie", "Taille du texte"]);
     expect(switchFor("Contraste élevé").checked).toBe(false);
     expect(switchFor("Mode daltonien").checked).toBe(false);
     expect([...container.querySelectorAll(".font-scale button")].map((b) => b.textContent)).toEqual(
