@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Share2, ShieldCheck, Trophy, X } from "lucide-react";
+import { useI18n } from "@/app/lib/i18n";
 import type { ExperienceState } from "./types";
 import { ExperienceProgress } from "../experience-progress";
 
@@ -12,21 +13,21 @@ type FooterProps = {
 
 /** Lives and hints rule, progress and the fairness note. */
 export function GameFooter({ hintLimit, hintsUsed, progress, competitive }: FooterProps) {
+  const { t } = useI18n();
   const left = hintLimit - hintsUsed;
   return (
     <div className="game-footer">
       <span>
-        3 vies par grille ·{" "}
-        {hintLimit
-          ? `${left} indice${left === 1 ? "" : "s"} restant${left === 1 ? "" : "s"}`
-          : "Aides désactivées"}
+        {t("footer.rules", {
+          hints: hintLimit ? t("footer.hints", { count: left }) : t("footer.noHelp"),
+        })}
       </span>
       <span>
-        Progression <b>{progress}%</b>
+        {t("footer.progress")} <b>{progress}%</b>
       </span>
       <span className="fair">
         <ShieldCheck />
-        {competitive ? "Mode compétitif" : "Solution unique vérifiée"}
+        {competitive ? t("footer.competitive") : t("footer.unique")}
       </span>
     </div>
   );
@@ -35,21 +36,17 @@ export function GameFooter({ hintLimit, hintsUsed, progress, competitive }: Foot
 /** Notices under the board: a wrong digit, or digits that could not be checked. */
 export function BoardNotices(props: { mistakes: number; unverified: number; onRetry: () => void }) {
   const { mistakes, unverified } = props;
+  const { t } = useI18n();
   return (
     <>
       {mistakes > 0 && mistakes < 3 && (
-        <p className="grid-invalid">
-          Chiffre incorrect. {3 - mistakes} {3 - mistakes === 1 ? "vie restante" : "vies restantes"}
-          .
-        </p>
+        <p className="grid-invalid">{t("notice.wrong", { count: 3 - mistakes })}</p>
       )}
       {unverified > 0 && (
         <p className="grid-invalid" role="alert">
-          {unverified === 1
-            ? "Impossible de vérifier ce chiffre."
-            : `Impossible de vérifier ${unverified} chiffres.`}{" "}
+          {t("notice.unverified", { count: unverified })}{" "}
           <button className="retry-mistake" onClick={props.onRetry}>
-            Réessayer
+            {t("notice.retry")}
           </button>
         </p>
       )}
@@ -59,12 +56,13 @@ export function BoardNotices(props: { mistakes: number; unverified: number; onRe
 
 /** Shown once the three lives are gone. */
 export function LossResult({ onNewGame }: { onNewGame?: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="loss-result" role="status">
       <X />
-      <h3>Grille perdue</h3>
-      <p>Tu as utilisé tes trois vies. Cette grille ne peut plus être terminée.</p>
-      {onNewGame && <button onClick={onNewGame}>Nouvelle grille</button>}
+      <h3>{t("loss.title")}</h3>
+      <p>{t("loss.copy")}</p>
+      {onNewGame && <button onClick={onNewGame}>{t("loss.newGrid")}</button>}
     </div>
   );
 }
@@ -86,6 +84,7 @@ type VictoryProps = {
 /** Victory screen: the game in numbers, the XP earned and the buttons to share or replay. */
 export function VictoryPanel(props: VictoryProps) {
   const { experience, soloExperience, onNewGame } = props;
+  const { t } = useI18n();
   const [shared, setShared] = useState(false);
   const share = async () => {
     try {
@@ -101,19 +100,21 @@ export function VictoryPanel(props: VictoryProps) {
   return (
     <div className={`victory${typeof experience === "number" ? " reward-ready" : ""}`}>
       <Trophy />
-      <h3>{soloExperience && experience === "saving" ? "Grille terminée !" : "Victoire !"}</h3>
-      <p>Grille {props.difficulty} terminée</p>
+      <h3>
+        {soloExperience && experience === "saving" ? t("victory.doneSaving") : t("victory.title")}
+      </h3>
+      <p>{t("victory.solved", { level: props.difficulty })}</p>
       <dl className="victory-stats">
         <div>
-          <dt>Temps</dt>
+          <dt>{t("victory.time")}</dt>
           <dd>{props.time}</dd>
         </div>
         <div>
-          <dt>Erreurs</dt>
+          <dt>{t("victory.mistakes")}</dt>
           <dd>{props.mistakes}/3</dd>
         </div>
         <div>
-          <dt>Indices</dt>
+          <dt>{t("victory.hints")}</dt>
           <dd>{props.hintsUsed}</dd>
         </div>
       </dl>
@@ -131,38 +132,38 @@ export function VictoryPanel(props: VictoryProps) {
                 ✦
               </span>
               <strong key={experience}>+{experience} XP</strong>
-              <small>Expérience ajoutée à ton compte</small>
+              <small>{t("victory.xpNote")}</small>
               {props.experienceTotal !== null && (
                 <ExperienceProgress gained={experience} totalXp={props.experienceTotal} />
               )}
             </>
           ) : experience === "saving" ? (
-            <small>Enregistrement de ton expérience…</small>
+            <small>{t("victory.saving")}</small>
           ) : experience === "guest" ? (
             <>
-              <small>Connecte-toi pour gagner de l’XP sur les prochaines grilles.</small>
+              <small>{t("victory.guest")}</small>
               {props.onConnect && (
                 <button className="solo-xp-connect" onClick={props.onConnect}>
-                  Se connecter
+                  {t("victory.signIn")}
                 </button>
               )}
             </>
           ) : experience === "error" ? (
-            <small>Résultat non enregistré : aucun XP ajouté.</small>
+            <small>{t("victory.notSaved")}</small>
           ) : null}
         </div>
       )}
       <div className="victory-actions">
         <button className="victory-share" onClick={() => void share()}>
           <Share2 />
-          {shared ? "Copié !" : "Partager"}
+          {shared ? t("victory.copied") : t("victory.share")}
         </button>
         {onNewGame ? (
           <button onClick={onNewGame} disabled={soloExperience && experience === "saving"}>
-            Nouvelle grille
+            {t("victory.newGrid")}
           </button>
         ) : (
-          <small>Enregistrement du temps…</small>
+          <small>{t("victory.savingTime")}</small>
         )}
       </div>
     </div>

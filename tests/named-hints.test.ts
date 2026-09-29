@@ -130,7 +130,7 @@ describe("named techniques", () => {
         for (let guard = 0; grid.includes(0) && guard < 81; guard++) {
           const step = nextLogicalStep(grid);
           if (!step) break;
-          const kinds = new Set((step.patterns ?? []).map(techniqueName));
+          const kinds = new Set((step.patterns ?? []).map((p) => techniqueName(p)));
           if (kinds.size > 1) {
             chained++;
             const { text, techniques } = hintText(step.index, step);

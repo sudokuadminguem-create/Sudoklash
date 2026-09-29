@@ -1,0 +1,19 @@
+.language-choices {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.language-choices button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #101a2d;
+  color: #b7c3d8;
+}
+
+.language-choices button.active {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}

@@ -1,70 +1,64 @@
 "use client";
+import { useI18n } from "@/app/lib/i18n";
+import { locales, type MessageKey } from "@/app/lib/i18n-core";
 import { defaultSettings, useSettings, type Settings } from "@/app/lib/settings";
 
-const groups: { title: string; items: [keyof Settings, string, string][] }[] = [
+const groups: { title: MessageKey; items: (keyof Settings & string)[] }[] = [
   {
-    title: "Grille",
-    items: [
-      [
-        "highlightUnits",
-        "Surligner ligne, colonne et bloc",
-        "Met en évidence les cases liées à la case sélectionnée.",
-      ],
-      [
-        "highlightSame",
-        "Surligner les chiffres identiques",
-        "Fait ressortir toutes les cases qui contiennent le chiffre sélectionné.",
-      ],
-      [
-        "autoRemoveNotes",
-        "Nettoyer les notes automatiquement",
-        "Un chiffre posé disparaît des notes de sa ligne, de sa colonne et de son bloc.",
-      ],
-      ["largeDigits", "Grands chiffres", "Agrandit les chiffres de la grille et des notes."],
-    ],
+    title: "settings.group.grid",
+    items: ["highlightUnits", "highlightSame", "autoRemoveNotes", "largeDigits"],
   },
-  {
-    title: "Partie",
-    items: [
-      ["showTimer", "Afficher le chronomètre", "Le temps reste mesuré même quand il est masqué."],
-      [
-        "confirmNewGrid",
-        "Confirmer avant une nouvelle grille",
-        "Demande une confirmation avant d’abandonner une grille commencée.",
-      ],
-      [
-        "vibrate",
-        "Vibrer en cas d’erreur",
-        "Sur les appareils qui le permettent, surtout les téléphones.",
-      ],
-    ],
-  },
+  { title: "settings.group.game", items: ["showTimer", "confirmNewGrid", "vibrate"] },
 ];
 
 /** Player preferences, saved on this device. */
 export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
   const { settings, update } = useSettings();
+  const { t, locale, setLocale } = useI18n();
   return (
     <div className="panel settings-panel">
       <div className="panel-head">
-        <span className="eyebrow">PRÉFÉRENCES</span>
-        <h2>Paramètres de jeu</h2>
-        <p className="panel-copy">Ces réglages sont enregistrés sur cet appareil.</p>
+        <span className="eyebrow">{t("settings.eyebrow")}</span>
+        <h2>{t("settings.title")}</h2>
+        <p className="panel-copy">{t("settings.copy")}</p>
       </div>
+      <section className="settings-group">
+        <h3>{t("language.title")}</h3>
+        <div className="setting-row" role="radiogroup" aria-labelledby="language-label">
+          <span>
+            <b id="language-label">{t("language.label")}</b>
+            <small>{t("language.help")}</small>
+          </span>
+          <span className="language-choices">
+            {locales.map((code) => (
+              <button
+                key={code}
+                role="radio"
+                aria-checked={locale === code}
+                lang={code}
+                className={locale === code ? "active" : ""}
+                onClick={() => setLocale(code)}
+              >
+                {t(`language.${code}`)}
+              </button>
+            ))}
+          </span>
+        </div>
+      </section>
       {groups.map((group) => (
         <section key={group.title} className="settings-group">
-          <h3>{group.title}</h3>
-          {group.items.map(([key, label, help]) => (
+          <h3>{t(group.title)}</h3>
+          {group.items.map((key) => (
             <label key={key} className="setting-row">
               <span>
-                <b>{label}</b>
-                <small>{help}</small>
+                <b>{t(`settings.${key}` as MessageKey)}</b>
+                <small>{t(`settings.${key}.help` as MessageKey)}</small>
               </span>
               <input
                 type="checkbox"
                 role="switch"
                 className="setting-switch"
-                checked={settings[key]}
+                checked={settings[key as keyof Settings] as boolean}
                 onChange={(e) => update({ [key]: e.target.checked })}
               />
             </label>
@@ -75,10 +69,10 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
         className="settings-reset"
         onClick={() => {
           update(defaultSettings);
-          notify("Paramètres par défaut rétablis");
+          notify(t("shell.settingsReset"));
         }}
       >
-        Rétablir les réglages par défaut
+        {t("settings.reset")}
       </button>
     </div>
   );
