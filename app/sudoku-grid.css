@@ -643,6 +643,9 @@ button {
   border-bottom: 1px solid var(--line);
   padding: 12px;
 }
+.lobby-list > div > .player-avatar {
+  flex: 0 0 auto;
+}
 .lobby-list span {
   display: flex;
   flex-direction: column;
