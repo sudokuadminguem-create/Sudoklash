@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./a11y.css";
+import "./themes.css";
+import { displayScript } from "./lib/settings-model";
 export const metadata: Metadata = {
   metadataBase: new URL("https://sudoklash.galletguemeric.chatgpt.site"),
   title: "Sudoku Clash — Le Sudoku compétitif",
@@ -34,7 +36,11 @@ export const viewport: Viewport = {
 };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    // The display script sets data attributes on <html> before React looks at it.
+    <html lang="fr" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: displayScript }} />
+      </head>
       <body>{children}</body>
     </html>
   );
