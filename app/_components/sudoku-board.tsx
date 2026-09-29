@@ -189,7 +189,9 @@ export function SudokuBoard({
       void Promise.resolve()
         .then(() => onSolved?.(grid, Math.max(1, seconds), puzzle))
         .then((result) => {
-          setExperienceTotal(result && typeof result === "object" ? result.totalXp ?? null : null);
+          setExperienceTotal(
+            result && typeof result === "object" ? (result.totalXp ?? null) : null,
+          );
           setExperience(result && typeof result === "object" ? result.xpGained : "guest");
         })
         .catch(() => setExperience("error"));
