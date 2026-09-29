@@ -1075,7 +1075,7 @@ button {
   overflow: hidden;
   text-align: center;
 }
-.victory .solo-xp strong {
+.victory .solo-xp > strong {
   position: relative;
   z-index: 1;
   color: #ffe090;
@@ -1086,7 +1086,7 @@ button {
   text-shadow: 0 0 18px #f4c45a88;
   animation: solo-xp-rise 0.65s cubic-bezier(0.18, 1.4, 0.4, 1) both;
 }
-.victory .solo-xp small {
+.victory .solo-xp > small {
   position: relative;
   z-index: 1;
   color: #b9f5e7;
@@ -1115,6 +1115,38 @@ button {
   border-radius: 9px;
   background: #123f52;
   font-size: 13px;
+}
+.experience-progress {
+  display: grid;
+  gap: 9px;
+  width: min(100%, 440px);
+  margin: 14px auto;
+  padding: 15px;
+  border: 1px solid #70d9d078;
+  border-radius: 14px;
+  background: #10263bcc;
+  color: #e6fff9;
+  text-align: left;
+}
+.experience-progress-heading { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.experience-progress-heading strong { color: #f6e3a7; font-size: 17px; }
+.experience-progress-heading b { color: #79f2d4; font-size: 17px; }
+.experience-progress-track { height: 13px; overflow: hidden; border-radius: 20px; background: #243754; }
+.experience-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #36aaea, #62efd1);
+  box-shadow: 0 0 12px #5adfc0;
+  animation: experience-fill 1.1s ease-out both;
+}
+.experience-progress > small { color: #bad5e6; font-size: 13px; }
+@keyframes experience-fill {
+  from { width: var(--xp-from); }
+  to { width: var(--xp-to); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .experience-progress-track span { animation: none; width: var(--xp-to); }
 }
 .victory > button:disabled {
   opacity: 0.55;

@@ -297,6 +297,7 @@ export default function Home() {
                 {mode === "classée" ? (
                   <RankedMatch
                     account={account}
+                    cosmetics={cosmetics}
                     openAuth={() => setAuthOpen(true)}
                     renderGame={(match, refresh) => (
                       <RankedGame match={match} refresh={refresh} account={account} />

@@ -102,6 +102,7 @@ export function SudokuBoard({
     [cellNotes, setCellNotes] = useState<Notes>(() => resume?.notes ?? {}),
     [done, setDone] = useState(false),
     [experience, setExperience] = useState<ExperienceState>(null),
+    [experienceTotal, setExperienceTotal] = useState<number | null>(null),
     [history, setHistory] = useState<HistoryStep[]>([]),
     [mistakes, setMistakes] = useState(resume?.mistakes ?? initialMistakes),
     [hintsUsed, setHintsUsed] = useState(resume?.hintsUsed ?? 0),
@@ -181,9 +182,10 @@ export function SudokuBoard({
       setExperience("saving");
       void Promise.resolve()
         .then(() => onSolved?.(grid, Math.max(1, seconds), puzzle))
-        .then((result) =>
-          setExperience(result && typeof result === "object" ? result.xpGained : "guest"),
-        )
+        .then((result) => {
+          setExperienceTotal(result && typeof result === "object" ? result.totalXp ?? null : null);
+          setExperience(result && typeof result === "object" ? result.xpGained : "guest");
+        })
         .catch(() => setExperience("error"));
     } else onSolved?.(grid, Math.max(1, seconds), puzzle);
   };
@@ -471,6 +473,7 @@ export function SudokuBoard({
           record={record}
           soloExperience={soloExperience}
           experience={experience}
+          experienceTotal={experienceTotal}
           shareText={shareText({ title, difficulty, time, mistakes, hintsUsed })}
           onConnect={onConnect}
           onNewGame={onNewGame}

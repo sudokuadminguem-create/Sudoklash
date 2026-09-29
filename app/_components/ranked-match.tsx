@@ -4,6 +4,8 @@ import { Search, Users, X, Trophy } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import { formatClock } from "@/app/lib/format-time";
 import type { AccountState } from "@/hooks/use-account";
+import type { Cosmetics } from "@/hooks/use-cosmetics";
+import { ExperienceProgress } from "./experience-progress";
 
 export type RankedState = {
   status: "idle" | "waiting" | "playing" | "finished";
@@ -54,16 +56,19 @@ export async function rankedRequest(action?: string, fields: Record<string, unkn
 
 export function RankedMatch({
   account,
+  cosmetics,
   openAuth,
   renderGame,
 }: {
   account: AccountState;
+  cosmetics: Cosmetics;
   openAuth: () => void;
   renderGame: (match: RankedState, refresh: () => Promise<void>) => React.ReactNode;
 }) {
   const [state, setState] = useState<RankedState | null>(null),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [reward, setReward] = useState<{ matchId: string; totalXp: number } | null>(null);
   const statusRef = useRef<RankedState["status"] | undefined>(undefined);
   useEffect(() => {
     statusRef.current = state?.status;
@@ -85,6 +90,15 @@ export function RankedMatch({
       if (statusRef.current === "waiting") void rankedRequest("cancel").catch(() => {});
     };
   }, [account.user?.id, refresh]);
+  useEffect(() => {
+    if (state?.status !== "finished" || !state.id) return;
+    let live = true;
+    const matchId = state.id;
+    void cosmetics.refresh().then((updated) => {
+      if (live && updated) setReward({ matchId, totalXp: updated.xp });
+    });
+    return () => { live = false; };
+  }, [state?.status, state?.id, cosmetics.refresh]);
   const submit = async (action: "join" | "cancel") => {
     setBusy(true);
     setError("");
@@ -155,6 +169,7 @@ export function RankedMatch({
             {change == null ? "Calcul des points…" : `${change > 0 ? "+" : ""}${change} points`}
           </strong>
         </div>
+        {reward && reward.matchId === state.id && <ExperienceProgress gained={won ? 120 : 40} totalXp={reward.totalXp} />}
         <button className="primary" disabled={busy} onClick={() => submit("join")}>
           {busy ? "Recherche…" : "Trouver un autre match"}
         </button>
