@@ -18,7 +18,7 @@ type Relationship = {
   frameId: string;
   image: string | null;
 };
-type Player = { id: string; username: string; avatarId: string; frameId: string };
+type Player = { id: string; username: string; avatarId: string; frameId: string; image: string | null };
 type FriendProfile = CardStats & ProfileLook & { username: string };
 type FriendsData = { players: Player[]; nextOffset: number | null; relationships: Relationship[] };
 const emptyData: FriendsData = { players: [], nextOffset: null, relationships: [] };
@@ -116,11 +116,6 @@ export default function FriendsDirectory({
       avatarId={person.avatarId}
       frameId={person.frameId}
       image={person.image}
-      fallback={
-        person.avatarId === "custom" && !person.image
-          ? person.username.slice(0, 2).toUpperCase()
-          : undefined
-      }
     />
   );
 
@@ -165,7 +160,7 @@ export default function FriendsDirectory({
     const relation = relationFor(player.id);
     return (
       <div className="friend player-entry" key={player.id}>
-        {avatar({ ...player, image: relation?.image })}
+        {avatar(player)}
         <div>
           <b>{player.username}</b>
           <small>
