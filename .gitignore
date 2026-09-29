@@ -50,6 +50,9 @@ next-env.d.ts
 /data/
 !.env.example
 
+# Coverage
+/coverage/
+
 # Playwright
 /test-results/
 /playwright-report/

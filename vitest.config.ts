@@ -13,5 +13,19 @@ export default defineConfig({
       { find: /^@\//, replacement: path("./") },
     ],
   },
-  test: { include: ["tests/**/*.test.{ts,tsx}"], environment: "node" },
+  test: {
+    include: ["tests/**/*.test.{ts,tsx}"],
+    environment: "node",
+    // Coverage instrumentation slows the puzzle generator tests down a lot.
+    testTimeout: 30_000,
+    coverage: {
+      provider: "v8",
+      // Application logic and API routes; generated UI kit and pages are left out.
+      include: ["app/api/**", "app/lib/**", "lib/**", "app/_components/**"],
+      exclude: ["lib/puzzle-bank.ts", "lib/runtime/**"],
+      reporter: ["text-summary", "json-summary", "lcovonly"],
+      // A floor just under today's numbers: coverage may go up, not quietly back down.
+      thresholds: { statements: 50, branches: 40, functions: 43, lines: 50 },
+    },
+  },
 });
