@@ -7,6 +7,9 @@ export const elementLabels: Record<string, string> = {
   crown: "Couronne", lotus: "Lotus", nebula: "Nébuleuse", onyx: "Onyx", prism: "Prisme",
 };
 export function challengeFrameStyle(id: string) {
+  if (id === "challenge-mini-playground") return {
+    rarity: "simple", color: "#ff8aca", accent: "#63dcff", highlight: "#fff38c", symbol: "🧸", pattern: 0, element: null, variant: 0, motif: 0,
+  };
   if (id === "challenge-l-026") return {
     rarity: "legendary", color: "#ffe9a3", accent: "#b87d26", highlight: "#fffdf1", symbol: "☀", pattern: 0, element: "angel" as const, variant: 0, motif: 0,
   };

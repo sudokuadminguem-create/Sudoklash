@@ -31,6 +31,18 @@ const stored = () =>
   };
 
 describe("variant games", () => {
+  it("awards the playground frame after a validated Mini 6x6 win", async () => {
+    expect((await callRoute(cosmetics)).body.unlockedFrames).not.toContain("challenge-mini-playground");
+    await start("mini");
+    const game = stored();
+    vi.advanceTimersByTime(MIN_SOLO_SECONDS * 1000);
+    const result = await callRoute(POST, { action: "complete", gameId: game.id, grid: game.solution.split("").map(Number) });
+    expect(result.status).toBe(200);
+    expect((await callRoute(cosmetics)).body.unlockedFrames).toContain("challenge-mini-playground");
+    const equipped = await callRoute(equip, { action: "equip_frame", id: "challenge-mini-playground" });
+    expect(equipped.status).toBe(200);
+    expect(equipped.body.frameId).toBe("challenge-mini-playground");
+  });
   it("awards the divine halo only after a server-validated Killer win", async () => {
     await start("killer");
     const game = stored();

@@ -1,6 +1,7 @@
 // The catalogue is shared by the server (awards) and the client (presentation).
 // Progress is derived exclusively from completed, server-recorded results.
 export type Metric =
+  | "mini"
   | "killer"
   | "solo"
   | "beginner"
@@ -285,6 +286,7 @@ const majestic: Entry[] = [
   ["Ascendant", "Atteindre le niveau 25", "level", 25, "✶"],
 ];
 export const achievementFrames = [
+  { id: "challenge-mini-playground", name: "Petit génie", requirement: "Réussir 1 grille Mini 6×6 · Cadre Récréation", metric: "mini" as const, target: 1, rarity: "simple" as const, color: "#ff8aca", accent: "#63dcff", symbol: "🧸" },
   ...make(visible, "simple", "v"),
   ...make(epic, "epic", "e"),
   ...make(legendary, "legendary", "l"),
@@ -302,7 +304,7 @@ export function earnedAchievements(progress: AchievementProgress, alreadyEarned:
     for(const a of achievementFrames){
       if(earned.has(a.id))continue;
       // The two original collection finales count their original 150 frames.
-      const originalCount=[...earned].filter(id=>!id.startsWith("challenge-m-")&&id!=="challenge-l-026").length;
+      const originalCount=[...earned].filter(id=>!id.startsWith("challenge-m-")&&id!=="challenge-l-026"&&id!=="challenge-mini-playground").length;
       const count=a.metric==="frames"?visible:a.metric==="epicFrames"?epic:a.metric==="otherFrames"?originalCount:progress[a.metric];
       if(count>=a.target){earned.add(a.id);changed=true}
     }

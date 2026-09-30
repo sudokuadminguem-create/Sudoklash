@@ -6,6 +6,7 @@ import type { Cosmetics } from "@/hooks/use-cosmetics";
 import { challengeFrameStyle, elementLabels } from "@/lib/achievement-styles";
 import { ElementalFrame } from "./elemental-frame";
 import "../divine-frame.css";
+import "../playground-frame.css";
 import {
   achievementAvatars,
   avatars,
@@ -36,6 +37,7 @@ export function PlayerAvatar({
     <span
       className={`player-avatar ${size}${rankFrame ? " ranked-avatar" : ""}${achievement ? " achievement-frame" : ""}${achievement?.rarity === "epic" ? " epic-frame" : ""}${achievement?.rarity === "legendary" ? " legendary-frame" : ""}${achievement?.rarity === "majestic" ? " majestic-frame" : ""}${frameId === "none" ? " frameless-avatar" : ""}`}
       data-rank={rankFrame?.id}
+      data-playground={frameId === "challenge-mini-playground" ? "true" : undefined}
       data-divine={frameId === "challenge-l-026" ? "true" : undefined}
       data-frame-pattern={achievement?.pattern}
       style={
@@ -49,7 +51,7 @@ export function PlayerAvatar({
         } as React.CSSProperties
       }
       role="img"
-      aria-label={`Avatar ${custom ? "personnalisé" : avatar.name}, ${frameId === "none" ? "sans cadre" : rankFrame ? `cadre ${rankFrame.name}` : achievement?.element ? `cadre ${elementLabels[achievement.element]}` : achievement ? "cadre de défi" : `cadre ${frame.name}`}`}
+      aria-label={`Avatar ${custom ? "personnalisé" : avatar.name}, ${frameId === "none" ? "sans cadre" : rankFrame ? `cadre ${rankFrame.name}` : achievement?.element ? `cadre ${elementLabels[achievement.element]}` : frameId === "challenge-mini-playground" ? "cadre Récréation" : achievement ? "cadre de défi" : `cadre ${frame.name}`}`}
     >
       {custom ? (
         <span className="avatar-image">
@@ -58,7 +60,12 @@ export function PlayerAvatar({
       ) : (
         <span>{fallback ?? avatar.symbol}</span>
       )}
-      {achievement && <ElementalFrame element={achievement.element} variant={achievement.variant} motif={achievement.motif} legendary={achievement.rarity === "legendary" || achievement.rarity === "majestic"} />}
+      {achievement && frameId !== "challenge-mini-playground" && <ElementalFrame element={achievement.element} variant={achievement.variant} motif={achievement.motif} legendary={achievement.rarity === "legendary" || achievement.rarity === "majestic"} />}
+      {frameId === "challenge-mini-playground" && (
+        <span className="playground-stickers" aria-hidden="true">
+          <span>🧸</span><span>🎈</span><span>⭐</span><span>🌈</span>
+        </span>
+      )}
       {frameId === "challenge-l-026" && (
         <svg className="divine-halo" viewBox="0 0 100 60" aria-hidden="true">
           <ellipse className="divine-halo-glow" cx="50" cy="35" rx="33" ry="11" />

@@ -115,6 +115,7 @@ export async function achievementProgress(
     losses: ranked.length - wins.length,
   });
   return {
+    mini: solo.filter((row) => row.variant === "mini").length,
     killer: solo.filter((row) => row.variant === "killer").length,
     solo: solo.length,
     beginner: solo.filter((r) => r.difficulty === "Débutant").length,

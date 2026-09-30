@@ -1,0 +1,31 @@
+.player-avatar.achievement-frame[data-playground="true"] {
+  border: 5px solid transparent;
+  background: linear-gradient(#243553, #243553) padding-box,
+    conic-gradient(#ff8aca, #ffe36e, #8aefaa, #63dcff, #b39aff, #ff8aca) border-box;
+  box-shadow: 0 0 0 2px #fff3, 0 3px 12px #ff8aca44;
+  overflow: visible;
+}
+.player-avatar[data-playground="true"]::before,
+.player-avatar[data-playground="true"]::after { display: none; }
+.player-avatar > .playground-stickers {
+  position: absolute;
+  inset: -9px;
+  width: auto;
+  height: auto;
+  pointer-events: none;
+  background: none;
+  border: 0;
+  z-index: 3;
+}
+.playground-stickers > span {
+  position: absolute;
+  font-size: 0.85em;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px #25314a);
+}
+.playground-stickers > span:nth-child(1) { left: -3px; bottom: -3px; transform: rotate(-15deg); }
+.playground-stickers > span:nth-child(2) { right: -3px; top: -7px; transform: rotate(15deg); }
+.playground-stickers > span:nth-child(3) { left: -2px; top: -5px; }
+.playground-stickers > span:nth-child(4) { right: -4px; bottom: -3px; }
+.player-avatar.small[data-playground="true"] { border-width: 3px; }
+.player-avatar.small > .playground-stickers { inset: -5px; }
