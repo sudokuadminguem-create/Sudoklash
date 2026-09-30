@@ -33,13 +33,18 @@ export default function FriendsDirectory({
   account,
   notify,
   onChallenge,
+  requestFocus = 0,
 }: {
   account: Account;
   notify: (message: string) => void;
   /** Opens the duel screen with this friend ready to be challenged. */
   onChallenge?: (friend: { id: string; username: string }) => void;
+  requestFocus?: number;
 }) {
   const [tab, setTab] = useState<"players" | "friends" | "requests">("players");
+  useEffect(() => {
+    if (requestFocus > 0) setTab("requests");
+  }, [requestFocus]);
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
   const [data, setData] = useState<FriendsData>(emptyData);

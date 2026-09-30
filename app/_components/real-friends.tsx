@@ -8,11 +8,13 @@ export function RealFriends({
   notify,
   openAuth,
   onChallenge,
+  requestFocus,
 }: {
   account: Account;
   notify: (s: string) => void;
   openAuth: () => void;
   onChallenge?: (friend: { id: string; username: string }) => void;
+  requestFocus?: number;
 }) {
   if (!account.user)
     return (
@@ -22,5 +24,12 @@ export function RealFriends({
         action={openAuth}
       />
     );
-  return <FriendsDirectory account={account} notify={notify} onChallenge={onChallenge} />;
+  return (
+    <FriendsDirectory
+      account={account}
+      notify={notify}
+      onChallenge={onChallenge}
+      requestFocus={requestFocus}
+    />
+  );
 }

@@ -98,10 +98,20 @@ function HomeContent() {
     // A friend picked in the friends list, waiting to be challenged on the duel screen.
     [duelTarget, setDuelTarget] = useState<{ id: string; username: string } | null>(null),
     [authOpen, setAuthOpen] = useState(false),
+    [editPhoto, setEditPhoto] = useState(false),
+    [friendRequestFocus, setFriendRequestFocus] = useState(0),
     [recovery, setRecovery] = useState(false),
     [recoveryStatus, setRecoveryStatus] = useState<"checking" | "ready" | "expired">("checking");
   const account = useAccount();
   const cosmetics = useCosmetics(account);
+  useEffect(() => {
+    if (!editPhoto || view !== "compte" || !cosmetics.state) return;
+    const editor = document.getElementById("profile-photo-editor");
+    if (!editor) return;
+    editor.scrollIntoView({ block: "center" });
+    editor.querySelector<HTMLInputElement>("input[type=file]")?.focus({ preventScroll: true });
+    setEditPhoto(false);
+  }, [editPhoto, view, cosmetics.state]);
   useEffect(() => {
     if (account.user && (view === "compte" || view === "boutique" || view === "defis"))
       void cosmetics.refresh();
@@ -266,9 +276,22 @@ function HomeContent() {
             </div>
             <div className="header-actions">
               <AccountButton
+                key={account.user?.id ?? "guest"}
                 account={account}
                 cosmetics={cosmetics}
                 onAccount={() => setView("compte")}
+                onFriends={() => {
+                  setFriendRequestFocus((value) => value + 1);
+                  setView("amis");
+                }}
+                onDuels={() => {
+                  setMode("duel");
+                  setView("jouer");
+                }}
+                onEditPhoto={() => {
+                  setEditPhoto(true);
+                  setView("compte");
+                }}
                 onOpen={() => setAuthOpen(true)}
               />
             </div>
@@ -374,6 +397,7 @@ function HomeContent() {
             {view === "classement" && <Leaderboard />}
             {view === "amis" && (
               <RealFriends
+                requestFocus={friendRequestFocus}
                 account={account}
                 notify={notify}
                 openAuth={() => setAuthOpen(true)}

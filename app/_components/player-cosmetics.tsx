@@ -148,7 +148,7 @@ function CustomAvatarUpload({
     }
   };
   return (
-    <div className="custom-avatar-upload">
+    <div className="custom-avatar-upload" id="profile-photo-editor">
       <label className={busy ? "disabled" : ""}>
         <input
           type="file"
