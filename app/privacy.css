@@ -1,0 +1,80 @@
+.settings-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.settings-tabs button.active {
+  border-color: #67caff;
+  background: #174168;
+}
+.privacy-connection {
+  margin: 16px 0;
+}
+.privacy-connection > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.privacy-connection dt {
+  color: var(--muted);
+}
+.privacy-connection dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.privacy-danger {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid #e5757580;
+}
+.privacy-danger p {
+  max-width: 720px;
+  line-height: 1.6;
+}
+.privacy-delete {
+  background: #7c2430;
+  border: 1px solid #f5828e;
+  color: #fff;
+}
+.privacy-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.privacy-unavailable {
+  color: var(--muted);
+}
+.privacy-dialog {
+  width: min(92vw, 520px);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--panel, #111a2e);
+  color: var(--text, #fff);
+  border: 1px solid #f5828e;
+  border-radius: 18px;
+  padding: 24px;
+}
+.privacy-dialog::backdrop {
+  background: #000a;
+}
+.privacy-dialog label,
+.privacy-dialog input {
+  display: block;
+  width: 100%;
+  margin: 12px 0;
+}
+.privacy-dialog form > div {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+@media (max-width: 480px) {
+  .privacy-connection > div {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+}

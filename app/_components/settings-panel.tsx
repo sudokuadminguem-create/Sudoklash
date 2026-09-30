@@ -1,5 +1,8 @@
 "use client";
 import { useI18n } from "@/app/lib/i18n";
+import { useState } from "react";
+import type { Account } from "@/hooks/use-account";
+import { PrivacySettings } from "./privacy-settings";
 import { useInstall } from "@/app/lib/pwa";
 import { locales, type MessageKey } from "@/app/lib/i18n-core";
 import {
@@ -26,7 +29,16 @@ const groups: { title: MessageKey; items: Switch[] }[] = [
 ];
 
 /** Player preferences, saved on this device. */
-export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
+export function SettingsPanel({
+  notify,
+  account,
+  openAuth,
+}: {
+  notify: (s: string) => void;
+  account?: Account;
+  openAuth?: () => void;
+}) {
+  const [tab, setTab] = useState<"preferences" | "privacy">("preferences");
   const { settings, update } = useSettings();
   const { t, locale, setLocale } = useI18n();
   const install = useInstall();
@@ -37,116 +49,148 @@ export function SettingsPanel({ notify }: { notify: (s: string) => void }) {
         <h2>{t("settings.title")}</h2>
         <p className="panel-copy">{t("settings.copy")}</p>
       </div>
-      <section className="settings-group">
-        <h3>{t("language.title")}</h3>
-        <div className="setting-row" role="radiogroup" aria-labelledby="language-label">
-          <span>
-            <b id="language-label">{t("language.label")}</b>
-            <small>{t("language.help")}</small>
-          </span>
-          <span className="language-choices">
-            {locales.map((code) => (
-              <button
-                key={code}
-                role="radio"
-                aria-checked={locale === code}
-                lang={code}
-                className={locale === code ? "active" : ""}
-                onClick={() => setLocale(code)}
-              >
-                {t(`language.${code}`)}
-              </button>
-            ))}
-          </span>
-        </div>
-      </section>
-      {groups.map((group) => (
-        <section key={group.title} className="settings-group">
-          <h3>{t(group.title)}</h3>
-          {group.items.map((key) => (
-            <label key={key} className="setting-row">
-              <span>
-                <b>{t(`settings.${key}` as MessageKey)}</b>
-                <small>{t(`settings.${key}.help` as MessageKey)}</small>
-              </span>
-              <input
-                type="checkbox"
-                role="switch"
-                className="setting-switch"
-                checked={settings[key]}
-                onChange={(e) => update({ [key]: e.target.checked })}
-              />
-            </label>
-          ))}
-        </section>
-      ))}
-      <section className="settings-group">
-        <h3>{t("settings.group.mobile")}</h3>
-        <div className="setting-row one-handed" role="radiogroup" aria-labelledby="one-handed">
-          <span>
-            <b id="one-handed">{t("oneHanded.label")}</b>
-            <small>{t("oneHanded.help")}</small>
-          </span>
-          <span className="hand-choices">
-            {oneHandedModes.map((value) => (
-              <button
-                key={value}
-                role="radio"
-                aria-checked={settings.oneHanded === value}
-                className={settings.oneHanded === value ? "active" : ""}
-                onClick={() => update({ oneHanded: value })}
-              >
-                {t(`oneHanded.${value}`)}
-              </button>
-            ))}
-          </span>
-        </div>
-      </section>
-      <section className="settings-group">
-        <h3>{t("settings.group.textSize")}</h3>
-        <div className="setting-row font-scale-row">
-          <span>
-            <b>{t("settings.fontScale")}</b>
-            <small>{t("settings.fontScale.help")}</small>
-          </span>
-          <div className="font-scale" role="radiogroup" aria-label={t("settings.group.textSize")}>
-            {fontScales.map((scale) => (
-              <button
-                key={scale}
-                role="radio"
-                aria-checked={settings.fontScale === scale}
-                className={settings.fontScale === scale ? "active" : ""}
-                onClick={() => update({ fontScale: scale })}
-              >
-                {t(`fontScale.${scale}`)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-      {install && (
-        <section className="settings-group">
-          <h3>{t("install.title")}</h3>
-          <div className="setting-row">
-            <span>
-              <b>{t("install.label")}</b>
-              <small>{t("install.help")}</small>
-            </span>
-            <button className="primary" onClick={() => void install()}>
-              {t("install.button")}
-            </button>
-          </div>
-        </section>
-      )}
-      <button
-        className="settings-reset"
-        onClick={() => {
-          update(defaultSettings);
-          notify(t("shell.settingsReset"));
-        }}
+      <div
+        className="settings-tabs"
+        role="group"
+        aria-label={locale === "fr" ? "Rubriques des paramètres" : "Settings sections"}
       >
-        {t("settings.reset")}
-      </button>
+        <button
+          className={tab === "preferences" ? "active" : ""}
+          aria-pressed={tab === "preferences"}
+          onClick={() => setTab("preferences")}
+        >
+          {locale === "fr" ? "Préférences" : "Preferences"}
+        </button>
+        <button
+          className={tab === "privacy" ? "active" : ""}
+          aria-pressed={tab === "privacy"}
+          onClick={() => setTab("privacy")}
+        >
+          {locale === "fr" ? "Confidentialité" : "Privacy"}
+        </button>
+      </div>
+      {tab === "privacy" ? (
+        account && (
+          <PrivacySettings key={account.user?.id ?? "guest"} account={account} openAuth={openAuth ?? (() => {})} notify={notify} />
+        )
+      ) : (
+        <>
+          <section className="settings-group">
+            <h3>{t("language.title")}</h3>
+            <div className="setting-row" role="radiogroup" aria-labelledby="language-label">
+              <span>
+                <b id="language-label">{t("language.label")}</b>
+                <small>{t("language.help")}</small>
+              </span>
+              <span className="language-choices">
+                {locales.map((code) => (
+                  <button
+                    key={code}
+                    role="radio"
+                    aria-checked={locale === code}
+                    lang={code}
+                    className={locale === code ? "active" : ""}
+                    onClick={() => setLocale(code)}
+                  >
+                    {t(`language.${code}`)}
+                  </button>
+                ))}
+              </span>
+            </div>
+          </section>
+          {groups.map((group) => (
+            <section key={group.title} className="settings-group">
+              <h3>{t(group.title)}</h3>
+              {group.items.map((key) => (
+                <label key={key} className="setting-row">
+                  <span>
+                    <b>{t(`settings.${key}` as MessageKey)}</b>
+                    <small>{t(`settings.${key}.help` as MessageKey)}</small>
+                  </span>
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    className="setting-switch"
+                    checked={settings[key]}
+                    onChange={(e) => update({ [key]: e.target.checked })}
+                  />
+                </label>
+              ))}
+            </section>
+          ))}
+          <section className="settings-group">
+            <h3>{t("settings.group.mobile")}</h3>
+            <div className="setting-row one-handed" role="radiogroup" aria-labelledby="one-handed">
+              <span>
+                <b id="one-handed">{t("oneHanded.label")}</b>
+                <small>{t("oneHanded.help")}</small>
+              </span>
+              <span className="hand-choices">
+                {oneHandedModes.map((value) => (
+                  <button
+                    key={value}
+                    role="radio"
+                    aria-checked={settings.oneHanded === value}
+                    className={settings.oneHanded === value ? "active" : ""}
+                    onClick={() => update({ oneHanded: value })}
+                  >
+                    {t(`oneHanded.${value}`)}
+                  </button>
+                ))}
+              </span>
+            </div>
+          </section>
+          <section className="settings-group">
+            <h3>{t("settings.group.textSize")}</h3>
+            <div className="setting-row font-scale-row">
+              <span>
+                <b>{t("settings.fontScale")}</b>
+                <small>{t("settings.fontScale.help")}</small>
+              </span>
+              <div
+                className="font-scale"
+                role="radiogroup"
+                aria-label={t("settings.group.textSize")}
+              >
+                {fontScales.map((scale) => (
+                  <button
+                    key={scale}
+                    role="radio"
+                    aria-checked={settings.fontScale === scale}
+                    className={settings.fontScale === scale ? "active" : ""}
+                    onClick={() => update({ fontScale: scale })}
+                  >
+                    {t(`fontScale.${scale}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+          {install && (
+            <section className="settings-group">
+              <h3>{t("install.title")}</h3>
+              <div className="setting-row">
+                <span>
+                  <b>{t("install.label")}</b>
+                  <small>{t("install.help")}</small>
+                </span>
+                <button className="primary" onClick={() => void install()}>
+                  {t("install.button")}
+                </button>
+              </div>
+            </section>
+          )}
+          <button
+            className="settings-reset"
+            onClick={() => {
+              update(defaultSettings);
+              notify(t("shell.settingsReset"));
+            }}
+          >
+            {t("settings.reset")}
+          </button>
+        </>
+      )}
     </div>
   );
 }

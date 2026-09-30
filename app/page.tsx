@@ -384,7 +384,9 @@ function HomeContent() {
                 }}
               />
             )}
-            {view === "parametres" && <SettingsPanel notify={notify} />}
+            {view === "parametres" && (
+              <SettingsPanel notify={notify} account={account} openAuth={() => setAuthOpen(true)} />
+            )}
             {view === "boutique" && (
               <Shop
                 notify={notify}
