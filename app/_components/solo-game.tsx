@@ -46,6 +46,7 @@ export function SoloGame({
   cosmetics,
   openAuth,
   resume,
+  practice = false,
 }: {
   difficulty: SoloLevel;
   account: Account;
@@ -53,6 +54,7 @@ export function SoloGame({
   openAuth: () => void;
   /** A saved game to carry on instead of starting a new one. */
   resume?: SoloSave;
+  practice?: boolean;
 }) {
   const [game, setGame] = useState<StartedGame | null>(resume?.game ?? null),
     [board, setBoard] = useState<BoardSnapshot | undefined>(resume?.board),
@@ -66,6 +68,16 @@ export function SoloGame({
   const variant = variantByLabel(difficulty);
   const start = useCallback(async () => {
     setError(false);
+    if ((practice || !navigator.onLine) && !variant && isSoloDifficulty(difficulty)) {
+      const spare = takeOfflineGrid(difficulty);
+      if (spare) {
+        setBoard(undefined);
+        setExpired(false);
+        setOffline(true);
+        setGame({ guest: true, ...spare });
+        return;
+      }
+    }
     try {
       const started = await soloRequest<StartedGame>(
         variant ? { action: "start", variant } : { action: "start", difficulty },
@@ -84,10 +96,11 @@ export function SoloGame({
         setGame({ guest: true, ...spare });
       } else setError(true);
     }
-  }, [difficulty, variant]);
+  }, [difficulty, variant, practice]);
   useEffect(() => {
     // A resumed game is kept as long as it belongs to who is playing.
-    if (game && game.guest === !signedIn) return;
+    if (game && (game.guest === !signedIn || (game.guest && (practice || !navigator.onLine))))
+      return;
     void start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [start, signedIn]);

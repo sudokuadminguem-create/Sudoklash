@@ -31,10 +31,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const renderSolo = () =>
+const renderSolo = (practice = false) =>
   act(async () =>
     root.render(
       <SoloGame
+        practice={practice}
         difficulty="Facile"
         account={guestAccount}
         cosmetics={cosmetics}
@@ -56,11 +57,19 @@ describe("solo without a connection", () => {
     expect(JSON.parse(window.localStorage.getItem("sudoklash:offline-pack")!).Facile).toEqual([]);
   });
 
-  it("shows the usual error when there is no spare grid", async () => {
+  it("starts a local grid even when no spare was downloaded", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
     await renderSolo();
-    expect(container.querySelector(".sudoku")).toBeNull();
-    expect(container.textContent).toContain("Impossible de charger une grille");
+    expect(container.querySelector(".sudoku")).not.toBeNull();
+    expect(container.querySelector(".offline-note")?.textContent).toContain("sans XP");
+  });
+
+  it("explicit offline practice never contacts the server", async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal("fetch", fetcher);
+    await renderSolo(true);
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(container.querySelector(".sudoku")).not.toBeNull();
   });
 
   it("shows no offline note when the server answers", async () => {

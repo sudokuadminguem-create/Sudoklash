@@ -10,7 +10,16 @@ type InstallPrompt = Event & {
 /** Registers the service worker; only in production, where files are fingerprinted. */
 export function registerServiceWorker() {
   if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
-  const register = () => void navigator.serviceWorker.register("/sw.js").catch(() => {});
+  const register = () =>
+    void navigator.serviceWorker
+      .register("/sw.js")
+      .then(async () => {
+        const registration = await navigator.serviceWorker.ready;
+        // The first page loaded before the worker existed: preserve its already loaded assets too.
+        const urls = performance.getEntriesByType("resource").map((entry) => entry.name);
+        registration.active?.postMessage({ type: "PREPARE_OFFLINE", urls });
+      })
+      .catch(() => {});
   if (document.readyState === "complete") register();
   else window.addEventListener("load", register, { once: true });
 }

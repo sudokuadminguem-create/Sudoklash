@@ -1,6 +1,7 @@
 // A few spare guest grids kept in the browser, so a solo game can start without a connection.
 // They are practice games: nobody signed in earns XP from them, since the server never saw them.
 
+import { pickPuzzle } from "@/lib/puzzle-picker";
 import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
 
 export type OfflineGrid = { puzzle: number[]; solution: number[] };
@@ -50,7 +51,13 @@ function writePack(pack: Pack) {
 export function takeOfflineGrid(level: Difficulty): OfflineGrid | null {
   const pack = readPack();
   const [next, ...rest] = pack[level] ?? [];
-  if (!next) return null;
+  if (!next) {
+    const grid = pickPuzzle(level);
+    return {
+      puzzle: grid.puzzle.split("").map(Number),
+      solution: grid.solution.split("").map(Number),
+    };
+  }
   writePack({ ...pack, [level]: rest });
   return next;
 }

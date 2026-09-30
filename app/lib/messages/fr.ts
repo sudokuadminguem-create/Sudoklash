@@ -75,6 +75,11 @@ export const fr = {
   "solo.newGrid": "Nouvelle grille",
   "solo.loadError": "Impossible de charger une grille. Vérifiez votre connexion.",
   "solo.title": "Entraînement solo",
+  "solo.offlineStart": "Jouer hors ligne",
+  "solo.offlineActive": "Mode hors ligne activé",
+  "solo.offlineHelp":
+    "Six difficultés, sans XP ni classement. Ouvre le site une fois avec Internet avant de jouer sans connexion.",
+  "solo.practice": "Entraînement",
   "solo.offlineNote": "Hors ligne : partie d’entraînement, sans XP ni classement.",
   "solo.retry": "Réessayer",
   "solo.preparing": "Préparation d’une nouvelle grille {level}…",

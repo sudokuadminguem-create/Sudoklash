@@ -2,7 +2,7 @@
 // without a connection. Nothing from /api/ is ever cached here — game state and answers always
 // come from the server; offline grids are kept by the app itself (app/lib/offline-pack.ts).
 
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL = `sudoklash-shell-${VERSION}`;
 const ASSETS = `sudoklash-assets-${VERSION}`;
 const PRECACHE = ["/", "/manifest.webmanifest", "/favicon.svg", "/icons/icon-192.png"];
@@ -43,7 +43,7 @@ async function networkFirstPage(request) {
   const cache = await caches.open(SHELL);
   try {
     const response = await fetch(request);
-    if (response.ok) cache.put("/", response.clone());
+    if (response.ok && new URL(request.url).pathname === "/") cache.put("/", response.clone());
     return response;
   } catch (error) {
     // Offline: the app is a single page, so its last known shell serves every route.
@@ -86,4 +86,25 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") event.respondWith(networkFirstPage(request));
   else if (isImmutable(url.pathname)) event.respondWith(cacheFirst(request));
   else if (isStaticFile(url.pathname)) event.respondWith(staleWhileRevalidate(request));
+});
+
+// Prepare assets fetched before the first worker took control. Never cache API or external data.
+self.addEventListener("message", (event) => {
+  if (event.data?.type !== "PREPARE_OFFLINE" || !Array.isArray(event.data.urls)) return;
+  const urls = event.data.urls.filter((value) => {
+    try {
+      const url = new URL(value);
+      return (
+        url.origin === self.location.origin &&
+        isStaticFile(url.pathname) &&
+        !url.pathname.startsWith("/api/") &&
+        url.pathname !== "/sw.js"
+      );
+    } catch {
+      return false;
+    }
+  });
+  event.waitUntil(
+    caches.open(ASSETS).then((cache) => Promise.allSettled(urls.map((url) => cache.add(url)))),
+  );
 });

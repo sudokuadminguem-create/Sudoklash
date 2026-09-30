@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { History } from "lucide-react";
+import { History, WifiOff } from "lucide-react";
 import { useI18n } from "@/app/lib/i18n";
 import { levelName, type MessageKey } from "@/app/lib/i18n-core";
 import { formatClock } from "@/app/lib/format-time";
@@ -9,6 +9,7 @@ import { loadSoloSave, saveProgress, type SoloLevel, type SoloSave } from "@/app
 import { ConfirmDialog } from "./confirm-dialog";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
+import { useOffline } from "@/app/lib/pwa";
 import { soloDifficulties } from "@/lib/difficulties";
 import { variantIds, variantInfo } from "@/lib/variants";
 import { soloXpFor } from "@/lib/cosmetics";
@@ -35,6 +36,9 @@ export function ModePanel({
     [resuming, setResuming] = useState<SoloSave | undefined>(),
     [saved, setSaved] = useState<SoloSave | null>(null),
     [replacing, setReplacing] = useState<SoloLevel | null>(null);
+  const disconnected = useOffline();
+  const [localPractice, setLocalPractice] = useState(false);
+  const practice = localPractice || disconnected;
   const { settings } = useSettings();
   const { t } = useI18n();
   const pick = (d: SoloLevel) => {
@@ -45,8 +49,8 @@ export function ModePanel({
   // Look for a game to resume each time the difficulty picker shows up.
   useEffect(() => {
     if (mode !== "solo" || chosen || account.loading) return;
-    setSaved(loadSoloSave(userId));
-  }, [mode, chosen, account.loading, userId]);
+    setSaved(loadSoloSave(practice ? null : userId));
+  }, [mode, chosen, account.loading, userId, practice]);
   if (mode === "solo")
     return chosen ? (
       <div>
@@ -60,7 +64,7 @@ export function ModePanel({
             {t("solo.change")}
           </button>
           <b>{levelName(t, chosen)}</b>
-          <span>{t("solo.valid")}</span>
+          <span>{t(practice ? "solo.practice" : "solo.valid")}</span>
         </div>
         <SoloGame
           key={chosen}
@@ -69,17 +73,33 @@ export function ModePanel({
           cosmetics={cosmetics}
           openAuth={openAuth}
           resume={resuming}
+          practice={practice}
         />
       </div>
     ) : (
       <div className="solo-picker">
-        <NearChallenges account={account} cosmetics={cosmetics} />
+        {!practice && <NearChallenges account={account} cosmetics={cosmetics} />}
         <div className="panel">
           <div className="panel-head">
             <span className="eyebrow">{t("solo.trainingEyebrow")}</span>
             <h2>{t("solo.pickTitle")}</h2>
             <p className="panel-copy">{t("solo.pickCopy")}</p>
           </div>
+          <button
+            className="resume-game"
+            aria-pressed={practice}
+            disabled={disconnected}
+            onClick={() => {
+              setLocalPractice(!localPractice);
+              setResuming(undefined);
+            }}
+          >
+            <WifiOff aria-hidden="true" />
+            <span>
+              <b>{t(practice ? "solo.offlineActive" : "solo.offlineStart")}</b>
+              <small>{t("solo.offlineHelp")}</small>
+            </span>
+          </button>
           {saved && (
             <button
               className="resume-game"
@@ -111,31 +131,37 @@ export function ModePanel({
                 <span>{["🌱", "●", "◆", "▲", "⬢", "♛"][i]}</span>
                 <b>{levelName(t, d)}</b>
                 <small>{t(`levelHint.${d}` as MessageKey)}</small>
-                <span className="difficulty-xp">+{soloXpFor(d)} XP</span>
+                <span className="difficulty-xp">
+                  {practice ? t("solo.practice") : `+${soloXpFor(d)} XP`}
+                </span>
               </button>
             ))}
           </div>
-          <div className="panel-head variant-head">
-            <span className="eyebrow">{t("solo.variantsEyebrow")}</span>
-            <h3>{t("solo.variantsTitle")}</h3>
-          </div>
-          <div className="difficulty-grid variant-grid">
-            {variantIds.map((id) => (
-              <button
-                key={id}
-                onClick={() =>
-                  saved && settings.confirmNewGrid
-                    ? setReplacing(variantInfo[id].label)
-                    : pick(variantInfo[id].label)
-                }
-              >
-                <span>{{ mini: "▦", diagonal: "╳", killer: "Σ" }[id]}</span>
-                <b>{levelName(t, variantInfo[id].label)}</b>
-                <small>{t(`variant.${id}` as MessageKey)}</small>
-                <span className="difficulty-xp">+{variantInfo[id].xp} XP</span>
-              </button>
-            ))}
-          </div>
+          {!practice && (
+            <>
+              <div className="panel-head variant-head">
+                <span className="eyebrow">{t("solo.variantsEyebrow")}</span>
+                <h3>{t("solo.variantsTitle")}</h3>
+              </div>
+              <div className="difficulty-grid variant-grid">
+                {variantIds.map((id) => (
+                  <button
+                    key={id}
+                    onClick={() =>
+                      saved && settings.confirmNewGrid
+                        ? setReplacing(variantInfo[id].label)
+                        : pick(variantInfo[id].label)
+                    }
+                  >
+                    <span>{{ mini: "▦", diagonal: "╳", killer: "Σ" }[id]}</span>
+                    <b>{levelName(t, variantInfo[id].label)}</b>
+                    <small>{t(`variant.${id}` as MessageKey)}</small>
+                    <span className="difficulty-xp">+{variantInfo[id].xp} XP</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
           {replacing && saved && (
             <ConfirmDialog
               title={t("solo.replaceTitle")}

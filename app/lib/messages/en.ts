@@ -75,6 +75,11 @@ export const en: Record<MessageKey, string> = {
   "solo.newGrid": "New grid",
   "solo.loadError": "Could not load a grid. Check your connection.",
   "solo.title": "Solo training",
+  "solo.offlineStart": "Play offline",
+  "solo.offlineActive": "Offline mode enabled",
+  "solo.offlineHelp":
+    "Six difficulties, no XP or ranking. Open the site online once before playing without a connection.",
+  "solo.practice": "Practice",
   "solo.offlineNote": "Offline: practice game, no XP or ranking.",
   "solo.retry": "Try again",
   "solo.preparing": "Preparing a new {level} grid…",

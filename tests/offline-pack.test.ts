@@ -11,6 +11,19 @@ const grid = (seed: number) => ({
 beforeEach(() => window.localStorage.clear());
 
 describe("offline pack", () => {
+  it("can start every difficulty without downloading a pack", () => {
+    for (const level of soloDifficulties) {
+      const local = takeOfflineGrid(level)!;
+      expect(local.solution).toHaveLength(81);
+      expect(local.puzzle.some((digit) => digit === 0)).toBe(true);
+      expect(
+        local.puzzle.every((digit, index) => digit === 0 || digit === local.solution[index]),
+      ).toBe(true);
+      for (let row = 0; row < 9; row++)
+        expect(new Set(local.solution.slice(row * 9, row * 9 + 9)).size).toBe(9);
+    }
+  });
+
   it("stocks every difficulty with its spares", async () => {
     let n = 0;
     const fetchGrid = vi.fn(async () => grid(n++));
@@ -22,11 +35,11 @@ describe("offline pack", () => {
     expect(fetchGrid).toHaveBeenCalledTimes(soloDifficulties.length * PACK_SIZE);
   });
 
-  it("hands out each spare grid once, then reports none left", async () => {
+  it("hands out spares then continues with locally available puzzles", async () => {
     await refillPack(async () => grid(1));
     expect(takeOfflineGrid("Facile")).toEqual(grid(1));
     expect(takeOfflineGrid("Facile")).toEqual(grid(1));
-    expect(takeOfflineGrid("Facile")).toBeNull();
+    expect(takeOfflineGrid("Facile")?.solution).toHaveLength(81);
     expect(takeOfflineGrid("Expert")).not.toBeNull();
   });
 
