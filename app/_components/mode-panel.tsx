@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { History, WifiOff } from "lucide-react";
+import { History } from "lucide-react";
 import { useI18n } from "@/app/lib/i18n";
 import { levelName, type MessageKey } from "@/app/lib/i18n-core";
 import { formatClock } from "@/app/lib/format-time";
@@ -36,9 +36,7 @@ export function ModePanel({
     [resuming, setResuming] = useState<SoloSave | undefined>(),
     [saved, setSaved] = useState<SoloSave | null>(null),
     [replacing, setReplacing] = useState<SoloLevel | null>(null);
-  const disconnected = useOffline();
-  const [localPractice, setLocalPractice] = useState(false);
-  const practice = localPractice || disconnected;
+  const practice = useOffline();
   const { settings } = useSettings();
   const { t } = useI18n();
   const pick = (d: SoloLevel) => {
@@ -85,21 +83,6 @@ export function ModePanel({
             <h2>{t("solo.pickTitle")}</h2>
             <p className="panel-copy">{t("solo.pickCopy")}</p>
           </div>
-          <button
-            className="resume-game"
-            aria-pressed={practice}
-            disabled={disconnected}
-            onClick={() => {
-              setLocalPractice(!localPractice);
-              setResuming(undefined);
-            }}
-          >
-            <WifiOff aria-hidden="true" />
-            <span>
-              <b>{t(practice ? "solo.offlineActive" : "solo.offlineStart")}</b>
-              <small>{t("solo.offlineHelp")}</small>
-            </span>
-          </button>
           {saved && (
             <button
               className="resume-game"
