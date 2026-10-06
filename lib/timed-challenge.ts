@@ -4,6 +4,7 @@ import { challengeWindow } from "@/lib/challenge-schedule";
 import { getPeriodChallenge, type ChallengeKind } from "@/lib/challenges";
 import { isCellIndex, isDigit, isEntryId, MAX_MISTAKES, mistakeKey } from "@/lib/entry-validation";
 import { MIN_COMPLETE_SECONDS } from "@/lib/solo-rules";
+import { isSoloDifficulty, type Difficulty } from "@/lib/difficulties";
 import { solvePuzzle } from "@/lib/sudoku-solver";
 
 // Daily and weekly challenges share the same rules: one timed attempt per period
@@ -28,6 +29,7 @@ type TimedChallenge = {
 };
 
 type PostBody = {
+  difficulty?: unknown;
   action?: string;
   grid?: unknown;
   index?: unknown;
@@ -46,6 +48,11 @@ export const weeklyChallenge: TimedChallenge = {
   table: "weekly_attempts",
   periodColumn: "week_id",
 };
+
+// Keep the original easy-day key so earlier attempts remain protected.
+export function dailyAttemptKey(day: string, difficulty: Difficulty) {
+  return difficulty === "Facile" ? day : `${day}:${difficulty}`;
+}
 
 function payload(attempt: AttemptRow | null, nextAt: string, config: ChallengeConfig) {
   const status = attempt?.completed_at
@@ -82,10 +89,50 @@ export function timedChallengeRoute({ kind, table, periodColumn }: TimedChalleng
     if (!user) return Response.json({ error: "authentication_required" }, { status: 401 });
     if (!env.DB) return Response.json({ error: "database_unavailable" }, { status: 503 });
 
-    const { periodId, nextAt } = challengeWindow(kind);
+    const requested = new URL(request.url).searchParams.get("difficulty") ?? "Facile";
+    if (kind === "daily" && !isSoloDifficulty(requested))
+      return Response.json({ error: "invalid_difficulty" }, { status: 400 });
+    const difficulty = requested as Difficulty;
+    const { periodId: day, nextAt } = challengeWindow(kind);
+    const periodId = kind === "daily" ? dailyAttemptKey(day, difficulty) : day;
+    if (kind === "daily" && new URL(request.url).searchParams.get("view") === "leaderboard") {
+      const rows = await env.DB.prepare(
+        `SELECT a.user_id, COALESCE(p.username,'Joueur') AS username, a.elapsed_seconds, a.mistakes, c.avatar_id, c.frame_id FROM daily_attempts a LEFT JOIN player_profiles p ON p.user_id=a.user_id LEFT JOIN player_cosmetics c ON c.user_id=a.user_id WHERE a.day_id=? AND a.completed_at IS NOT NULL ORDER BY a.elapsed_seconds ASC, a.completed_at ASC, a.user_id ASC LIMIT 100`,
+      )
+        .bind(periodId)
+        .all<{
+          user_id: string;
+          username: string;
+          elapsed_seconds: number;
+          mistakes: number;
+          avatar_id: string | null;
+          frame_id: string | null;
+        }>();
+      return Response.json(
+        {
+          difficulty,
+          day,
+          nextAt,
+          players: rows.results.map((r, i) => ({
+            position: i + 1,
+            userId: r.user_id,
+            username: r.username,
+            seconds: r.elapsed_seconds,
+            mistakes: r.mistakes,
+            avatarId: r.avatar_id ?? "nova",
+            frameId: r.frame_id ?? "starter",
+            image:
+              r.avatar_id === "custom"
+                ? `/api/players/avatar?id=${encodeURIComponent(r.user_id)}`
+                : null,
+          })),
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
     const [attempt, config] = await Promise.all([
       currentAttempt(user.userId, periodId),
-      getPeriodChallenge(kind, periodId),
+      getPeriodChallenge(kind, day, kind === "daily" ? difficulty : undefined),
     ]);
     return Response.json(payload(attempt, nextAt, config), {
       headers: { "Cache-Control": "no-store" },
@@ -99,9 +146,14 @@ export function timedChallengeRoute({ kind, table, periodColumn }: TimedChalleng
     if (!db) return Response.json({ error: "database_unavailable" }, { status: 503 });
 
     const body = (await request.json().catch(() => null)) as PostBody | null;
-    const { periodId, nextAt } = challengeWindow(kind);
+    const requested = body?.difficulty ?? "Facile";
+    if (kind === "daily" && !isSoloDifficulty(requested))
+      return Response.json({ error: "invalid_difficulty" }, { status: 400 });
+    const difficulty = requested as Difficulty;
+    const { periodId: day, nextAt } = challengeWindow(kind);
+    const periodId = kind === "daily" ? dailyAttemptKey(day, difficulty) : day;
     const now = Date.now();
-    const config = await getPeriodChallenge(kind, periodId);
+    const config = await getPeriodChallenge(kind, day, kind === "daily" ? difficulty : undefined);
     const respond = async () =>
       Response.json(payload(await currentAttempt(user.userId, periodId), nextAt, config));
 

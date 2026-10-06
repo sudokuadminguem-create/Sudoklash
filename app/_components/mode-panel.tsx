@@ -17,6 +17,7 @@ import { PrivateLobby } from "./private-lobby";
 import { RoomGame } from "./room-game";
 import { SoloGame } from "./solo-game";
 import { NearChallenges } from "./near-challenges";
+import { DailyChallenges } from "./daily-challenges";
 import { TimedChallenge } from "./timed-challenge";
 
 export function ModePanel({
@@ -165,7 +166,7 @@ export function ModePanel({
       </div>
     );
   if (mode === "daily")
-    return <TimedChallenge kind="daily" openAuth={openAuth} cosmetics={cosmetics} />;
+    return <DailyChallenges openAuth={openAuth} cosmetics={cosmetics} />;
   if (mode === "hebdo")
     return <TimedChallenge kind="weekly" openAuth={openAuth} cosmetics={cosmetics} />;
   return (

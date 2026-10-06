@@ -46,7 +46,7 @@ export async function achievementProgress(
       .all<SoloRow>(),
     db
       .prepare(
-        "SELECT day_id AS id,mistakes,elapsed_seconds,completed_at FROM daily_attempts WHERE user_id=? AND completed_at IS NOT NULL",
+        "SELECT substr(day_id,1,10) AS id,mistakes,elapsed_seconds,completed_at FROM daily_attempts WHERE user_id=? AND completed_at IS NOT NULL",
       )
       .bind(userId)
       .all<PeriodRow>(),

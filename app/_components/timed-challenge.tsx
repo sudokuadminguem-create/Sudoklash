@@ -6,6 +6,7 @@ import { formatDuration } from "@/app/lib/format-time";
 import type { Judge } from "@/app/lib/judge";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
 import { ExperienceProgress } from "./experience-progress";
+import type { Difficulty } from "@/lib/difficulties";
 import { SudokuBoard } from "./sudoku-board";
 
 type ChallengeData = {
@@ -22,8 +23,10 @@ export function TimedChallenge({
   kind,
   openAuth,
   cosmetics,
+  difficulty = "Facile",
 }: {
   kind: "daily" | "weekly";
+  difficulty?: Difficulty;
   openAuth: () => void;
   cosmetics: Cosmetics;
 }) {
@@ -35,6 +38,7 @@ export function TimedChallenge({
     [now, setNow] = useState(0),
     [pendingGrid, setPendingGrid] = useState<number[] | null>(null),
     [earnedXp, setEarnedXp] = useState<number | null>(null);
+  const endpoint = `/api/${kind}${kind === "daily" ? `?difficulty=${encodeURIComponent(difficulty)}` : ""}`;
   const refreshInFlight = useRef(false),
     retryAt = useRef(0);
   const isDaily = kind === "daily",
@@ -43,7 +47,7 @@ export function TimedChallenge({
   useEffect(() => {
     let live = true;
     authHeaders()
-      .then((headers) => fetch(`/api/${kind}`, { cache: "no-store", headers }))
+      .then((headers) => fetch(endpoint, { cache: "no-store", headers }))
       .then(async (response) => {
         if (response.status === 401) {
           if (live) setAuthRequired(true);
@@ -67,7 +71,7 @@ export function TimedChallenge({
     return () => {
       live = false;
     };
-  }, [kind, isDaily]);
+  }, [kind, isDaily, endpoint]);
   useEffect(() => {
     if (!data) return;
     const initial = setTimeout(() => setNow(Date.now()), 0),
@@ -89,7 +93,7 @@ export function TimedChallenge({
       return;
     refreshInFlight.current = true;
     void authHeaders()
-      .then((headers) => fetch(`/api/${kind}`, { cache: "no-store", headers }))
+      .then((headers) => fetch(endpoint, { cache: "no-store", headers }))
       .then(async (response) => {
         if (!response.ok) throw new Error("refresh_failed");
         return response.json() as Promise<ChallengeData>;
@@ -108,15 +112,15 @@ export function TimedChallenge({
       .finally(() => {
         refreshInFlight.current = false;
       });
-  }, [kind, data?.nextAt, now]);
+  }, [kind, endpoint, data?.nextAt, now]);
   const request = async (action: "ready" | "complete", grid?: number[]) => {
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(`/api/${kind}`, {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-        body: JSON.stringify({ action, grid }),
+        body: JSON.stringify({ action, grid, difficulty }),
       });
       if (response.status === 401) {
         setAuthRequired(true);
@@ -139,10 +143,10 @@ export function TimedChallenge({
   // The server holds the solution and counts mistakes; the browser only sends digits.
   const judge: Judge = {
     check: async ({ index, number, id }) => {
-      const response = await fetch(`/api/${kind}`, {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-        body: JSON.stringify({ action: "check", index, number, mistakeId: id }),
+        body: JSON.stringify({ action: "check", index, number, mistakeId: id, difficulty }),
       });
       if (response.status === 401) {
         setAuthRequired(true);
@@ -213,7 +217,9 @@ export function TimedChallenge({
         <span className="eyebrow">GRILLE TERMINÉE</span>
         <h2>Votre temps : {formatDuration(data.elapsedSeconds || 0)}</h2>
         <p>Votre tentative est enregistrée. Cette grille ne peut plus être rejouée.</p>
-        {earnedXp !== null && <ExperienceProgress gained={isDaily ? 100 : 250} totalXp={earnedXp} />}
+        {earnedXp !== null && (
+          <ExperienceProgress gained={isDaily ? 100 : 250} totalXp={earnedXp} />
+        )}
         <div className="next-week">
           <span>Prochaine grille dans</span>
           <b>{formatDuration(remaining)}</b>
@@ -242,11 +248,11 @@ export function TimedChallenge({
       <div>
         <SudokuBoard
           key={`${kind}-${data.nextAt}-${data.startedAt || "ready"}`}
-          difficulty={isDaily ? "Facile" : "Difficile"}
+          difficulty={isDaily ? difficulty : "Difficile"}
           puzzle={data.puzzle}
           judge={judge}
           competitive
-          title={`${data.title} — Défi ${isDaily ? "quotidien" : "hebdomadaire"}`}
+          title={`${data.title}${isDaily ? ` · ${difficulty}` : ""} — Défi ${isDaily ? "quotidien" : "hebdomadaire"}`}
           active={data.status === "in_progress"}
           initialSeconds={initialSeconds}
           initialMistakes={data.mistakes}
@@ -272,7 +278,10 @@ export function TimedChallenge({
       </div>
       <aside className="card rightcol weekly-rules">
         <span className="eyebrow">RÈGLES DU DÉFI</span>
-        <h3>Un {frequency}, une chance</h3>
+        <h3>
+          Une chance par {frequency}
+          {isDaily ? " et par difficulté" : ""}
+        </h3>
         <p>
           La grille apparaît au clic sur « Je suis prêt ». Le chronomètre continue même si vous
           fermez la page.
