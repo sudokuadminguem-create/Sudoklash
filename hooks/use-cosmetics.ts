@@ -31,6 +31,7 @@ export type CosmeticState = {
 export type CosmeticAction =
   | "equip_avatar"
   | "equip_frame"
+  | "buy_frame"
   | "buy_avatar"
   | "equip_theme"
   | "buy_theme"

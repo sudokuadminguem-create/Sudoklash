@@ -27,6 +27,64 @@ export const shopAvatars = [
   { id: "crown", name: "Couronne", symbol: "♛", colors: ["#9d7225", "#f5d68a"], price: 1000 },
 ] as const;
 
+/** Shop-exclusive frames: purchases never replace achievement rewards. */
+export const shopFrames = [
+  {
+    id: "shop-tidal",
+    name: "Marée turquoise",
+    price: 250,
+    color: "#5ee8e5",
+    accent: "#087aa8",
+    element: "water",
+    description: "Une bordure aquatique turquoise autour de ton avatar.",
+  },
+  {
+    id: "shop-frost",
+    name: "Cristal polaire",
+    price: 400,
+    color: "#c0efff",
+    accent: "#547dd1",
+    element: "frost",
+    description: "Des cristaux de givre et des reflets bleus.",
+  },
+  {
+    id: "shop-flame",
+    name: "Braise vive",
+    price: 550,
+    color: "#ffb16d",
+    accent: "#ce3d64",
+    element: "fire",
+    description: "Un contour flamboyant orange et corail.",
+  },
+  {
+    id: "shop-lotus",
+    name: "Lotus rose",
+    price: 650,
+    color: "#ffacd7",
+    accent: "#934bbc",
+    element: "lotus",
+    description: "Des pétales roses pour encadrer ta photo.",
+  },
+  {
+    id: "shop-storm",
+    name: "Orage électrique",
+    price: 800,
+    color: "#fff287",
+    accent: "#6651d5",
+    element: "lightning",
+    description: "Des éclairs jaunes sur une armature violette.",
+  },
+  {
+    id: "shop-onyx",
+    name: "Onyx royal",
+    price: 1000,
+    color: "#e8c786",
+    accent: "#59657c",
+    element: "onyx",
+    description: "Un cadre taillé, sombre, avec des accents dorés.",
+  },
+] as const;
+
 export const gridThemes = [
   { id: "ocean", name: "Océan profond", price: 0, colors: ["#0077ff", "#00e5c7"] },
   { id: "tokyo", name: "Néon Tokyo", price: 900, colors: ["#d93cff", "#25d9ff"] },

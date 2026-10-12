@@ -8,6 +8,7 @@ import {
   levelFrames,
   progressFor,
   shopAvatars,
+  shopFrames,
   soloXpFor,
   type ProgressCounts,
 } from "@/lib/cosmetics";
@@ -28,7 +29,9 @@ async function counts(userId: string): Promise<ProgressCounts> {
   const db = env.DB!;
   const [solo, daily, weekly, rating] = await Promise.all([
     db
-      .prepare("SELECT difficulty, COUNT(*) AS n FROM solo_results WHERE user_id=? GROUP BY difficulty")
+      .prepare(
+        "SELECT difficulty, COUNT(*) AS n FROM solo_results WHERE user_id=? GROUP BY difficulty",
+      )
       .bind(userId)
       .all<{ difficulty: string; n: number }>(),
     db
@@ -63,9 +66,17 @@ async function state(userId: string) {
   const [score, selection, purchases, rating, image] = await Promise.all([
     counts(userId),
     db
-      .prepare("SELECT avatar_id,frame_id,theme_id,profile_card_id,profile_title_id FROM player_cosmetics WHERE user_id=?")
+      .prepare(
+        "SELECT avatar_id,frame_id,theme_id,profile_card_id,profile_title_id FROM player_cosmetics WHERE user_id=?",
+      )
       .bind(userId)
-      .first<{ avatar_id: string; frame_id: string; theme_id: string; profile_card_id: string; profile_title_id: string }>(),
+      .first<{
+        avatar_id: string;
+        frame_id: string;
+        theme_id: string;
+        profile_card_id: string;
+        profile_title_id: string;
+      }>(),
     db
       .prepare("SELECT item_id,price FROM cosmetic_purchases WHERE user_id=?")
       .bind(userId)
@@ -94,11 +105,14 @@ async function state(userId: string) {
       .filter((p) => p.item_id.startsWith("theme:"))
       .map((p) => p.item_id.slice(6)),
   ];
+  const purchasedFrames = purchases.results
+    .filter((p) => p.item_id.startsWith("frame:"))
+    .map((p) => p.item_id.slice(6));
   const unlockedFrames = levelFrames.filter((f) => f.level <= progress.level);
   const points = rating?.points ?? 0;
   const position = await rankedPosition(db, userId, points);
   const rank = rankFor(points, position);
-  const awards = await playerAchievements(db,userId,points);
+  const awards = await playerAchievements(db, userId, points);
   const achievementIds = [...awards.ids];
   const rewardProgress = { ...awards.progress, epicFrames: awards.epicCount };
   const ownedCards = unlockedRewards(profileCards, rewardProgress).map((reward) => reward.id);
@@ -108,7 +122,8 @@ async function state(userId: string) {
     savedFrame === "rank_auto" ||
     savedFrame === "none" ||
     unlockedFrames.some((f) => f.id === savedFrame) ||
-    achievementIds.includes(savedFrame ?? "")
+    achievementIds.includes(savedFrame ?? "") ||
+    purchasedFrames.includes(savedFrame ?? "")
       ? savedFrame
       : "rank_auto";
   const frameId = frameSelection === "rank_auto" ? `rank-${rank.name}` : frameSelection;
@@ -121,7 +136,7 @@ async function state(userId: string) {
     ),
     ownedAvatars: owned,
     ownedThemes,
-    unlockedFrames: [...unlockedFrames.map((f) => f.id), ...achievementIds],
+    unlockedFrames: [...unlockedFrames.map((f) => f.id), ...achievementIds, ...purchasedFrames],
     achievementFrames: achievementFrames
       .filter((f) => achievementIds.includes(f.id))
       .map(({ id, name, rarity }) => ({ id, name, rarity })),
@@ -135,8 +150,12 @@ async function state(userId: string) {
     themeId: ownedThemes.includes(selection?.theme_id ?? "") ? selection!.theme_id : "ocean",
     ownedCards,
     ownedTitles,
-    profileCardId: ownedCards.includes(selection?.profile_card_id ?? "") ? selection!.profile_card_id : "origin",
-    profileTitleId: ownedTitles.includes(selection?.profile_title_id ?? "") ? selection!.profile_title_id : "none",
+    profileCardId: ownedCards.includes(selection?.profile_card_id ?? "")
+      ? selection!.profile_card_id
+      : "origin",
+    profileTitleId: ownedTitles.includes(selection?.profile_title_id ?? "")
+      ? selection!.profile_title_id
+      : "none",
   };
 }
 
@@ -226,26 +245,41 @@ export async function POST(request: Request) {
       if (!(card ? current.ownedCards : current.ownedTitles).includes(body.id))
         return json({ error: "reward_locked" }, 403);
       await db.batch([
-        db.prepare("INSERT OR IGNORE INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?)")
+        db
+          .prepare(
+            "INSERT OR IGNORE INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?)",
+          )
           .bind(user.userId, current.avatarId, current.frameSelection, current.themeId),
-        db.prepare(card
-          ? "UPDATE player_cosmetics SET profile_card_id=? WHERE user_id=?"
-          : "UPDATE player_cosmetics SET profile_title_id=? WHERE user_id=?")
+        db
+          .prepare(
+            card
+              ? "UPDATE player_cosmetics SET profile_card_id=? WHERE user_id=?"
+              : "UPDATE player_cosmetics SET profile_title_id=? WHERE user_id=?",
+          )
           .bind(body.id, user.userId),
       ]);
-    } else if (body.action === "buy_avatar" || body.action === "buy_theme") {
+    } else if (
+      body.action === "buy_avatar" ||
+      body.action === "buy_theme" ||
+      body.action === "buy_frame"
+    ) {
       const avatar = body.action === "buy_avatar";
-      const product = avatar
-        ? shopAvatars.find((a) => a.id === body.id)
-        : gridThemes.find((a) => a.id === body.id);
+      const frame = body.action === "buy_frame";
+      const product = frame
+        ? shopFrames.find((f) => f.id === body.id)
+        : avatar
+          ? shopAvatars.find((a) => a.id === body.id)
+          : gridThemes.find((a) => a.id === body.id);
       if (!product) return json({ error: "invalid_item" }, 400);
       if (
-        avatar
-          ? current.ownedAvatars.includes(product.id)
-          : current.ownedThemes.includes(product.id)
+        frame
+          ? current.unlockedFrames.includes(product.id)
+          : avatar
+            ? current.ownedAvatars.includes(product.id)
+            : current.ownedThemes.includes(product.id)
       )
         return json(current);
-      const itemId = `${avatar ? "avatar" : "theme"}:${product.id}`;
+      const itemId = `${frame ? "frame" : avatar ? "avatar" : "theme"}:${product.id}`;
       // One guarded write prevents two purchases from spending the same balance.
       const result = await db
         .prepare(

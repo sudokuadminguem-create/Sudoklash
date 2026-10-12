@@ -192,3 +192,28 @@ describe("cosmetics: uploaded avatars", () => {
     expect(removed.body.avatarId).toBe("nova");
   });
 });
+
+describe("shop frames", () => {
+  it("buys a permanent frame, charges once and allows equipping after refresh", async () => {
+    expect((await post("equip_frame", "shop-tidal")).body.error).toBe("frame_locked");
+    const bought = await post("buy_frame", "shop-tidal");
+    expect(bought.status).toBe(200);
+    expect(bought.body.coins).toBe(50);
+    expect(bought.body.unlockedFrames).toContain("shop-tidal");
+    expect((await post("buy_frame", "shop-tidal")).body.coins).toBe(50);
+    expect((await post("equip_frame", "shop-tidal")).body.frameId).toBe("shop-tidal");
+    expect((await callRoute(GET)).body.frameSelection).toBe("shop-tidal");
+    expect(
+      db
+        .prepare("SELECT COUNT(*) AS n FROM cosmetic_purchases WHERE item_id='frame:shop-tidal'")
+        .get(),
+    ).toEqual({ n: 1 });
+    signIn("bob");
+    expect((await callRoute(GET)).body.unlockedFrames).not.toContain("shop-tidal");
+  });
+  it("rejects insufficient funds and invented frame IDs without charging", async () => {
+    expect((await post("buy_frame", "shop-onyx")).body.error).toBe("not_enough_coins");
+    expect((await post("buy_frame", "challenge-l-026")).body.error).toBe("invalid_item");
+    expect((await callRoute(GET)).body.coins).toBe(300);
+  });
+});
