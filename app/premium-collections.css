@@ -223,3 +223,60 @@
     font-size: 45px;
   }
 }
+
+.victory-preview-dialog {
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  border: 1px solid #a68bcf;
+  border-radius: 20px;
+  padding: 24px;
+  color: var(--text, #fff);
+  background: #121e34;
+}
+.victory-preview-dialog::backdrop {
+  background: #030b19c9;
+}
+.victory-preview-dialog h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+.victory-preview-dialog > p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+.victory-preview-stage {
+  position: relative;
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 16px;
+  background: radial-gradient(ellipse, #293958, #0b1528);
+}
+.victory-preview-caption {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #dce8ff;
+  opacity: 0.35;
+}
+.victory-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+.victory-preview-actions button {
+  min-height: 44px;
+  padding: 12px 16px;
+  border-radius: 10px;
+}
+@media (max-width: 480px) {
+  .victory-preview-stage {
+    min-height: 260px;
+  }
+  .victory-preview-dialog {
+    padding: 18px;
+  }
+}

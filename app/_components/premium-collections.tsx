@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { Cosmetics, CosmeticAction } from "@/hooks/use-cosmetics";
 import {
   premiumCollections,
@@ -38,6 +38,12 @@ export function PremiumCollections({
   const [busy, setBusy] = useState(""),
     [purchase, setPurchase] = useState<{ id: string; name: string; price: number } | null>(null),
     [preview, setPreview] = useState<{ id: string; key: number } | null>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const previewTitleId = useId();
+  useEffect(() => {
+    if (preview && dialog.current && !dialog.current.open) dialog.current.showModal();
+    if (!preview && dialog.current?.open) dialog.current.close();
+  }, [preview]);
   const data = cosmetics.state,
     owned = [
       ...(data?.unlockedFrames ?? []),
@@ -117,19 +123,11 @@ export function PremiumCollections({
               </div>
               <h3>{c.name}</h3>
               <p>{c.description}</p>
-              <div className="collection-demo">
-                {preview?.id === c.id ? (
-                  <VictoryEffect
-                    key={preview.key}
-                    won
-                    previewId={collectionItemId(c.id, "effect")}
-                  />
-                ) : (
-                  <span>Découvrir la célébration</span>
-                )}
-              </div>
-              <button onClick={() => setPreview({ id: c.id, key: Date.now() })}>
-                Aperçu de victoire
+              <button
+                onClick={() => setPreview({ id: c.id, key: Date.now() })}
+                aria-label={`Visualiser l’effet de victoire ${c.name}`}
+              >
+                Visualiser l’effet de victoire
               </button>
               <div className="collection-actions">
                 {(["frame", "card", "effect"] as const).map((kind) => {
@@ -148,6 +146,14 @@ export function PremiumCollections({
                         {labels[kind]}
                         <small>{has ? "Possédé" : `${itemPrice[kind]} Sudogemmes`}</small>
                       </span>
+                      {kind === "effect" && (
+                        <button
+                          onClick={() => setPreview({ id: c.id, key: Date.now() })}
+                          aria-label={`Visualiser ${c.name}`}
+                        >
+                          Visualiser
+                        </button>
+                      )}
                       <button
                         disabled={
                           !!busy ||
@@ -216,6 +222,39 @@ export function PremiumCollections({
           Désactiver mon effet de victoire
         </button>
       )}
+      <dialog
+        ref={dialog}
+        className="victory-preview-dialog"
+        aria-labelledby={previewTitleId}
+        onCancel={(event) => {
+          event.preventDefault();
+          setPreview(null);
+        }}
+        onClose={() => setPreview(null)}
+      >
+        <h2 id={previewTitleId}>
+          {premiumCollections.find((c) => c.id === preview?.id)?.name} · Effet de victoire
+        </h2>
+        <p>Aperçu gratuit, sans achat ni modification de ton équipement.</p>
+        <div className="victory-preview-stage">
+          <span className="victory-preview-caption">Victoire !</span>
+          {preview && (
+            <VictoryEffect
+              key={preview.key}
+              won
+              previewId={collectionItemId(preview.id, "effect")}
+            />
+          )}
+        </div>
+        <div className="victory-preview-actions">
+          <button onClick={() => preview && setPreview({ ...preview, key: Date.now() })}>
+            Rejouer l’animation
+          </button>
+          <button autoFocus className="primary" onClick={() => setPreview(null)}>
+            Fermer
+          </button>
+        </div>
+      </dialog>
       {purchase && data && (
         <ConfirmDialog
           title={`Acheter ${purchase.name} ?`}
