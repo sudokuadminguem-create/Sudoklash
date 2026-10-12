@@ -1,3 +1,4 @@
+import { premiumPrice } from "@/lib/premium";
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
 import {
@@ -63,7 +64,7 @@ async function counts(userId: string): Promise<ProgressCounts> {
 
 async function state(userId: string) {
   const db = env.DB!;
-  const [score, selection, purchases, rating, image] = await Promise.all([
+  const [score, selection, purchases, rating, image, premium] = await Promise.all([
     counts(userId),
     db
       .prepare(
@@ -78,9 +79,9 @@ async function state(userId: string) {
         profile_title_id: string;
       }>(),
     db
-      .prepare("SELECT item_id,price FROM cosmetic_purchases WHERE user_id=?")
+      .prepare("SELECT item_id,price,premium_price FROM cosmetic_purchases WHERE user_id=?")
       .bind(userId)
-      .all<{ item_id: string; price: number }>(),
+      .all<{ item_id: string; price: number; premium_price: number }>(),
     db
       .prepare("SELECT points FROM ranked_ratings WHERE user_id=?")
       .bind(userId)
@@ -89,6 +90,10 @@ async function state(userId: string) {
       .prepare("SELECT image_data FROM player_avatar_images WHERE user_id=?")
       .bind(userId)
       .first<{ image_data: string }>(),
+    db
+      .prepare("SELECT COALESCE(SUM(gems),0) AS gems FROM premium_credits WHERE user_id=?")
+      .bind(userId)
+      .first<{ gems: number }>(),
   ]);
   const progress = progressFor(score);
   const owned = [
@@ -134,6 +139,10 @@ async function state(userId: string) {
       0,
       progress.earnedCoins - purchases.results.reduce((sum, p) => sum + p.price, 0),
     ),
+    gems: Math.max(
+      0,
+      (premium?.gems ?? 0) - purchases.results.reduce((sum, p) => sum + p.premium_price, 0),
+    ),
     ownedAvatars: owned,
     ownedThemes,
     unlockedFrames: [...unlockedFrames.map((f) => f.id), ...achievementIds, ...purchasedFrames],
@@ -177,6 +186,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
     action?: unknown;
     id?: unknown;
+    currency?: unknown;
   } | null;
   if (typeof body?.id !== "string" || typeof body.action !== "string")
     return json({ error: "invalid_request" }, 400);
@@ -280,6 +290,31 @@ export async function POST(request: Request) {
       )
         return json(current);
       const itemId = `${frame ? "frame" : avatar ? "avatar" : "theme"}:${product.id}`;
+      if (body.currency !== undefined && body.currency !== "coins" && body.currency !== "gems")
+        return json({ error: "invalid_currency" }, 400);
+      if (body.currency === "gems") {
+        const cost = premiumPrice(product.price);
+        const result = await db
+          .prepare(
+            `INSERT INTO cosmetic_purchases (user_id,item_id,price,premium_price,purchased_at)
+          SELECT ?,?,0,?,? WHERE COALESCE((SELECT SUM(gems) FROM premium_credits WHERE user_id=?),0) - COALESCE((SELECT SUM(premium_price) FROM cosmetic_purchases WHERE user_id=?),0) >= ?
+          AND NOT EXISTS (SELECT 1 FROM cosmetic_purchases WHERE user_id=? AND item_id=?)`,
+          )
+          .bind(
+            user.userId,
+            itemId,
+            cost,
+            Date.now(),
+            user.userId,
+            user.userId,
+            cost,
+            user.userId,
+            itemId,
+          )
+          .run();
+        if (!result.meta.changes) return json({ error: "not_enough_gems" }, 409);
+        return json(await state(user.userId));
+      }
       // One guarded write prevents two purchases from spending the same balance.
       const result = await db
         .prepare(

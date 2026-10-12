@@ -81,6 +81,7 @@ export const cosmeticPurchases = sqliteTable(
     userId: text("user_id").notNull(),
     itemId: text("item_id").notNull(),
     price: integer("price").notNull(),
+    premiumPrice: integer("premium_price").notNull().default(0),
     purchasedAt: integer("purchased_at").notNull(),
   },
   (table) => [primaryKey({ columns: [table.userId, table.itemId] })],
@@ -247,4 +248,17 @@ export const friendDuels = sqliteTable(
     index("idx_friend_duels_challenger").on(table.challengerId, table.status),
     index("idx_friend_duels_opponent").on(table.opponentId, table.status),
   ],
+);
+
+export const premiumCredits = sqliteTable(
+  "premium_credits",
+  {
+    sessionId: text("session_id").primaryKey(),
+    userId: text("user_id").notNull(),
+    packId: text("pack_id").notNull(),
+    gems: integer("gems").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    creditedAt: integer("credited_at").notNull(),
+  },
+  (table) => [index("idx_premium_credits_user").on(table.userId)],
 );

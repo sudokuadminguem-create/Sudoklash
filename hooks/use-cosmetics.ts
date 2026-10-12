@@ -9,6 +9,7 @@ export type CosmeticState = {
   levelXp: number;
   nextLevelXp: number;
   coins: number;
+  gems: number;
   counts: { solo: number; daily: number; weekly: number; wins: number; losses: number };
   ownedAvatars: string[];
   ownedThemes: string[];
@@ -71,11 +72,11 @@ export function useCosmetics(account: AccountState) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
-  const action = async (action: CosmeticAction, id: string) => {
+  const action = async (action: CosmeticAction, id: string, currency: "coins" | "gems" = "coins") => {
     const response = await fetch("/api/cosmetics", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-      body: JSON.stringify({ action, id }),
+      body: JSON.stringify({ action, id, currency }),
     });
     if (!response.ok) throw Error(((await response.json()) as { error: string }).error);
     const updated = (await response.json()) as CosmeticState;

@@ -102,6 +102,10 @@ function HomeContent() {
     [friendRequestFocus, setFriendRequestFocus] = useState(0),
     [recovery, setRecovery] = useState(false),
     [recoveryStatus, setRecoveryStatus] = useState<"checking" | "ready" | "expired">("checking");
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    if (query.has("premium_session") || query.has("premium_cancelled")) setView("boutique");
+  }, []);
   const account = useAccount();
   const cosmetics = useCosmetics(account);
   useEffect(() => {

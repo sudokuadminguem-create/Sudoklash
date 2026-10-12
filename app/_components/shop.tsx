@@ -1,10 +1,12 @@
 "use client";
 import { useState } from "react";
-import { Coins, Check, ShoppingBag } from "lucide-react";
+import { Coins, Check, ShoppingBag, Gem } from "lucide-react";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics, CosmeticAction } from "@/hooks/use-cosmetics";
 import { gridThemes, shopAvatars, shopFrames } from "@/lib/cosmetics";
 import { PlayerAvatar } from "./player-cosmetics";
+import { premiumPrice } from "@/lib/premium";
+import { PremiumPacks } from "./premium-packs";
 import { ConfirmDialog } from "./confirm-dialog";
 import "../shop-catalog.css";
 
@@ -63,7 +65,11 @@ export function Shop({
     [ownedOnly, setOwnedOnly] = useState(false),
     [busy, setBusy] = useState(""),
     [purchase, setPurchase] = useState<Product | null>(null);
+  const [currency, setCurrency] = useState<"coins" | "gems">("coins");
+  const currencyLabel = currency === "coins" ? "Sudokoins" : "Sudogemmes";
+  const cost = (p: Product) => (currency === "coins" ? p.price : premiumPrice(p.price));
   const data = cosmetics.state;
+  const balance = currency === "coins" ? (data?.coins ?? 0) : (data?.gems ?? 0);
   const owned = (p: Product) =>
     !!data &&
     (p.kind === "theme"
@@ -97,11 +103,11 @@ export function Shop({
     setPurchase(null);
     setBusy(p.id);
     try {
-      await cosmetics.action(actions[p.kind].buy, p.id);
+      await cosmetics.action(actions[p.kind].buy, p.id, currency);
       notify(`${p.name} acheté ! Retrouve-le dans « Mes articles » et équipe-le quand tu veux.`);
     } catch (e) {
       notify(
-        e instanceof Error && e.message === "not_enough_coins"
+        e instanceof Error && (e.message === "not_enough_coins" || e.message === "not_enough_gems")
           ? "Solde insuffisant. Aucun achat effectué."
           : "Achat indisponible. Vérifie ton inventaire avant de réessayer.",
       );
@@ -127,6 +133,29 @@ export function Shop({
           </span>
         </div>
       </header>
+      <div className="premium-wallet">
+        <Gem aria-hidden="true" />
+        <span>
+          Sudogemmes : <b>{(data?.gems ?? 0).toLocaleString("fr-FR")}</b>
+        </span>
+      </div>
+      <PremiumPacks signedIn={!!account.user} openAuth={openAuth} cosmetics={cosmetics} />
+      <div className="store-categories" aria-label="Monnaie pour les articles">
+        <button
+          aria-pressed={currency === "coins"}
+          className={currency === "coins" ? "active" : ""}
+          onClick={() => setCurrency("coins")}
+        >
+          Payer en Sudokoins
+        </button>
+        <button
+          aria-pressed={currency === "gems"}
+          className={currency === "gems" ? "active" : ""}
+          onClick={() => setCurrency("gems")}
+        >
+          Payer en Sudogemmes
+        </button>
+      </div>
       <details className="store-help">
         <summary>Comment gagner des Sudokoins ?</summary>
         <p>
@@ -198,7 +227,7 @@ export function Shop({
           {products.map((p) => {
             const has = owned(p),
               selected = equipped(p),
-              missing = Math.max(0, p.price - (data?.coins ?? 0));
+              missing = Math.max(0, cost(p) - balance);
             return (
               <article className="store-product" key={`${p.kind}:${p.id}`}>
                 <div
@@ -238,7 +267,9 @@ export function Shop({
                   <p>{p.description}</p>
                   <div className="store-price">
                     <Coins aria-hidden="true" />
-                    {p.price === 0 ? "Inclus" : `${p.price.toLocaleString("fr-FR")} Sudokoins`}
+                    {p.price === 0
+                      ? "Inclus"
+                      : `${cost(p).toLocaleString("fr-FR")} ${currencyLabel}`}
                   </div>
                   <button
                     className={has ? "store-equip" : "primary"}
@@ -266,7 +297,7 @@ export function Shop({
                   </button>
                   {data && !has && missing > 0 && (
                     <small className="store-shortfall">
-                      Il te manque {missing.toLocaleString("fr-FR")} Sudokoins
+                      Il te manque {missing.toLocaleString("fr-FR")} {currencyLabel}
                     </small>
                   )}
                 </div>
@@ -278,8 +309,8 @@ export function Shop({
       {purchase && data && (
         <ConfirmDialog
           title={`Acheter ${purchase.name} ?`}
-          message={`Cet achat permanent coûte ${purchase.price.toLocaleString("fr-FR")} Sudokoins. Solde après achat : ${Math.max(0, data.coins - purchase.price).toLocaleString("fr-FR")} Sudokoins. Tu pourras ensuite équiper cet article.`}
-          confirmLabel={`Acheter · ${purchase.price.toLocaleString("fr-FR")} Sudokoins`}
+          message={`Cet achat permanent coûte ${cost(purchase).toLocaleString("fr-FR")} ${currencyLabel}. Solde après achat : ${Math.max(0, balance - cost(purchase)).toLocaleString("fr-FR")} ${currencyLabel}. Tu pourras ensuite équiper cet article.`}
+          confirmLabel={`Acheter · ${cost(purchase).toLocaleString("fr-FR")} ${currencyLabel}`}
           onConfirm={() => void buy(purchase)}
           onCancel={() => setPurchase(null)}
         />
