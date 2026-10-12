@@ -34,6 +34,7 @@ import { BoardNotices, GameFooter, LossResult, VictoryPanel } from "./board/game
 import "../board-variants.css";
 import { SudokuGrid } from "./board/sudoku-grid";
 import type { ExperienceState, ShownHint, SolveResult } from "./board/types";
+import { VictoryEffect } from "./premium-effects";
 import { ConfirmDialog } from "./confirm-dialog";
 
 type SudokuBoardProps = {
@@ -484,6 +485,7 @@ export function SudokuBoard({
     <div
       className={`game-card ${!active ? "weekly-gated" : ""} ${lost ? "lost" : ""} ${done ? "solved" : ""} ${settings.largeDigits ? "large-digits" : ""}`}
     >
+      <VictoryEffect won={done} />
       <BoardHeader
         eyebrow={eyebrow}
         title={title}

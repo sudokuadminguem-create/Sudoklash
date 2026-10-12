@@ -5,6 +5,7 @@ import { authHeaders } from "@/app/lib/auth-headers";
 import { formatDuration } from "@/app/lib/format-time";
 import type { Judge } from "@/app/lib/judge";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
+import { VictoryEffect } from "./premium-effects";
 import { ExperienceProgress } from "./experience-progress";
 import type { Difficulty } from "@/lib/difficulties";
 import { SudokuBoard } from "./sudoku-board";
@@ -212,7 +213,8 @@ export function TimedChallenge({
     );
   if (data.status === "completed")
     return (
-      <div className="panel weekly-state weekly-complete">
+      <div className="panel weekly-state weekly-complete" style={{position:"relative"}}>
+        <VictoryEffect won={earnedXp!==null}/>
         <Trophy />
         <span className="eyebrow">GRILLE TERMINÉE</span>
         <h2>Votre temps : {formatDuration(data.elapsedSeconds || 0)}</h2>

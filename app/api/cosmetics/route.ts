@@ -1,3 +1,4 @@
+import { premiumOwned, parseCollectionItem, bundlePrice } from "@/lib/premium-collections";
 import { premiumPrice } from "@/lib/premium";
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
@@ -68,7 +69,7 @@ async function state(userId: string) {
     counts(userId),
     db
       .prepare(
-        "SELECT avatar_id,frame_id,theme_id,profile_card_id,profile_title_id FROM player_cosmetics WHERE user_id=?",
+        "SELECT avatar_id,frame_id,theme_id,profile_card_id,profile_title_id,victory_effect_id FROM player_cosmetics WHERE user_id=?",
       )
       .bind(userId)
       .first<{
@@ -77,6 +78,7 @@ async function state(userId: string) {
         theme_id: string;
         profile_card_id: string;
         profile_title_id: string;
+        victory_effect_id: string;
       }>(),
     db
       .prepare("SELECT item_id,price,premium_price FROM cosmetic_purchases WHERE user_id=?")
@@ -110,9 +112,12 @@ async function state(userId: string) {
       .filter((p) => p.item_id.startsWith("theme:"))
       .map((p) => p.item_id.slice(6)),
   ];
+  const collectionOwned = [...premiumOwned(purchases.results.map((p) => p.item_id))];
+  const ownedEffects = ["none", ...collectionOwned.filter((id) => id.endsWith("-effect"))];
   const purchasedFrames = purchases.results
     .filter((p) => p.item_id.startsWith("frame:"))
-    .map((p) => p.item_id.slice(6));
+    .map((p) => p.item_id.slice(6))
+    .concat(collectionOwned.filter((id) => id.endsWith("-frame")));
   const unlockedFrames = levelFrames.filter((f) => f.level <= progress.level);
   const points = rating?.points ?? 0;
   const position = await rankedPosition(db, userId, points);
@@ -120,7 +125,9 @@ async function state(userId: string) {
   const awards = await playerAchievements(db, userId, points);
   const achievementIds = [...awards.ids];
   const rewardProgress = { ...awards.progress, epicFrames: awards.epicCount };
-  const ownedCards = unlockedRewards(profileCards, rewardProgress).map((reward) => reward.id);
+  const ownedCards = unlockedRewards(profileCards, rewardProgress)
+    .map((reward) => reward.id)
+    .concat(collectionOwned.filter((id) => id.endsWith("-card")));
   const ownedTitles = unlockedRewards(profileTitles, rewardProgress).map((reward) => reward.id);
   const savedFrame = selection?.frame_id;
   const frameSelection =
@@ -157,6 +164,11 @@ async function state(userId: string) {
     rankPoints: points,
     customAvatar: image?.image_data ?? null,
     themeId: ownedThemes.includes(selection?.theme_id ?? "") ? selection!.theme_id : "ocean",
+    premiumSpent: purchases.results.reduce((sum, p) => sum + p.premium_price, 0),
+    ownedEffects,
+    victoryEffectId: ownedEffects.includes(selection?.victory_effect_id ?? "")
+      ? selection!.victory_effect_id
+      : "none",
     ownedCards,
     ownedTitles,
     profileCardId: ownedCards.includes(selection?.profile_card_id ?? "")
@@ -228,6 +240,50 @@ export async function POST(request: Request) {
             "UPDATE player_cosmetics SET avatar_id='nova' WHERE user_id=? AND avatar_id='custom'",
           )
           .bind(user.userId),
+      ]);
+    } else if (body.action === "buy_premium") {
+      const product = parseCollectionItem(body.id);
+      if (!product || body.currency !== "gems") return json({ error: "invalid_item" }, 400);
+      const owned = [...current.unlockedFrames, ...current.ownedCards, ...current.ownedEffects];
+      if (owned.includes(body.id)) return json(current);
+      const cost =
+        product.kind === "bundle" ? bundlePrice(product.collection.id, owned) : product.price;
+      if (cost === 0) return json(current);
+      const itemId = `premium:${body.id}`;
+      // Ownership and both balances are checked again in the same guarded database write.
+      const result = await db
+        .prepare(
+          `INSERT INTO cosmetic_purchases (user_id,item_id,price,premium_price,purchased_at)
+        SELECT ?,?,0,?,? WHERE COALESCE((SELECT SUM(gems) FROM premium_credits WHERE user_id=?),0)-COALESCE((SELECT SUM(premium_price) FROM cosmetic_purchases WHERE user_id=?),0)>=?
+        AND NOT EXISTS(SELECT 1 FROM cosmetic_purchases WHERE user_id=? AND item_id=?)
+        AND ? = COALESCE((SELECT SUM(premium_price) FROM cosmetic_purchases WHERE user_id=?),0)`,
+        )
+        .bind(
+          user.userId,
+          itemId,
+          cost,
+          Date.now(),
+          user.userId,
+          user.userId,
+          cost,
+          user.userId,
+          itemId,
+          current.premiumSpent,
+          user.userId,
+        )
+        .run();
+      if (!result.meta.changes) return json({ error: "not_enough_gems" }, 409);
+    } else if (body.action === "equip_effect") {
+      if (!current.ownedEffects.includes(body.id)) return json({ error: "effect_locked" }, 403);
+      await db.batch([
+        db
+          .prepare(
+            "INSERT OR IGNORE INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?)",
+          )
+          .bind(user.userId, current.avatarId, current.frameSelection, current.themeId),
+        db
+          .prepare("UPDATE player_cosmetics SET victory_effect_id=? WHERE user_id=?")
+          .bind(body.id, user.userId),
       ]);
     } else if (body.action === "equip_frame") {
       if (

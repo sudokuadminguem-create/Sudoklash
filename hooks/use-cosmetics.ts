@@ -10,6 +10,8 @@ export type CosmeticState = {
   nextLevelXp: number;
   coins: number;
   gems: number;
+  ownedEffects: string[];
+  victoryEffectId: string;
   counts: { solo: number; daily: number; weekly: number; wins: number; losses: number };
   ownedAvatars: string[];
   ownedThemes: string[];
@@ -32,6 +34,8 @@ export type CosmeticState = {
 export type CosmeticAction =
   | "equip_avatar"
   | "equip_frame"
+  | "buy_premium"
+  | "equip_effect"
   | "buy_frame"
   | "buy_avatar"
   | "equip_theme"

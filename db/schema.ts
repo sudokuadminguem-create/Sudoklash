@@ -67,6 +67,7 @@ export const playerCosmetics = sqliteTable("player_cosmetics", {
   themeId: text("theme_id").notNull().default("ocean"),
   profileCardId: text("profile_card_id").notNull().default("origin"),
   profileTitleId: text("profile_title_id").notNull().default("none"),
+  victoryEffectId: text("victory_effect_id").notNull().default("none"),
 });
 
 export const playerAvatarImages = sqliteTable("player_avatar_images", {

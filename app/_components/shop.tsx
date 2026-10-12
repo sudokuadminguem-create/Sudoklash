@@ -6,6 +6,7 @@ import type { Cosmetics, CosmeticAction } from "@/hooks/use-cosmetics";
 import { gridThemes, shopAvatars, shopFrames } from "@/lib/cosmetics";
 import { PlayerAvatar } from "./player-cosmetics";
 import { premiumPrice } from "@/lib/premium";
+import { PremiumCollections } from "./premium-collections";
 import { PremiumPacks } from "./premium-packs";
 import { ConfirmDialog } from "./confirm-dialog";
 import "../shop-catalog.css";
@@ -140,6 +141,13 @@ export function Shop({
         </span>
       </div>
       <PremiumPacks signedIn={!!account.user} openAuth={openAuth} cosmetics={cosmetics} />
+      <PremiumCollections
+        cosmetics={cosmetics}
+        signedIn={!!account.user}
+        username={account.profile?.username ?? "Ton profil"}
+        openAuth={openAuth}
+        notify={notify}
+      />
       <div className="store-categories" aria-label="Monnaie pour les articles">
         <button
           aria-pressed={currency === "coins"}

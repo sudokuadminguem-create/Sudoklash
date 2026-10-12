@@ -1,3 +1,4 @@
+import { parseCollectionItem } from "./premium-collections";
 import { shopFrames } from "./cosmetics";
 // Public appearance only; secret challenge titles and conditions stay on the server.
 export const elementLabels: Record<string, string> = {
@@ -28,6 +29,19 @@ export const elementLabels: Record<string, string> = {
   prism: "Prisme",
 };
 export function challengeFrameStyle(id: string) {
+  const premium = parseCollectionItem(id);
+  if (premium?.kind === "frame")
+    return {
+      rarity: "legendary",
+      color: premium.collection.color,
+      accent: premium.collection.accent,
+      highlight: "#ffffff",
+      symbol: "",
+      pattern: 0,
+      element: premium.collection.element,
+      variant: 1,
+      motif: 0,
+    };
   const product = shopFrames.find((frame) => frame.id === id);
   if (product)
     return {

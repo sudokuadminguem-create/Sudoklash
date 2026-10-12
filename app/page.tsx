@@ -1,4 +1,5 @@
 "use client";
+import { PremiumEffectProvider } from "./_components/premium-effects";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   CalendarDays,
@@ -192,260 +193,266 @@ function HomeContent() {
   const activeTheme = gridThemes.find((t) => t.id === cosmetics.state?.themeId) ?? gridThemes[0];
   return (
     <SettingsProvider>
-      <main
-        className="shell"
-        style={
-          {
-            "--grid-one": activeTheme.colors[0],
-            "--grid-two": activeTheme.colors[1],
-          } as CSSProperties
-        }
-      >
-        <PwaStatus />
-        <ChallengeAnnouncer
-          account={account}
-          cosmetics={cosmetics}
-          onDiscover={() => {
-            setView("defis");
-            void cosmetics.refresh();
-          }}
-        />
-        <a className="skip-link" href="#contenu">
-          {t("shell.skip")}
-        </a>
-        <aside id="main-menu" className={mobile ? "side open" : "side"}>
-          <div className="brand">
-            <div className="brandmark">9</div>
-            <div>
-              SUDOKU <b>CLASH</b>
-            </div>
-            <button
-              className="close"
-              aria-label={t("shell.menuClose")}
-              onClick={() => setMobile(false)}
-            >
-              <X />
-            </button>
-          </div>
-          <nav>
-            {nav.map(([id, label, I]) => (
-              <button
-                key={id}
-                className={view === id ? "active" : ""}
-                onClick={() => {
-                  setView(id);
-                  setMobile(false);
-                }}
-              >
-                <I />
-                <span>{t(label)}</span>
-              </button>
-            ))}
-            {me.isAdmin && (
-              <a className="admin-link" href="/admin">
-                <LockKeyhole />
-                <span>{t("shell.admin")}</span>
-              </a>
-            )}
-          </nav>
-          <div className="season">
-            <span>{t("shell.beta")}</span>
-            <b>{t("shell.betaTitle")}</b>
-            <div>
-              <i style={{ width: "100%" }} />
-            </div>
-            <small>{t("shell.betaNote")}</small>
-          </div>
-        </aside>
-        <button
-          className={mobile ? "scrim show" : "scrim"}
-          aria-label={t("shell.menuClose")}
-          tabIndex={mobile ? 0 : -1}
-          onClick={() => setMobile(false)}
-        />
-        <section className="app">
-          <header>
-            <button
-              className="menub"
-              aria-label={t("shell.menuOpen")}
-              aria-expanded={mobile}
-              aria-controls="main-menu"
-              onClick={() => setMobile(true)}
-            >
-              <Menu />
-            </button>
-            <div className="page-title">
-              <span className="crumb">SUDOKU CLASH /</span>
-              <h1>{title}</h1>
-            </div>
-            <div className="header-actions">
-              <AccountButton
-                key={account.user?.id ?? "guest"}
-                account={account}
-                cosmetics={cosmetics}
-                onAccount={() => setView("compte")}
-                onFriends={() => {
-                  setFriendRequestFocus((value) => value + 1);
-                  setView("amis");
-                }}
-                onDuels={() => {
-                  setMode("duel");
-                  setView("jouer");
-                }}
-                onEditPhoto={() => {
-                  setEditPhoto(true);
-                  setView("compte");
-                }}
-                onOpen={() => setAuthOpen(true)}
-              />
-            </div>
-          </header>
-          <div className="content" id="contenu" tabIndex={-1}>
-            {view === "jouer" && (
-              <>
-                <section className="welcome">
-                  <div>
-                    <span className="live">
-                      <i />
-                      {t("home.live")}
-                    </span>
-                    <h2>{t("home.title")}</h2>
-                    <p>{t("home.lead")}</p>
-                  </div>
-                  <button
-                    className="rank-card beta-account home-account-button"
-                    onClick={() => (account.user ? setView("compte") : setAuthOpen(true))}
-                    aria-label={
-                      account.user ? t("home.accountSignedIn") : t("home.accountSignedOut")
-                    }
-                  >
-                    <PlayerAvatar
-                      avatarId={cosmetics.state?.avatarId}
-                      image={cosmetics.state?.customAvatar}
-                      frameId={cosmetics.state?.frameId}
-                      size="large"
-                      fallback={account.user ? undefined : "?"}
-                    />
-                    <span className="home-account-text">
-                      <small>
-                        {t("home.myAccount")} ·{" "}
-                        {account.user
-                          ? t("home.level", { level: cosmetics.state?.level ?? 1 })
-                          : t("home.notConnected")}
-                      </small>
-                      <b>{account.profile?.username || t("home.chooseAvatar")}</b>
-                      <span>
-                        {account.user ? t("home.viewProfile") : t("home.signInToCustomize")}
-                      </span>
-                    </span>
-                  </button>
-                </section>
-                <div className="mode-tabs">
-                  {modeTabs.map(([id, label, I]) => (
-                    <button
-                      key={id}
-                      onClick={() => setMode(id)}
-                      className={mode === id ? "active" : ""}
-                    >
-                      <I />
-                      {t(label)}
-                      {id === "hebdo" && <small>+500</small>}
-                      {id === "duel" && duelInvites > 0 && <small>{duelInvites}</small>}
-                    </button>
-                  ))}
-                </div>
-                {mode === "classée" ? (
-                  <RankedMatch
-                    account={account}
-                    cosmetics={cosmetics}
-                    openAuth={() => setAuthOpen(true)}
-                    renderGame={(match, refresh) => (
-                      <RankedGame match={match} refresh={refresh} account={account} />
-                    )}
-                  />
-                ) : mode === "duel" ? (
-                  <FriendDuel
-                    account={account}
-                    openAuth={() => setAuthOpen(true)}
-                    notify={notify}
-                    target={duelTarget}
-                    onTargetUsed={() => setDuelTarget(null)}
-                  />
-                ) : (
-                  <ModePanel
-                    mode={mode}
-                    notify={notify}
-                    account={account}
-                    cosmetics={cosmetics}
-                    openAuth={() => setAuthOpen(true)}
-                  />
-                )}
-              </>
-            )}
-            {view === "compte" && (
-              <AccountOverview
-                account={account}
-                cosmetics={cosmetics}
-                notify={notify}
-                openAuth={() => setAuthOpen(true)}
-              />
-            )}
-            {view === "defis" && (
-              <AchievementBoard
-                account={account}
-                cosmetics={cosmetics}
-                notify={notify}
-                openAuth={() => setAuthOpen(true)}
-              />
-            )}
-            {view === "classement" && <Leaderboard />}
-            {view === "amis" && (
-              <RealFriends
-                requestFocus={friendRequestFocus}
-                account={account}
-                notify={notify}
-                openAuth={() => setAuthOpen(true)}
-                onChallenge={(friend) => {
-                  setDuelTarget(friend);
-                  setMode("duel");
-                  setView("jouer");
-                }}
-              />
-            )}
-            {view === "parametres" && (
-              <SettingsPanel notify={notify} account={account} openAuth={() => setAuthOpen(true)} />
-            )}
-            {view === "boutique" && (
-              <Shop
-                notify={notify}
-                cosmetics={cosmetics}
-                account={account}
-                openAuth={() => setAuthOpen(true)}
-              />
-            )}
-          </div>
-        </section>
-        {toast && (
-          <div className="toast" role="status" aria-live="polite">
-            <Check />
-            {toast}
-          </div>
-        )}
-        {authOpen && (
-          <AuthDialog
+      <PremiumEffectProvider effectId={cosmetics.state?.victoryEffectId ?? "none"}>
+        <main
+          className="shell"
+          style={
+            {
+              "--grid-one": activeTheme.colors[0],
+              "--grid-two": activeTheme.colors[1],
+            } as CSSProperties
+          }
+        >
+          <PwaStatus />
+          <ChallengeAnnouncer
             account={account}
-            recovery={recovery}
-            recoveryStatus={recoveryStatus}
-            onRecovered={() => {
-              setRecovery(false);
-              window.history.replaceState({}, "", window.location.pathname);
-              setAuthOpen(false);
-              notify("Mot de passe mis à jour");
+            cosmetics={cosmetics}
+            onDiscover={() => {
+              setView("defis");
+              void cosmetics.refresh();
             }}
-            onClose={() => setAuthOpen(false)}
           />
-        )}
-      </main>
+          <a className="skip-link" href="#contenu">
+            {t("shell.skip")}
+          </a>
+          <aside id="main-menu" className={mobile ? "side open" : "side"}>
+            <div className="brand">
+              <div className="brandmark">9</div>
+              <div>
+                SUDOKU <b>CLASH</b>
+              </div>
+              <button
+                className="close"
+                aria-label={t("shell.menuClose")}
+                onClick={() => setMobile(false)}
+              >
+                <X />
+              </button>
+            </div>
+            <nav>
+              {nav.map(([id, label, I]) => (
+                <button
+                  key={id}
+                  className={view === id ? "active" : ""}
+                  onClick={() => {
+                    setView(id);
+                    setMobile(false);
+                  }}
+                >
+                  <I />
+                  <span>{t(label)}</span>
+                </button>
+              ))}
+              {me.isAdmin && (
+                <a className="admin-link" href="/admin">
+                  <LockKeyhole />
+                  <span>{t("shell.admin")}</span>
+                </a>
+              )}
+            </nav>
+            <div className="season">
+              <span>{t("shell.beta")}</span>
+              <b>{t("shell.betaTitle")}</b>
+              <div>
+                <i style={{ width: "100%" }} />
+              </div>
+              <small>{t("shell.betaNote")}</small>
+            </div>
+          </aside>
+          <button
+            className={mobile ? "scrim show" : "scrim"}
+            aria-label={t("shell.menuClose")}
+            tabIndex={mobile ? 0 : -1}
+            onClick={() => setMobile(false)}
+          />
+          <section className="app">
+            <header>
+              <button
+                className="menub"
+                aria-label={t("shell.menuOpen")}
+                aria-expanded={mobile}
+                aria-controls="main-menu"
+                onClick={() => setMobile(true)}
+              >
+                <Menu />
+              </button>
+              <div className="page-title">
+                <span className="crumb">SUDOKU CLASH /</span>
+                <h1>{title}</h1>
+              </div>
+              <div className="header-actions">
+                <AccountButton
+                  key={account.user?.id ?? "guest"}
+                  account={account}
+                  cosmetics={cosmetics}
+                  onAccount={() => setView("compte")}
+                  onFriends={() => {
+                    setFriendRequestFocus((value) => value + 1);
+                    setView("amis");
+                  }}
+                  onDuels={() => {
+                    setMode("duel");
+                    setView("jouer");
+                  }}
+                  onEditPhoto={() => {
+                    setEditPhoto(true);
+                    setView("compte");
+                  }}
+                  onOpen={() => setAuthOpen(true)}
+                />
+              </div>
+            </header>
+            <div className="content" id="contenu" tabIndex={-1}>
+              {view === "jouer" && (
+                <>
+                  <section className="welcome">
+                    <div>
+                      <span className="live">
+                        <i />
+                        {t("home.live")}
+                      </span>
+                      <h2>{t("home.title")}</h2>
+                      <p>{t("home.lead")}</p>
+                    </div>
+                    <button
+                      className="rank-card beta-account home-account-button"
+                      onClick={() => (account.user ? setView("compte") : setAuthOpen(true))}
+                      aria-label={
+                        account.user ? t("home.accountSignedIn") : t("home.accountSignedOut")
+                      }
+                    >
+                      <PlayerAvatar
+                        avatarId={cosmetics.state?.avatarId}
+                        image={cosmetics.state?.customAvatar}
+                        frameId={cosmetics.state?.frameId}
+                        size="large"
+                        fallback={account.user ? undefined : "?"}
+                      />
+                      <span className="home-account-text">
+                        <small>
+                          {t("home.myAccount")} ·{" "}
+                          {account.user
+                            ? t("home.level", { level: cosmetics.state?.level ?? 1 })
+                            : t("home.notConnected")}
+                        </small>
+                        <b>{account.profile?.username || t("home.chooseAvatar")}</b>
+                        <span>
+                          {account.user ? t("home.viewProfile") : t("home.signInToCustomize")}
+                        </span>
+                      </span>
+                    </button>
+                  </section>
+                  <div className="mode-tabs">
+                    {modeTabs.map(([id, label, I]) => (
+                      <button
+                        key={id}
+                        onClick={() => setMode(id)}
+                        className={mode === id ? "active" : ""}
+                      >
+                        <I />
+                        {t(label)}
+                        {id === "hebdo" && <small>+500</small>}
+                        {id === "duel" && duelInvites > 0 && <small>{duelInvites}</small>}
+                      </button>
+                    ))}
+                  </div>
+                  {mode === "classée" ? (
+                    <RankedMatch
+                      account={account}
+                      cosmetics={cosmetics}
+                      openAuth={() => setAuthOpen(true)}
+                      renderGame={(match, refresh) => (
+                        <RankedGame match={match} refresh={refresh} account={account} />
+                      )}
+                    />
+                  ) : mode === "duel" ? (
+                    <FriendDuel
+                      account={account}
+                      openAuth={() => setAuthOpen(true)}
+                      notify={notify}
+                      target={duelTarget}
+                      onTargetUsed={() => setDuelTarget(null)}
+                    />
+                  ) : (
+                    <ModePanel
+                      mode={mode}
+                      notify={notify}
+                      account={account}
+                      cosmetics={cosmetics}
+                      openAuth={() => setAuthOpen(true)}
+                    />
+                  )}
+                </>
+              )}
+              {view === "compte" && (
+                <AccountOverview
+                  account={account}
+                  cosmetics={cosmetics}
+                  notify={notify}
+                  openAuth={() => setAuthOpen(true)}
+                />
+              )}
+              {view === "defis" && (
+                <AchievementBoard
+                  account={account}
+                  cosmetics={cosmetics}
+                  notify={notify}
+                  openAuth={() => setAuthOpen(true)}
+                />
+              )}
+              {view === "classement" && <Leaderboard />}
+              {view === "amis" && (
+                <RealFriends
+                  requestFocus={friendRequestFocus}
+                  account={account}
+                  notify={notify}
+                  openAuth={() => setAuthOpen(true)}
+                  onChallenge={(friend) => {
+                    setDuelTarget(friend);
+                    setMode("duel");
+                    setView("jouer");
+                  }}
+                />
+              )}
+              {view === "parametres" && (
+                <SettingsPanel
+                  notify={notify}
+                  account={account}
+                  openAuth={() => setAuthOpen(true)}
+                />
+              )}
+              {view === "boutique" && (
+                <Shop
+                  notify={notify}
+                  cosmetics={cosmetics}
+                  account={account}
+                  openAuth={() => setAuthOpen(true)}
+                />
+              )}
+            </div>
+          </section>
+          {toast && (
+            <div className="toast" role="status" aria-live="polite">
+              <Check />
+              {toast}
+            </div>
+          )}
+          {authOpen && (
+            <AuthDialog
+              account={account}
+              recovery={recovery}
+              recoveryStatus={recoveryStatus}
+              onRecovered={() => {
+                setRecovery(false);
+                window.history.replaceState({}, "", window.location.pathname);
+                setAuthOpen(false);
+                notify("Mot de passe mis à jour");
+              }}
+              onClose={() => setAuthOpen(false)}
+            />
+          )}
+        </main>
+      </PremiumEffectProvider>
     </SettingsProvider>
   );
 }
