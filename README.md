@@ -145,6 +145,17 @@ nginx). Dans ce mode :
 - le conteneur tourne sans root, en lecture seule, sans capacités Linux, sans npm ni apk, avec des
   en-têtes de sécurité (CSP, HSTS, anti-framing) et une sonde `/api/health`.
 
+### Publication sur Docker Hub
+
+Le workflow `.github/workflows/docker-publish.yml` construit l'image (amd64 et arm64) et la pousse
+sur Docker Hub : tags `main` et `sha-…` à chaque push sur `main`, tags `1.2.3`, `1.2`, `1` et
+`latest` à chaque tag `v1.2.3`. Il reste inactif tant que le dépôt n'est pas configuré
+(_Settings > Secrets and variables > Actions_) :
+
+- variable `DOCKERHUB_REPOSITORY` : `<utilisateur ou organisation>/sudoklash` ;
+- secrets `DOCKERHUB_USERNAME` et `DOCKERHUB_TOKEN` (jeton d'accès Docker Hub en lecture-écriture) ;
+- variables facultatives `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+
 ## End-to-end tests
 
 `pnpm test:e2e` drives the real app in Chromium (desktop and mobile viewports) with Playwright. It starts `pnpm dev` itself, or reuses a server already on port 5173, and uses the guest solo mode, so it needs no account or database. The first time, run `pnpm exec playwright install chromium`.
