@@ -1,0 +1,58 @@
+.header-wallet {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+}
+.header-wallet > button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 4px 7px;
+  min-height: 30px;
+  background: #101829;
+  border: 1px solid var(--line, #334462);
+  border-radius: 9px;
+  color: #ffe4a1;
+  font-weight: 750;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.header-wallet > .wallet-gems {
+  color: #eed7ff;
+}
+.header-wallet svg {
+  width: 19px;
+  height: 19px;
+  flex: none;
+}
+.header-wallet > button:hover {
+  border-color: currentColor;
+}
+.header-wallet > button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .header-wallet {
+    display: grid;
+    gap: 2px;
+  }
+  .header-wallet > button {
+    min-height: 24px;
+    padding: 2px 5px;
+    font-size: 0.75rem;
+  }
+  .header-wallet svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+@media (max-width: 380px) {
+  header .page-title h1 {
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+  }
+}

@@ -1,12 +1,15 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Trophy } from "lucide-react";
-import { formatDuration } from "@/app/lib/format-time";
-import { localJudge } from "@/app/lib/judge";
-import { supabase } from "@/app/lib/supabase";
 import type { Account } from "@/hooks/use-account";
-import { solveGrid } from "@/lib/sudoku-solver";
-import type { Room, RoomPlayer } from "./private-lobby";
+import type { Judge } from "@/app/lib/judge";
+import {
+  roomRequest,
+  type Room,
+  type RoomPlayer,
+  type RoomSnapshot,
+} from "@/app/lib/private-rooms";
+import { geometryOf } from "@/lib/variants";
 import { SudokuBoard } from "./sudoku-board";
 
 export function RoomGame({
@@ -20,63 +23,89 @@ export function RoomGame({
   account: Account;
   notify: (s: string) => void;
 }) {
-  const me = players.find((player) => player.user_id === account.user?.id),
-    opponent = players.find((player) => player.user_id !== account.user?.id);
-  const [now] = useState(() => Date.now()),
-    startMs = room.started_at ? new Date(room.started_at).getTime() : now,
-    initialSeconds = Math.max(0, Math.floor((now - startMs) / 1000));
-  // Private rooms are run by Supabase functions, so the browser checks entries itself here.
+  const [mountedAt] = useState(Date.now);
+  const [completeWinner, setCompleteWinner] = useState<string | null>(null);
+  const [pendingGrid, setPendingGrid] = useState<string | null>(null);
+  const winner = room.winner_id ?? completeWinner;
   const puzzle = useMemo(() => room.puzzle.split("").map(Number), [room.puzzle]);
-  const judge = useMemo(() => localJudge(puzzle, solveGrid(puzzle) ?? []), [puzzle]);
-  const update = (filled: number) => {
-    void supabase.rpc("update_room_progress", { p_room_id: room.id, p_progress: filled });
+  const geometry = useMemo(
+    () => geometryOf(room.variant === "classic" ? undefined : room.variant, room.cages),
+    [room.variant, room.cages],
+  );
+  const total = puzzle.filter((n) => n === 0).length;
+  const judge: Judge = {
+    check: (entry) =>
+      roomRequest({ action: "check", id: room.id, index: entry.index, number: entry.number }),
   };
-  const complete = async (grid: number[]) => {
-    const { data, error } = await supabase.rpc("complete_room", {
-      p_room_id: room.id,
-      p_grid: grid.join(""),
-    });
-    if (error) notify(error.message);
-    else {
-      notify(`Grille validée en ${formatDuration(Math.floor(Number(data) / 1000))}`);
-      window.dispatchEvent(new Event("sudoklash:progress"));
+  const submit = async (grid: string) => {
+    try {
+      const result = await roomRequest<RoomSnapshot>({ action: "complete", id: room.id, grid });
+      setCompleteWinner(result.room.winner_id);
+      setPendingGrid(null);
+    } catch (e) {
+      setPendingGrid(grid);
+      notify(e instanceof Error ? e.message : "Résultat indisponible.");
     }
   };
   return (
     <div>
       <div className="solo-bar">
         <b>Salon {room.code}</b>
-        <span>{room.status === "finished" ? "Course terminée" : "Course en direct"}</span>
+        <span>
+          {players.length}/{room.max_players} joueurs · {room.difficulty}
+        </span>
       </div>
-      <SudokuBoard
-        key={room.id}
-        difficulty="Intermédiaire"
-        puzzle={puzzle}
-        judge={judge}
-        competitive
-        title="Course privée 1 contre 1"
-        active={room.status === "playing"}
-        initialSeconds={initialSeconds}
-        storageKey={`sudoku-clash-room-lives:${room.id}:${account.user?.id}`}
-        onProgress={update}
-        onSolved={complete}
-        race={{
-          meName: account.profile?.username || "Vous",
-          opponentName: opponent?.profile?.username || "Adversaire",
-          opponentProgress: opponent?.progress || 0,
-        }}
-      />
-      {room.status === "finished" && (
+      {winner ? (
         <div className="panel race-result">
           <Trophy />
-          <h3>{room.winner_id === account.user?.id ? "Victoire !" : "Course terminée"}</h3>
+          <h3>{winner === account.user?.id ? "Victoire !" : "Course terminée"}</h3>
           <p>
-            {me?.elapsed_ms
-              ? `Votre temps : ${formatDuration(Math.floor(me.elapsed_ms / 1000))}`
-              : "Résultat enregistré"}
+            {players.find((p) => p.user_id === winner)?.username ?? "Un joueur"} a terminé la grille
+            en premier.
           </p>
         </div>
+      ) : (
+        <SudokuBoard
+          key={room.id}
+          geometry={geometry}
+          difficulty={room.difficulty}
+          puzzle={puzzle}
+          judge={judge}
+          competitive
+          hintsAllowed={0}
+          title="Course privée"
+          initialSeconds={Math.max(
+            0,
+            Math.floor((mountedAt - (room.started_at ?? mountedAt)) / 1000),
+          )}
+          storageKey={`sudoku-clash-room-lives:${room.id}:${account.user?.id}`}
+          onProgress={(_, grid) => {
+            void roomRequest({ action: "progress", id: room.id, grid }).catch(() => {});
+          }}
+          onSolved={(grid) => submit(grid.join(""))}
+        />
       )}
+      {!winner && pendingGrid && (
+        <button type="button" className="primary" onClick={() => void submit(pendingGrid)}>
+          Réessayer de valider la grille
+        </button>
+      )}
+      <section className="panel room-progress">
+        <h3>Progression des joueurs</h3>
+        {players.map((p) => (
+          <div key={p.user_id}>
+            <span>{p.username ?? (p.user_id === account.user?.id ? "Toi" : "Joueur")}</span>
+            <progress
+              aria-label={`Progression de ${p.username ?? "joueur"}`}
+              value={p.progress}
+              max={total}
+            />
+            <b>
+              {p.progress}/{total}
+            </b>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }

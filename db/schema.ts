@@ -67,6 +67,7 @@ export const playerCosmetics = sqliteTable("player_cosmetics", {
   themeId: text("theme_id").notNull().default("ocean"),
   profileCardId: text("profile_card_id").notNull().default("origin"),
   profileTitleId: text("profile_title_id").notNull().default("none"),
+  victoryEffectId: text("victory_effect_id").notNull().default("none"),
 });
 
 export const playerAvatarImages = sqliteTable("player_avatar_images", {
@@ -81,6 +82,7 @@ export const cosmeticPurchases = sqliteTable(
     userId: text("user_id").notNull(),
     itemId: text("item_id").notNull(),
     price: integer("price").notNull(),
+    premiumPrice: integer("premium_price").notNull().default(0),
     purchasedAt: integer("purchased_at").notNull(),
   },
   (table) => [primaryKey({ columns: [table.userId, table.itemId] })],
@@ -248,3 +250,71 @@ export const friendDuels = sqliteTable(
     index("idx_friend_duels_opponent").on(table.opponentId, table.status),
   ],
 );
+
+export const premiumCredits = sqliteTable(
+  "premium_credits",
+  {
+    sessionId: text("session_id").primaryKey(),
+    userId: text("user_id").notNull(),
+    packId: text("pack_id").notNull(),
+    gems: integer("gems").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    creditedAt: integer("credited_at").notNull(),
+  },
+  (table) => [index("idx_premium_credits_user").on(table.userId)],
+);
+
+export const privateRooms = sqliteTable("private_rooms", {
+  id: text("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  hostId: text("host_id").notNull(),
+  difficulty: text("difficulty").notNull(),
+  variant: text("variant").notNull(),
+  puzzle: text("puzzle").notNull(),
+  solution: text("solution").notNull(),
+  cages: text("cages").notNull(),
+  maxPlayers: integer("max_players").notNull(),
+  createdAt: integer("created_at").notNull(),
+  startedAt: integer("started_at"),
+  winnerId: text("winner_id"),
+});
+
+export const privateRoomPlayers = sqliteTable("private_room_players", {
+  roomId: text("room_id").notNull(),
+  userId: text("user_id").notNull(),
+  isReady: integer("is_ready").notNull().default(0),
+  progress: integer("progress").notNull().default(0),
+}, table => [primaryKey({ columns: [table.roomId, table.userId] })]);
+
+export const tournaments = sqliteTable("tournaments", {
+  id: text("id").primaryKey(),
+  hostId: text("host_id").notNull(),
+  difficulty: text("difficulty").notNull(),
+  startsAt: integer("starts_at").notNull(),
+  endsAt: integer("ends_at").notNull(),
+  puzzle: text("puzzle").notNull(),
+  solution: text("solution").notNull(),
+  settled: text("settled"),
+}, t => [index("tournaments_start").on(t.startsAt)]);
+
+export const tournamentEntries = sqliteTable("tournament_entries", {
+  tournamentId: text("tournament_id").notNull(),
+  userId: text("user_id").notNull(),
+  joinedAt: integer("joined_at").notNull(),
+  fee: integer("fee").notNull(),
+  payout: integer("payout").notNull().default(0),
+  mistakes: integer("mistakes").notNull().default(0),
+  lastMistake: text("last_mistake"),
+  finishedAt: integer("finished_at"),
+}, t => [
+  primaryKey({columns:[t.tournamentId,t.userId]}),
+  index("tournament_entries_user").on(t.userId),
+]);
+
+export const livePresence = sqliteTable("live_presence", {
+  tabId: text("tab_id").primaryKey(),
+  browserId: text("browser_id").notNull(),
+  revision: integer("revision").notNull(),
+  active: integer("active").notNull(),
+  seenAt: integer("seen_at").notNull(),
+}, t => [index("live_presence_seen_at").on(t.seenAt)]);

@@ -1,5 +1,6 @@
 "use client";
 import { useI18n } from "@/app/lib/i18n";
+import { supabase } from "@/app/lib/supabase";
 import { useState } from "react";
 import type { Account } from "@/hooks/use-account";
 import { PrivacySettings } from "./privacy-settings";
@@ -42,6 +43,20 @@ export function SettingsPanel({
   const { settings, update } = useSettings();
   const { t, locale, setLocale } = useI18n();
   const install = useInstall();
+  const [signingOut, setSigningOut] = useState(false);
+  const fr = locale === "fr";
+  const signOut = async () => {
+    setSigningOut(true);
+    try {
+      const { error } = await supabase.auth.signOut({ scope: "local" });
+      if (error) throw error;
+      notify(fr ? "Tu es déconnecté." : "You are signed out.");
+    } catch {
+      notify(fr ? "Déconnexion impossible. Réessaie." : "Could not sign out. Try again.");
+    } finally {
+      setSigningOut(false);
+    }
+  };
   return (
     <div className="panel settings-panel">
       <div className="panel-head">
@@ -49,6 +64,20 @@ export function SettingsPanel({
         <h2>{t("settings.title")}</h2>
         <p className="panel-copy">{t("settings.copy")}</p>
       </div>
+      {account?.user && (
+        <section className="settings-group">
+          <h3>{fr ? "Connexion" : "Sign-in"}</h3>
+          <div className="setting-row">
+            <span>
+              <b>{fr ? "Session active" : "Signed in"}</b>
+              <small>{fr ? "Ta session est mémorisée sur cet appareil." : "Your session is remembered on this device."}</small>
+            </span>
+            <button type="button" className="primary" disabled={signingOut} onClick={() => void signOut()}>
+              {signingOut ? (fr ? "Déconnexion…" : "Signing out…") : (fr ? "Déconnexion" : "Sign out")}
+            </button>
+          </div>
+        </section>
+      )}
       <div
         className="settings-tabs"
         role="group"
