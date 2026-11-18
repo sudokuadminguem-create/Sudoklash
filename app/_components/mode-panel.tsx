@@ -171,11 +171,12 @@ export function ModePanel({
     return <TimedChallenge kind="weekly" openAuth={openAuth} cosmetics={cosmetics} />;
   return (
     <PrivateLobby
+      key={account.user?.id ?? "guest"}
       account={account}
       notify={notify}
       openAuth={openAuth}
       onRace={(room, players) => (
-        <RoomGame room={room} players={players} account={account} notify={notify} />
+        <RoomGame key={room.id} room={room} players={players} account={account} notify={notify} />
       )}
     />
   );

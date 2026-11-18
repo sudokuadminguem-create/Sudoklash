@@ -263,3 +263,25 @@ export const premiumCredits = sqliteTable(
   },
   (table) => [index("idx_premium_credits_user").on(table.userId)],
 );
+
+export const privateRooms = sqliteTable("private_rooms", {
+  id: text("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  hostId: text("host_id").notNull(),
+  difficulty: text("difficulty").notNull(),
+  variant: text("variant").notNull(),
+  puzzle: text("puzzle").notNull(),
+  solution: text("solution").notNull(),
+  cages: text("cages").notNull(),
+  maxPlayers: integer("max_players").notNull(),
+  createdAt: integer("created_at").notNull(),
+  startedAt: integer("started_at"),
+  winnerId: text("winner_id"),
+});
+
+export const privateRoomPlayers = sqliteTable("private_room_players", {
+  roomId: text("room_id").notNull(),
+  userId: text("user_id").notNull(),
+  isReady: integer("is_ready").notNull().default(0),
+  progress: integer("progress").notNull().default(0),
+}, table => [primaryKey({ columns: [table.roomId, table.userId] })]);
