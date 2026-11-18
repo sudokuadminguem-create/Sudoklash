@@ -159,6 +159,224 @@ export async function GET(request: Request) {
   }
 }
 
+type CosmeticsState = Awaited<ReturnType<typeof state>>;
+type ActionBody = { action: string; id: string; currency?: unknown };
+type ActionContext = { db: D1Database; userId: string; current: CosmeticsState; body: ActionBody };
+/** Handles one action; a null result answers with the refreshed cosmetics state. */
+type ActionHandler = (context: ActionContext) => Promise<Response | null>;
+
+const insertCosmeticsSQL = (column: "avatar_id" | "frame_id" | "theme_id") =>
+  `INSERT INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET ${column}=excluded.${column}`;
+const ensureCosmeticsRow = ({ db, userId, current }: ActionContext) =>
+  db
+    .prepare(
+      "INSERT OR IGNORE INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?)",
+    )
+    .bind(userId, current.avatarId, current.frameSelection, current.themeId);
+
+const equipAvatar: ActionHandler = async ({ db, userId, current, body }) => {
+  if (
+    !(avatars.some((a) => a.id === body.id) || body.id === "custom") ||
+    !current.ownedAvatars.includes(body.id)
+  )
+    return json({ error: "avatar_locked" }, 403);
+  await db
+    .prepare(insertCosmeticsSQL("avatar_id"))
+    .bind(userId, body.id, current.frameSelection, current.themeId)
+    .run();
+  return null;
+};
+
+const uploadAvatar: ActionHandler = async ({ db, userId, current, body }) => {
+  if (body.id.length > MAX_AVATAR_IMAGE_LENGTH || !AVATAR_IMAGE_PATTERN.test(body.id))
+    return json({ error: "invalid_image" }, 400);
+  await db.batch([
+    db
+      .prepare(
+        "INSERT INTO player_avatar_images (user_id,image_data,updated_at) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET image_data=excluded.image_data,updated_at=excluded.updated_at",
+      )
+      .bind(userId, body.id, Date.now()),
+    db
+      .prepare(insertCosmeticsSQL("avatar_id"))
+      .bind(userId, "custom", current.frameSelection, current.themeId),
+  ]);
+  return null;
+};
+
+const removeAvatar: ActionHandler = async ({ db, userId }) => {
+  await db.batch([
+    db.prepare("DELETE FROM player_avatar_images WHERE user_id=?").bind(userId),
+    db
+      .prepare(
+        "UPDATE player_cosmetics SET avatar_id='nova' WHERE user_id=? AND avatar_id='custom'",
+      )
+      .bind(userId),
+  ]);
+  return null;
+};
+
+const buyPremium: ActionHandler = async ({ db, userId, current, body }) => {
+  const product = parseCollectionItem(body.id);
+  if (!product || body.currency !== "gems") return json({ error: "invalid_item" }, 400);
+  const owned = [...current.unlockedFrames, ...current.ownedCards, ...current.ownedEffects];
+  if (owned.includes(body.id)) return json(current);
+  const cost =
+    product.kind === "bundle" ? bundlePrice(product.collection.id, owned) : product.price;
+  if (cost === 0) return json(current);
+  const itemId = `premium:${body.id}`;
+  // Ownership and both balances are checked again in the same guarded database write.
+  const result = await db
+    .prepare(
+      `INSERT INTO cosmetic_purchases (user_id,item_id,price,premium_price,purchased_at)
+        SELECT ?,?,0,?,? WHERE COALESCE((SELECT SUM(gems) FROM premium_credits WHERE user_id=?),0)-COALESCE((SELECT SUM(premium_price) FROM cosmetic_purchases WHERE user_id=?),0)>=?
+        AND NOT EXISTS(SELECT 1 FROM cosmetic_purchases WHERE user_id=? AND item_id=?)
+        AND ? = COALESCE((SELECT SUM(premium_price) FROM cosmetic_purchases WHERE user_id=?),0)`,
+    )
+    .bind(
+      userId,
+      itemId,
+      cost,
+      Date.now(),
+      userId,
+      userId,
+      cost,
+      userId,
+      itemId,
+      current.premiumSpent,
+      userId,
+    )
+    .run();
+  return result.meta.changes ? null : json({ error: "not_enough_gems" }, 409);
+};
+
+const equipEffect: ActionHandler = async (context) => {
+  const { db, userId, current, body } = context;
+  if (!current.ownedEffects.includes(body.id)) return json({ error: "effect_locked" }, 403);
+  await db.batch([
+    ensureCosmeticsRow(context),
+    db
+      .prepare("UPDATE player_cosmetics SET victory_effect_id=? WHERE user_id=?")
+      .bind(body.id, userId),
+  ]);
+  return null;
+};
+
+const equipFrame: ActionHandler = async ({ db, userId, current, body }) => {
+  if (
+    body.id !== "rank_auto" &&
+    body.id !== "none" &&
+    !current.unlockedFrames.some((id) => id === body.id)
+  )
+    return json({ error: "frame_locked" }, 403);
+  await db
+    .prepare(insertCosmeticsSQL("frame_id"))
+    .bind(userId, current.avatarId, body.id, current.themeId)
+    .run();
+  return null;
+};
+
+const equipTheme: ActionHandler = async ({ db, userId, current, body }) => {
+  if (!current.ownedThemes.includes(body.id)) return json({ error: "theme_locked" }, 403);
+  await db
+    .prepare(insertCosmeticsSQL("theme_id"))
+    .bind(userId, current.avatarId, current.frameSelection, body.id)
+    .run();
+  return null;
+};
+
+const equipProfileReward =
+  (card: boolean): ActionHandler =>
+  async (context) => {
+    const { db, userId, current, body } = context;
+    if (!(card ? current.ownedCards : current.ownedTitles).includes(body.id))
+      return json({ error: "reward_locked" }, 403);
+    await db.batch([
+      ensureCosmeticsRow(context),
+      db
+        .prepare(
+          card
+            ? "UPDATE player_cosmetics SET profile_card_id=? WHERE user_id=?"
+            : "UPDATE player_cosmetics SET profile_title_id=? WHERE user_id=?",
+        )
+        .bind(body.id, userId),
+    ]);
+    return null;
+  };
+
+type ShopKind = "avatar" | "theme" | "frame";
+const shopCatalog: Record<
+  ShopKind,
+  {
+    products: readonly { id: string; price: number }[];
+    owned: (current: CosmeticsState) => string[];
+  }
+> = {
+  frame: { products: shopFrames, owned: (current) => current.unlockedFrames },
+  avatar: { products: shopAvatars, owned: (current) => current.ownedAvatars },
+  theme: { products: gridThemes, owned: (current) => current.ownedThemes },
+};
+
+async function buyWithGems(db: D1Database, userId: string, itemId: string, price: number) {
+  const cost = premiumPrice(price);
+  const result = await db
+    .prepare(
+      `INSERT INTO cosmetic_purchases (user_id,item_id,price,premium_price,purchased_at)
+          SELECT ?,?,0,?,? WHERE COALESCE((SELECT SUM(gems) FROM premium_credits WHERE user_id=?),0) - COALESCE((SELECT SUM(premium_price) FROM cosmetic_purchases WHERE user_id=?),0) >= ?
+          AND NOT EXISTS (SELECT 1 FROM cosmetic_purchases WHERE user_id=? AND item_id=?)`,
+    )
+    .bind(userId, itemId, cost, Date.now(), userId, userId, cost, userId, itemId)
+    .run();
+  return result.meta.changes ? null : json({ error: "not_enough_gems" }, 409);
+}
+
+async function buyWithCoins(
+  db: D1Database,
+  userId: string,
+  itemId: string,
+  price: number,
+  earnedCoins: number,
+) {
+  // One guarded write prevents two purchases from spending the same balance.
+  const result = await db
+    .prepare(
+      `INSERT INTO cosmetic_purchases (user_id,item_id,price,purchased_at)
+    SELECT ?,?,?,? WHERE ? + ${tournamentNetSQL} - COALESCE((SELECT SUM(price) FROM cosmetic_purchases WHERE user_id=?),0) >= ?
+    AND NOT EXISTS (SELECT 1 FROM cosmetic_purchases WHERE user_id=? AND item_id=?)`,
+    )
+    .bind(userId, itemId, price, Date.now(), earnedCoins, userId, userId, price, userId, itemId)
+    .run();
+  return result.meta.changes ? null : json({ error: "not_enough_coins" }, 409);
+}
+
+const buyShopItem =
+  (kind: ShopKind): ActionHandler =>
+  async ({ db, userId, current, body }) => {
+    const catalog = shopCatalog[kind];
+    const product = catalog.products.find((p) => p.id === body.id);
+    if (!product) return json({ error: "invalid_item" }, 400);
+    if (catalog.owned(current).includes(product.id)) return json(current);
+    const itemId = `${kind}:${product.id}`;
+    if (body.currency !== undefined && body.currency !== "coins" && body.currency !== "gems")
+      return json({ error: "invalid_currency" }, 400);
+    if (body.currency === "gems") return buyWithGems(db, userId, itemId, product.price);
+    return buyWithCoins(db, userId, itemId, product.price, current.earnedCoins);
+  };
+
+const actions: Record<string, ActionHandler> = {
+  equip_avatar: equipAvatar,
+  upload_avatar: uploadAvatar,
+  remove_avatar: removeAvatar,
+  buy_premium: buyPremium,
+  equip_effect: equipEffect,
+  equip_frame: equipFrame,
+  equip_theme: equipTheme,
+  equip_profile_card: equipProfileReward(true),
+  equip_profile_title: equipProfileReward(false),
+  buy_avatar: buyShopItem("avatar"),
+  buy_theme: buyShopItem("theme"),
+  buy_frame: buyShopItem("frame"),
+};
+
 export async function POST(request: Request) {
   const user = await getSiteUser(request);
   if (!user) return json({ error: "authentication_required" }, 401);
@@ -173,195 +391,10 @@ export async function POST(request: Request) {
   const db = env.DB!;
   try {
     const current = await state(user.userId);
-    if (body.action === "equip_avatar") {
-      if (
-        !(avatars.some((a) => a.id === body.id) || body.id === "custom") ||
-        !current.ownedAvatars.includes(body.id)
-      )
-        return json({ error: "avatar_locked" }, 403);
-      await db
-        .prepare(
-          "INSERT INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET avatar_id=excluded.avatar_id",
-        )
-        .bind(user.userId, body.id, current.frameSelection, current.themeId)
-        .run();
-    } else if (body.action === "upload_avatar") {
-      if (body.id.length > MAX_AVATAR_IMAGE_LENGTH || !AVATAR_IMAGE_PATTERN.test(body.id))
-        return json({ error: "invalid_image" }, 400);
-      await db.batch([
-        db
-          .prepare(
-            "INSERT INTO player_avatar_images (user_id,image_data,updated_at) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET image_data=excluded.image_data,updated_at=excluded.updated_at",
-          )
-          .bind(user.userId, body.id, Date.now()),
-        db
-          .prepare(
-            "INSERT INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET avatar_id=excluded.avatar_id",
-          )
-          .bind(user.userId, "custom", current.frameSelection, current.themeId),
-      ]);
-    } else if (body.action === "remove_avatar") {
-      await db.batch([
-        db.prepare("DELETE FROM player_avatar_images WHERE user_id=?").bind(user.userId),
-        db
-          .prepare(
-            "UPDATE player_cosmetics SET avatar_id='nova' WHERE user_id=? AND avatar_id='custom'",
-          )
-          .bind(user.userId),
-      ]);
-    } else if (body.action === "buy_premium") {
-      const product = parseCollectionItem(body.id);
-      if (!product || body.currency !== "gems") return json({ error: "invalid_item" }, 400);
-      const owned = [...current.unlockedFrames, ...current.ownedCards, ...current.ownedEffects];
-      if (owned.includes(body.id)) return json(current);
-      const cost =
-        product.kind === "bundle" ? bundlePrice(product.collection.id, owned) : product.price;
-      if (cost === 0) return json(current);
-      const itemId = `premium:${body.id}`;
-      // Ownership and both balances are checked again in the same guarded database write.
-      const result = await db
-        .prepare(
-          `INSERT INTO cosmetic_purchases (user_id,item_id,price,premium_price,purchased_at)
-        SELECT ?,?,0,?,? WHERE COALESCE((SELECT SUM(gems) FROM premium_credits WHERE user_id=?),0)-COALESCE((SELECT SUM(premium_price) FROM cosmetic_purchases WHERE user_id=?),0)>=?
-        AND NOT EXISTS(SELECT 1 FROM cosmetic_purchases WHERE user_id=? AND item_id=?)
-        AND ? = COALESCE((SELECT SUM(premium_price) FROM cosmetic_purchases WHERE user_id=?),0)`,
-        )
-        .bind(
-          user.userId,
-          itemId,
-          cost,
-          Date.now(),
-          user.userId,
-          user.userId,
-          cost,
-          user.userId,
-          itemId,
-          current.premiumSpent,
-          user.userId,
-        )
-        .run();
-      if (!result.meta.changes) return json({ error: "not_enough_gems" }, 409);
-    } else if (body.action === "equip_effect") {
-      if (!current.ownedEffects.includes(body.id)) return json({ error: "effect_locked" }, 403);
-      await db.batch([
-        db
-          .prepare(
-            "INSERT OR IGNORE INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?)",
-          )
-          .bind(user.userId, current.avatarId, current.frameSelection, current.themeId),
-        db
-          .prepare("UPDATE player_cosmetics SET victory_effect_id=? WHERE user_id=?")
-          .bind(body.id, user.userId),
-      ]);
-    } else if (body.action === "equip_frame") {
-      if (
-        body.id !== "rank_auto" &&
-        body.id !== "none" &&
-        !current.unlockedFrames.some((id) => id === body.id)
-      )
-        return json({ error: "frame_locked" }, 403);
-      await db
-        .prepare(
-          "INSERT INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET frame_id=excluded.frame_id",
-        )
-        .bind(user.userId, current.avatarId, body.id, current.themeId)
-        .run();
-    } else if (body.action === "equip_theme") {
-      if (!current.ownedThemes.includes(body.id)) return json({ error: "theme_locked" }, 403);
-      await db
-        .prepare(
-          "INSERT INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET theme_id=excluded.theme_id",
-        )
-        .bind(user.userId, current.avatarId, current.frameSelection, body.id)
-        .run();
-    } else if (body.action === "equip_profile_card" || body.action === "equip_profile_title") {
-      const card = body.action === "equip_profile_card";
-      if (!(card ? current.ownedCards : current.ownedTitles).includes(body.id))
-        return json({ error: "reward_locked" }, 403);
-      await db.batch([
-        db
-          .prepare(
-            "INSERT OR IGNORE INTO player_cosmetics (user_id,avatar_id,frame_id,theme_id) VALUES (?,?,?,?)",
-          )
-          .bind(user.userId, current.avatarId, current.frameSelection, current.themeId),
-        db
-          .prepare(
-            card
-              ? "UPDATE player_cosmetics SET profile_card_id=? WHERE user_id=?"
-              : "UPDATE player_cosmetics SET profile_title_id=? WHERE user_id=?",
-          )
-          .bind(body.id, user.userId),
-      ]);
-    } else if (
-      body.action === "buy_avatar" ||
-      body.action === "buy_theme" ||
-      body.action === "buy_frame"
-    ) {
-      const avatar = body.action === "buy_avatar";
-      const frame = body.action === "buy_frame";
-      const product = frame
-        ? shopFrames.find((f) => f.id === body.id)
-        : avatar
-          ? shopAvatars.find((a) => a.id === body.id)
-          : gridThemes.find((a) => a.id === body.id);
-      if (!product) return json({ error: "invalid_item" }, 400);
-      if (
-        frame
-          ? current.unlockedFrames.includes(product.id)
-          : avatar
-            ? current.ownedAvatars.includes(product.id)
-            : current.ownedThemes.includes(product.id)
-      )
-        return json(current);
-      const itemId = `${frame ? "frame" : avatar ? "avatar" : "theme"}:${product.id}`;
-      if (body.currency !== undefined && body.currency !== "coins" && body.currency !== "gems")
-        return json({ error: "invalid_currency" }, 400);
-      if (body.currency === "gems") {
-        const cost = premiumPrice(product.price);
-        const result = await db
-          .prepare(
-            `INSERT INTO cosmetic_purchases (user_id,item_id,price,premium_price,purchased_at)
-          SELECT ?,?,0,?,? WHERE COALESCE((SELECT SUM(gems) FROM premium_credits WHERE user_id=?),0) - COALESCE((SELECT SUM(premium_price) FROM cosmetic_purchases WHERE user_id=?),0) >= ?
-          AND NOT EXISTS (SELECT 1 FROM cosmetic_purchases WHERE user_id=? AND item_id=?)`,
-          )
-          .bind(
-            user.userId,
-            itemId,
-            cost,
-            Date.now(),
-            user.userId,
-            user.userId,
-            cost,
-            user.userId,
-            itemId,
-          )
-          .run();
-        if (!result.meta.changes) return json({ error: "not_enough_gems" }, 409);
-        return json(await state(user.userId));
-      }
-      // One guarded write prevents two purchases from spending the same balance.
-      const result = await db
-        .prepare(
-          `INSERT INTO cosmetic_purchases (user_id,item_id,price,purchased_at)
-    SELECT ?,?,?,? WHERE ? + ${tournamentNetSQL} - COALESCE((SELECT SUM(price) FROM cosmetic_purchases WHERE user_id=?),0) >= ?
-    AND NOT EXISTS (SELECT 1 FROM cosmetic_purchases WHERE user_id=? AND item_id=?)`,
-        )
-        .bind(
-          user.userId,
-          itemId,
-          product.price,
-          Date.now(),
-          current.earnedCoins,
-          user.userId,
-          user.userId,
-          product.price,
-          user.userId,
-          itemId,
-        )
-        .run();
-      if (!result.meta.changes) return json({ error: "not_enough_coins" }, 409);
-    } else return json({ error: "invalid_action" }, 400);
-    return json(await state(user.userId));
+    const handler = Object.hasOwn(actions, body.action) ? actions[body.action] : undefined;
+    if (!handler) return json({ error: "invalid_action" }, 400);
+    const context = { db, userId: user.userId, current, body: body as ActionBody };
+    return (await handler(context)) ?? json(await state(user.userId));
   } catch {
     return json({ error: "cosmetics_unavailable" }, 503);
   }

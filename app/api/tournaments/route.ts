@@ -129,121 +129,146 @@ export async function GET(request: Request) {
   });
 }
 
-export async function POST(request: Request) {
-  const user = await getSiteUser(request),
-    db = env.DB;
-  if (!user) return fail("Connecte-toi pour participer.", 401);
-  if (!db) return fail("Tournois indisponibles.", 503);
-  const b = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!b) return fail("Demande invalide.");
-  const now = Date.now(),
-    uid = user.userId;
-  if (b.action === "create" || b.action === "join") {
-    await settleTournaments(db, now, uid);
-    const earned = progressFor(await counts(db, uid)).earnedCoins;
-    if (b.action === "create") {
-      const difficulty = b.difficulty,
-        delay = b.delay;
-      if (!isSoloDifficulty(difficulty) || !delays.some((d) => d === delay))
-        return fail("Réglages invalides.");
-      const id = crypto.randomUUID(),
-        start = Date.now() + Number(delay) * 60000,
-        game = pickPuzzle(difficulty);
-      const [created] = await db.batch([
-        db
-          .prepare(
-            `INSERT INTO tournaments (id,host_id,difficulty,starts_at,ends_at,puzzle,solution)
-          SELECT ?,?,?,?,?,?,? WHERE ${balance}>=? AND NOT EXISTS(SELECT 1 FROM tournaments WHERE host_id=? AND settled IS NULL AND ends_at>?)`,
-          )
-          .bind(
-            id,
-            uid,
-            difficulty,
-            start,
-            start + tournamentDuration,
-            game.puzzle,
-            game.solution,
-            earned,
-            uid,
-            uid,
-            hostFee,
-            uid,
-            now,
-          ),
-        db
-          .prepare(
-            "INSERT INTO tournament_entries (tournament_id,user_id,joined_at,fee) SELECT id,?,?,? FROM tournaments WHERE id=?",
-          )
-          .bind(uid, now, hostFee, id),
-      ]);
-      return created.meta.changes
-        ? json({ id })
-        : fail("Il faut 50 Sudokoins et aucun autre tournoi ouvert à ton nom.", 409);
-    }
-    if (typeof b.id !== "string") return fail("Tournoi invalide.");
-    if (await mine(db, b.id, uid)) return json({ id: b.id });
-    const result = await db
+type Body = Record<string, unknown>;
+
+const ACTIVE_SQL =
+  "EXISTS (SELECT 1 FROM tournaments t WHERE t.id=? AND t.starts_at<=? AND t.ends_at>? AND t.settled IS NULL AND (SELECT COUNT(*) FROM tournament_entries WHERE tournament_id=t.id)>=?)";
+
+async function createTournament(db: D1Database, uid: string, b: Body, now: number, earned: number) {
+  const difficulty = b.difficulty,
+    delay = b.delay;
+  if (!isSoloDifficulty(difficulty) || !delays.some((d) => d === delay))
+    return fail("Réglages invalides.");
+  const id = crypto.randomUUID(),
+    start = Date.now() + Number(delay) * 60000,
+    game = pickPuzzle(difficulty);
+  const [created] = await db.batch([
+    db
       .prepare(
-        `INSERT OR IGNORE INTO tournament_entries (tournament_id,user_id,joined_at,fee)
+        `INSERT INTO tournaments (id,host_id,difficulty,starts_at,ends_at,puzzle,solution)
+          SELECT ?,?,?,?,?,?,? WHERE ${balance}>=? AND NOT EXISTS(SELECT 1 FROM tournaments WHERE host_id=? AND settled IS NULL AND ends_at>?)`,
+      )
+      .bind(
+        id,
+        uid,
+        difficulty,
+        start,
+        start + tournamentDuration,
+        game.puzzle,
+        game.solution,
+        earned,
+        uid,
+        uid,
+        hostFee,
+        uid,
+        now,
+      ),
+    db
+      .prepare(
+        "INSERT INTO tournament_entries (tournament_id,user_id,joined_at,fee) SELECT id,?,?,? FROM tournaments WHERE id=?",
+      )
+      .bind(uid, now, hostFee, id),
+  ]);
+  return created.meta.changes
+    ? json({ id })
+    : fail("Il faut 50 Sudokoins et aucun autre tournoi ouvert à ton nom.", 409);
+}
+
+async function joinTournament(
+  db: D1Database,
+  uid: string,
+  id: unknown,
+  now: number,
+  earned: number,
+) {
+  if (typeof id !== "string") return fail("Tournoi invalide.");
+  if (await mine(db, id, uid)) return json({ id });
+  const result = await db
+    .prepare(
+      `INSERT OR IGNORE INTO tournament_entries (tournament_id,user_id,joined_at,fee)
       SELECT id,?,?,? FROM tournaments t WHERE id=? AND starts_at>? AND settled IS NULL
       AND (SELECT COUNT(*) FROM tournament_entries WHERE tournament_id=t.id)<? AND ${balance}>=?`,
+    )
+    .bind(uid, now, entryFee, id, Date.now(), tournamentCapacity, earned, uid, uid, entryFee)
+    .run();
+  if (!result.meta.changes && !(await mine(db, id, uid)))
+    return fail("Inscription fermée, tournoi complet ou solde inférieur à 25 Sudokoins.", 409);
+  return json({ id });
+}
+
+async function checkCell(db: D1Database, uid: string, t: Tournament, e: Entry, b: Body) {
+  const { index, number, entryId } = b;
+  if (!isCellIndex(index) || !isDigit(number) || !isEntryId(entryId) || t.puzzle[index] !== "0")
+    return fail("Case invalide.");
+  const correct = Number(t.solution[index]) === number;
+  if (!correct) {
+    const key = mistakeKey(entryId, index, number),
+      at = Date.now();
+    await db
+      .prepare(
+        `UPDATE tournament_entries SET mistakes=mistakes+1,last_mistake=? WHERE tournament_id=? AND user_id=? AND mistakes<3 AND finished_at IS NULL AND last_mistake IS NOT ? AND ${ACTIVE_SQL}`,
       )
-      .bind(uid, now, entryFee, b.id, Date.now(), tournamentCapacity, earned, uid, uid, entryFee)
+      .bind(key, t.id, uid, key, t.id, at, at, tournamentMinimum)
       .run();
-    if (!result.meta.changes && !(await mine(db, b.id, uid)))
-      return fail("Inscription fermée, tournoi complet ou solde inférieur à 25 Sudokoins.", 409);
-    return json({ id: b.id });
   }
+  return json({ correct, mistakes: (await mine(db, t.id, uid))?.mistakes ?? e.mistakes });
+}
+
+async function completeEntry(
+  db: D1Database,
+  uid: string,
+  t: Tournament,
+  grid: unknown,
+  now: number,
+) {
+  if (!matchesSolution(t.solution, grid) || now - t.starts_at < MIN_COMPLETE_SECONDS * 1000)
+    return fail("Grille ou temps invalide.", 409);
+  const at = Date.now();
+  const result = await db
+    .prepare(
+      `UPDATE tournament_entries SET finished_at=? WHERE tournament_id=? AND user_id=? AND finished_at IS NULL AND mistakes<3 AND ${ACTIVE_SQL}`,
+    )
+    .bind(at, t.id, uid, t.id, at, at, tournamentMinimum)
+    .run();
+  return result.meta.changes
+    ? json({ finished: true })
+    : fail("La tentative ne peut plus être validée.", 409);
+}
+
+const attemptOpen = (t: Tournament, e: Entry, now: number) =>
+  !t.settled && now >= t.starts_at && now < t.ends_at && e.finished_at === null && e.mistakes < 3;
+
+/** A move in a tournament the player has joined. */
+async function playTournament(db: D1Database, uid: string, b: Body, now: number) {
   if (typeof b.id !== "string") return fail("Tournoi invalide.");
   const id = b.id;
   const [t, e] = await Promise.all([byId(db, id), mine(db, id, uid)]);
   if (!t || !e) return fail("Tu ne participes pas à ce tournoi.", 403);
   if (b.action === "complete" && e.finished_at !== null) return json({ finished: true });
-  const active =
-    "EXISTS (SELECT 1 FROM tournaments t WHERE t.id=? AND t.starts_at<=? AND t.ends_at>? AND t.settled IS NULL AND (SELECT COUNT(*) FROM tournament_entries WHERE tournament_id=t.id)>=?)";
-  if (
-    t.settled ||
-    now < t.starts_at ||
-    now >= t.ends_at ||
-    e.finished_at !== null ||
-    e.mistakes >= 3
-  )
-    return fail("Ta tentative est indisponible ou terminée.", 409);
+  if (!attemptOpen(t, e, now)) return fail("Ta tentative est indisponible ou terminée.", 409);
   const n = await db
     .prepare("SELECT COUNT(*) AS n FROM tournament_entries WHERE tournament_id=?")
     .bind(id)
     .first<{ n: number }>();
   if (!n || n.n < tournamentMinimum) return fail("Tournoi annulé : pas assez de joueurs.", 409);
-  if (b.action === "check") {
-    const { index, number, entryId } = b;
-    if (!isCellIndex(index) || !isDigit(number) || !isEntryId(entryId) || t.puzzle[index] !== "0")
-      return fail("Case invalide.");
-    const correct = Number(t.solution[index]) === number;
-    if (!correct) {
-      const key = mistakeKey(entryId, index, number),
-        at = Date.now();
-      await db
-        .prepare(
-          `UPDATE tournament_entries SET mistakes=mistakes+1,last_mistake=? WHERE tournament_id=? AND user_id=? AND mistakes<3 AND finished_at IS NULL AND last_mistake IS NOT ? AND ${active}`,
-        )
-        .bind(key, id, uid, key, id, at, at, tournamentMinimum)
-        .run();
-    }
-    return json({ correct, mistakes: (await mine(db, id, uid))?.mistakes ?? e.mistakes });
-  }
-  if (b.action === "complete") {
-    if (!matchesSolution(t.solution, b.grid) || now - t.starts_at < MIN_COMPLETE_SECONDS * 1000)
-      return fail("Grille ou temps invalide.", 409);
-    const at = Date.now();
-    const result = await db
-      .prepare(
-        `UPDATE tournament_entries SET finished_at=? WHERE tournament_id=? AND user_id=? AND finished_at IS NULL AND mistakes<3 AND ${active}`,
-      )
-      .bind(at, id, uid, id, at, at, tournamentMinimum)
-      .run();
-    return result.meta.changes
-      ? json({ finished: true })
-      : fail("La tentative ne peut plus être validée.", 409);
-  }
+  if (b.action === "check") return checkCell(db, uid, t, e, b);
+  if (b.action === "complete") return completeEntry(db, uid, t, b.grid, now);
   return fail("Action inconnue.");
+}
+
+export async function POST(request: Request) {
+  const user = await getSiteUser(request),
+    db = env.DB;
+  if (!user) return fail("Connecte-toi pour participer.", 401);
+  if (!db) return fail("Tournois indisponibles.", 503);
+  const b = (await request.json().catch(() => null)) as Body | null;
+  if (!b) return fail("Demande invalide.");
+  const now = Date.now(),
+    uid = user.userId;
+  if (b.action !== "create" && b.action !== "join") return playTournament(db, uid, b, now);
+  await settleTournaments(db, now, uid);
+  const earned = progressFor(await counts(db, uid)).earnedCoins;
+  return b.action === "create"
+    ? createTournament(db, uid, b, now, earned)
+    : joinTournament(db, uid, b.id, now, earned);
 }
