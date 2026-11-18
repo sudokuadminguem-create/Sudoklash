@@ -9,18 +9,20 @@ import type { Account } from "@/hooks/use-account";
 export function AuthDialog({
   account,
   onClose,
+  startSignup = false,
   recovery = false,
   recoveryStatus = "checking",
   onRecovered,
 }: {
   account: Account;
   onClose: () => void;
+  startSignup?: boolean;
   recovery?: boolean;
   recoveryStatus?: "checking" | "ready" | "expired";
   onRecovered?: () => void;
 }) {
   const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "reset">(
-    recovery ? "reset" : "signin",
+    recovery ? "reset" : startSignup ? "signup" : "signin",
   );
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
@@ -143,6 +145,16 @@ export function AuthDialog({
                   ? "Créer un compte"
                   : "Se connecter"}
         </h2>
+        {mode === "signup" && !needsUsername && (
+          <div className="signup-benefits">
+            <b>Ce que ton compte gratuit débloque</b>
+            <ul>
+              <li>Les grilles du jour et de la semaine, avec leurs classements.</li>
+              <li>Les duels entre amis et les parties classées.</li>
+              <li>Ton profil et ta progression : XP, défis et récompenses.</li>
+            </ul>
+          </div>
+        )}
         {needsUsername ? (
           <>
             <p>Ce pseudo sera visible par vos amis et vos adversaires. Il doit être unique.</p>

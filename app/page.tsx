@@ -86,7 +86,8 @@ export default function Home() {
 }
 
 function HomeContent() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const fr = locale === "fr";
   const [view, setView] = useState<View>("jouer"),
     [mode, setMode] = useState("solo"),
     [mobile, setMobile] = useState(false),
@@ -99,6 +100,7 @@ function HomeContent() {
     // A friend picked in the friends list, waiting to be challenged on the duel screen.
     [duelTarget, setDuelTarget] = useState<{ id: string; username: string } | null>(null),
     [authOpen, setAuthOpen] = useState(false),
+    [startSignup, setStartSignup] = useState(false),
     [editPhoto, setEditPhoto] = useState(false),
     [friendRequestFocus, setFriendRequestFocus] = useState(0),
     [recovery, setRecovery] = useState(false),
@@ -342,6 +344,28 @@ function HomeContent() {
                       </span>
                     </button>
                   </section>
+                  {!account.loading && !account.user && mode !== "daily" && (
+                    <aside className="panel daily-invite" aria-label={fr ? "Découvrir le défi du jour" : "Discover the daily challenge"}>
+                      <div>
+                        <h3>{fr ? "À toi de jouer : le défi du jour" : "Try today’s challenge"}</h3>
+                        <p>{fr ? "Crée un compte gratuit pour jouer la grille du jour et comparer ton temps." : "Create a free account to play today’s puzzle and compare your time."}</p>
+                      </div>
+                      <button type="button" className="primary" onClick={() => setMode("daily")}>
+                        {fr ? "Voir la grille du jour" : "See today’s puzzle"}
+                      </button>
+                    </aside>
+                  )}
+                  {!account.loading && !account.user && mode === "daily" && (
+                    <aside className="panel daily-invite">
+                      <div>
+                        <h3>{fr ? "Débloque le défi du jour" : "Unlock the daily challenge"}</h3>
+                        <p>{fr ? "Un compte gratuit suffit pour jouer et enregistrer ton score." : "Create a free account to play and save your score."}</p>
+                      </div>
+                      <button type="button" className="primary" onClick={() => { setStartSignup(true); setAuthOpen(true); }}>
+                        {fr ? "Créer un compte gratuit" : "Create a free account"}
+                      </button>
+                    </aside>
+                  )}
                   <div className="mode-tabs">
                     {modeTabs.map(([id, label, I]) => (
                       <button
@@ -375,6 +399,7 @@ function HomeContent() {
                     />
                   ) : (
                     <ModePanel
+                      key={mode === "daily" ? account.user?.id ?? "daily-guest" : "other-modes"}
                       mode={mode}
                       notify={notify}
                       account={account}
@@ -440,6 +465,7 @@ function HomeContent() {
           {authOpen && (
             <AuthDialog
               account={account}
+              startSignup={startSignup}
               recovery={recovery}
               recoveryStatus={recoveryStatus}
               onRecovered={() => {
@@ -448,7 +474,7 @@ function HomeContent() {
                 setAuthOpen(false);
                 notify("Mot de passe mis à jour");
               }}
-              onClose={() => setAuthOpen(false)}
+              onClose={() => { setStartSignup(false); setAuthOpen(false); }}
             />
           )}
         </main>
