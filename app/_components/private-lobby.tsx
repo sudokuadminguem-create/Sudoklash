@@ -1,34 +1,19 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, Users } from "lucide-react";
-import { friendlyError } from "@/app/lib/auth-messages";
-import { supabase } from "@/app/lib/supabase";
-import type { Account, Profile } from "@/hooks/use-account";
-import { solvePuzzle } from "@/lib/sudoku-solver";
+import type { Account } from "@/hooks/use-account";
+import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
+import { variantIds, variantInfo, type VariantId } from "@/lib/variants";
+import {
+  roomRequest,
+  type Room,
+  type RoomPlayer,
+  type RoomSnapshot,
+} from "@/app/lib/private-rooms";
 import { usePlayerAppearances } from "@/app/lib/use-player-appearances";
 import { LockedPanel } from "./locked-panel";
 import { PlayerAvatar } from "./player-cosmetics";
-
-export type Room = {
-  id: string;
-  code: string;
-  host_id: string;
-  status: "waiting" | "playing" | "finished" | "cancelled";
-  difficulty: string;
-  puzzle: string;
-  max_players: number;
-  started_at: string | null;
-  winner_id: string | null;
-};
-export type RoomPlayer = {
-  room_id: string;
-  user_id: string;
-  is_ready: boolean;
-  progress: number;
-  finished_at: string | null;
-  elapsed_ms: number | null;
-  profile?: Profile | null;
-};
+import "../private-room.css";
 
 export function PrivateLobby({
   account,
@@ -41,45 +26,47 @@ export function PrivateLobby({
   openAuth: () => void;
   onRace: (room: Room, players: RoomPlayer[]) => React.ReactNode;
 }) {
-  const [room, setRoom] = useState<Room | null>(null),
-    [players, setPlayers] = useState<RoomPlayer[]>([]),
-    [code, setCode] = useState(""),
-    [busy, setBusy] = useState(false);
+  const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [maxPlayers, setMaxPlayers] = useState(2);
+  const [difficulty, setDifficulty] = useState<Difficulty>("Intermédiaire");
+  const [variant, setVariant] = useState<"classic" | VariantId>("classic");
+  const { room, players } = snapshot ?? { room: null, players: [] };
   const me = account.user?.id;
   const appearances = usePlayerAppearances(players.map((player) => player.user_id));
-  const load = useCallback(async (roomId: string) => {
-    const [{ data: r }, { data: p }] = await Promise.all([
-      supabase.from("rooms").select("*").eq("id", roomId).single(),
-      supabase
-        .from("room_players")
-        .select(
-          "*,profile:profiles!room_players_user_id_fkey(id,username,display_name,avatar_url,last_seen)",
-        )
-        .eq("room_id", roomId)
-        .order("joined_at"),
-    ]);
-    if (r) setRoom(r as Room);
-    if (p) setPlayers(p as unknown as RoomPlayer[]);
-  }, []);
+  const roomId = room?.id;
   useEffect(() => {
-    if (!room?.id) return;
-    const channel = supabase
-      .channel(`room:${room.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "rooms", filter: `id=eq.${room.id}` },
-        () => load(room.id),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "room_players", filter: `room_id=eq.${room.id}` },
-        () => load(room.id),
-      )
-      .subscribe();
+    if (!roomId || !me || room?.winner_id) return;
+    let live = true,
+      pending = false;
+    const timer = setInterval(async () => {
+      if (pending || document.hidden) return;
+      pending = true;
+      try {
+        const updated = await roomRequest<RoomSnapshot>(undefined, roomId);
+        if (live)
+          setSnapshot((previous) =>
+            previous?.room.id === roomId &&
+            !previous.room.winner_id &&
+            !(previous.room.started_at && !updated.room.started_at)
+              ? updated
+              : previous,
+          );
+      } catch {
+        // Keep the current room visible while the connection recovers.
+      } finally {
+        pending = false;
+      }
+    }, 2500);
     return () => {
-      void supabase.removeChannel(channel);
+      live = false;
+      clearInterval(timer);
     };
-  }, [room?.id, load]);
+  }, [roomId, me, room?.winner_id]);
+  useEffect(() => {
+    setSnapshot(null);
+  }, [me]);
   if (!account.user)
     return (
       <LockedPanel
@@ -88,61 +75,82 @@ export function PrivateLobby({
         action={openAuth}
       />
     );
-  const create = async () => {
+  const send = async (body: Record<string, unknown>) => {
     setBusy(true);
-    const game = "Intermédiaire";
-    const puzzle =
-      "000260701680070090190004500820100040004602900050003028009300074040050036703018000";
-    const solution = solvePuzzle(puzzle);
-    if (!solution) throw new Error("Grille invalide");
-    const { data, error } = await supabase.rpc("create_room", {
-      p_difficulty: game,
-      p_puzzle: puzzle,
-      p_solution: solution.join(""),
-      p_max_players: 2,
-    });
-    setBusy(false);
-    if (error) return notify(friendlyError(error.message));
-    const row = Array.isArray(data) ? data[0] : data;
-    if (row) {
-      await load(row.room_id);
-      notify("Salon créé");
+    try {
+      setSnapshot(await roomRequest<RoomSnapshot>(body));
+    } catch (e) {
+      notify(e instanceof Error ? e.message : "Salon indisponible.");
+    } finally {
+      setBusy(false);
     }
   };
-  const join = async () => {
-    setBusy(true);
-    const { data, error } = await supabase.rpc("join_room", { p_code: code.trim().toUpperCase() });
-    setBusy(false);
-    if (error) return notify(friendlyError(error.message));
-    if (data) await load(data as string);
-  };
-  const toggleReady = async () => {
-    const current = players.find((p) => p.user_id === me);
-    if (!room || !current) return;
-    const { error } = await supabase.rpc("set_room_ready", {
-      p_room_id: room.id,
-      p_ready: !current.is_ready,
-    });
-    if (error) notify(friendlyError(error.message));
-    else await load(room.id);
-  };
-  const start = async () => {
-    if (!room) return;
-    const { error } = await supabase.rpc("start_room", { p_room_id: room.id });
-    if (error) notify(friendlyError(error.message));
-    else await load(room.id);
-  };
-  if (room?.status === "playing" || room?.status === "finished")
-    return <>{onRace(room, players)}</>;
+  if (room?.started_at)
+    return (
+      <>
+        {onRace(room, players)}
+        {room.winner_id && (
+          <button className="primary" onClick={() => setSnapshot(null)}>
+            Retour aux salons privés
+          </button>
+        )}
+      </>
+    );
   if (!room)
     return (
       <div className="panel private real-private">
         <Users />
-        <h2>Salon privé réel</h2>
+        <h2>Salon privé</h2>
         <p>Créez une course synchronisée ou saisissez le code reçu d’un ami.</p>
+        <fieldset className="room-settings" disabled={busy}>
+          <legend>Paramètres de la partie</legend>
+          <label>
+            Nombre maximal de joueurs
+            <select value={maxPlayers} onChange={(e) => setMaxPlayers(Number(e.target.value))}>
+              {Array.from({ length: 7 }, (_, i) => i + 2).map((n) => (
+                <option key={n} value={n}>
+                  {n} joueurs
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Mode de jeu
+            <select value={variant} onChange={(e) => setVariant(e.target.value as typeof variant)}>
+              <option value="classic">Classique 9×9</option>
+              {variantIds.map((id) => (
+                <option key={id} value={id}>
+                  {variantInfo[id].label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {variant === "classic" ? (
+            <label>
+              Difficulté
+              <select
+                value={difficulty}
+                onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+              >
+                {soloDifficulties.map((d) => (
+                  <option key={d}>{d}</option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <p>
+              {variantInfo[variant].tagline}. Comme en solo, la difficulté est propre à cette
+              variante.
+            </p>
+          )}
+        </fieldset>
         <div className="private-choices">
-          <button className="primary" disabled={busy} onClick={create}>
-            {busy ? "Création…" : "Créer un salon 1 contre 1"}
+          <button
+            className="primary"
+            disabled={busy}
+            onClick={() => void send({ action: "create", maxPlayers, difficulty, variant })}
+          >
+            {busy ? "Création…" : "Créer un salon"}
           </button>
           <span>OU</span>
           <div>
@@ -156,9 +164,13 @@ export function PrivateLobby({
                     .toUpperCase(),
                 )
               }
+              aria-label="Code du salon"
               placeholder="CODE À 6 CARACTÈRES"
             />
-            <button disabled={busy || code.length !== 6} onClick={join}>
+            <button
+              disabled={busy || code.length !== 6}
+              onClick={() => void send({ action: "join", code })}
+            >
               Rejoindre
             </button>
           </div>
@@ -181,6 +193,10 @@ export function PrivateLobby({
         <Copy />
         Copier le code
       </button>
+      <p>
+        {room.variant === "classic" ? `Classique 9×9 · ${room.difficulty}` : room.difficulty} ·{" "}
+        {players.length}/{room.max_players} joueurs
+      </p>
       <div className="lobby-list">
         {players.map((p) => (
           <div key={p.user_id}>
@@ -190,18 +206,26 @@ export function PrivateLobby({
               image={appearances[p.user_id]?.image}
             />
             <span>
-              <b>{p.profile?.username || "Joueur"}</b>
+              <b>{p.username || "Joueur"}</b>
               <small>{p.user_id === room.host_id ? "Hôte" : "Invité"}</small>
             </span>
             <em className={p.is_ready ? "ready" : ""}>{p.is_ready ? "PRÊT" : "EN ATTENTE"}</em>
           </div>
         ))}
       </div>
-      <button className="primary" onClick={toggleReady}>
+      <button
+        className="primary"
+        disabled={busy || !self}
+        onClick={() => void send({ action: "ready", id: room.id, ready: !self?.is_ready })}
+      >
         {self?.is_ready ? "Annuler prêt" : "Je suis prêt"}
       </button>
       {me === room.host_id && (
-        <button className="primary start-room" disabled={!allReady} onClick={start}>
+        <button
+          className="primary start-room"
+          disabled={busy || !allReady}
+          onClick={() => void send({ action: "start", id: room.id })}
+        >
           {players.length < 2
             ? "En attente d’un adversaire"
             : allReady

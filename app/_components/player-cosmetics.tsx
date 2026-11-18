@@ -4,6 +4,7 @@ import { Coins, ImagePlus, Trash2 } from "lucide-react";
 import type { AccountState } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
 import { challengeFrameStyle, elementLabels } from "@/lib/achievement-styles";
+import { premiumCollections, collectionItemId } from "@/lib/premium-collections";
 import { ElementalFrame } from "./elemental-frame";
 import "../divine-frame.css";
 import "../playground-frame.css";
@@ -13,6 +14,7 @@ import {
   levelFrames,
   rankedFrames,
   shopAvatars,
+  shopFrames,
 } from "@/lib/cosmetics";
 
 export function PlayerAvatar({
@@ -36,6 +38,7 @@ export function PlayerAvatar({
   return (
     <span
       className={`player-avatar ${size}${rankFrame ? " ranked-avatar" : ""}${achievement ? " achievement-frame" : ""}${achievement?.rarity === "epic" ? " epic-frame" : ""}${achievement?.rarity === "legendary" ? " legendary-frame" : ""}${achievement?.rarity === "majestic" ? " majestic-frame" : ""}${frameId === "none" ? " frameless-avatar" : ""}`}
+      data-premium={frameId.startsWith("premium-") ? frameId : undefined}
       data-rank={rankFrame?.id}
       data-playground={frameId === "challenge-mini-playground" ? "true" : undefined}
       data-divine={frameId === "challenge-l-026" ? "true" : undefined}
@@ -60,10 +63,20 @@ export function PlayerAvatar({
       ) : (
         <span>{fallback ?? avatar.symbol}</span>
       )}
-      {achievement && frameId !== "challenge-mini-playground" && <ElementalFrame element={achievement.element} variant={achievement.variant} motif={achievement.motif} legendary={achievement.rarity === "legendary" || achievement.rarity === "majestic"} />}
+      {achievement && frameId !== "challenge-mini-playground" && (
+        <ElementalFrame
+          element={achievement.element}
+          variant={achievement.variant}
+          motif={achievement.motif}
+          legendary={achievement.rarity === "legendary" || achievement.rarity === "majestic"}
+        />
+      )}
       {frameId === "challenge-mini-playground" && (
         <span className="playground-stickers" aria-hidden="true">
-          <span>🧸</span><span>🎈</span><span>⭐</span><span>🌈</span>
+          <span>🧸</span>
+          <span>🎈</span>
+          <span>⭐</span>
+          <span>🌈</span>
         </span>
       )}
       {frameId === "challenge-l-026" && (
@@ -71,7 +84,10 @@ export function PlayerAvatar({
           <ellipse className="divine-halo-glow" cx="50" cy="35" rx="33" ry="11" />
           <ellipse className="divine-halo-ring" cx="50" cy="35" rx="30" ry="8" />
           <ellipse className="divine-halo-inner" cx="50" cy="35" rx="24" ry="5" />
-          <path className="divine-halo-rays" d="M50 5v9 M27 10l4 8 M73 10l-4 8 M12 22l8 4 M88 22l-8 4 M45 16l5-6 5 6-5 6Z" />
+          <path
+            className="divine-halo-rays"
+            d="M50 5v9 M27 10l4 8 M73 10l-4 8 M12 22l8 4 M88 22l-8 4 M45 16l5-6 5 6-5 6Z"
+          />
         </svg>
       )}
     </span>
@@ -230,7 +246,7 @@ export function CosmeticCloset({
         <button onClick={() => void cosmetics.refresh()}>Réessayer</button>
       </section>
     );
-  const choose = async (action: "equip_avatar" | "equip_frame", id: string) => {
+  const choose = async (action: "equip_avatar" | "equip_frame" | "equip_effect", id: string) => {
     setBusy(id);
     try {
       await cosmetics.action(action, id);
@@ -378,6 +394,54 @@ export function CosmeticCloset({
             </span>
           </button>
         ))}
+      </div>
+      <h4>Mes cadres de boutique</h4>
+      <div className="frame-grid">
+        {[
+          ...shopFrames,
+          ...premiumCollections.map((c) => ({ id: collectionItemId(c.id, "frame"), name: c.name })),
+        ]
+          .filter((f) => data.unlockedFrames.includes(f.id))
+          .map((f) => (
+            <button
+              key={f.id}
+              disabled={!!busy}
+              className={data.frameSelection === f.id ? "selected" : ""}
+              aria-pressed={data.frameSelection === f.id}
+              onClick={() => void choose("equip_frame", f.id)}
+            >
+              <PlayerAvatar avatarId={data.avatarId} image={data.customAvatar} frameId={f.id} />
+              <span>
+                <b>{f.name}</b>
+                <small>{data.frameSelection === f.id ? "Équipé" : "Équiper"}</small>
+              </span>
+            </button>
+          ))}
+      </div>
+      <h4>Mon effet de victoire</h4>
+      <div className="frame-grid">
+        {[
+          { id: "none", name: "Sans animation" },
+          ...premiumCollections.map((c) => ({
+            id: collectionItemId(c.id, "effect"),
+            name: c.name,
+          })),
+        ]
+          .filter((e) => e.id === "none" || (data.ownedEffects ?? []).includes(e.id))
+          .map((e) => (
+            <button
+              key={e.id}
+              disabled={!!busy}
+              aria-pressed={data.victoryEffectId === e.id}
+              className={data.victoryEffectId === e.id ? "selected" : ""}
+              onClick={() => void choose("equip_effect", e.id)}
+            >
+              <span>
+                <b>{e.name}</b>
+                <small>{data.victoryEffectId === e.id ? "Équipé" : "Équiper"}</small>
+              </span>
+            </button>
+          ))}
       </div>
       <h4>Cadres gagnés avec les défis</h4>
       <p>Retrouve la progression des défis dans la rubrique Défis.</p>

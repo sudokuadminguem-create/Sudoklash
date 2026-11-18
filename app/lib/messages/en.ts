@@ -49,6 +49,7 @@ export const en: Record<MessageKey, string> = {
   "home.signInToCustomize": "Sign in to customize",
   "mode.ranked": "Ranked game",
   "mode.solo": "Solo",
+  "mode.tournaments": "Tournaments",
   "mode.daily": "Daily grid",
   "mode.weekly": "Weekly grid",
   "mode.duel": "Friend duel",

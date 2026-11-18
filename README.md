@@ -68,8 +68,7 @@ export default async function Home() {
   const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
   const fullName =
     encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
+    requestHeaders.get("oai-authenticated-user-full-name-encoding") === "percent-encoded-utf-8"
       ? decodeURIComponent(encodedFullName)
       : null;
 
@@ -144,6 +143,27 @@ nginx). Dans ce mode :
   plateforme, qui lit aussi ce fichier, garde D1, sa connexion ChatGPT et ses propres en-têtes ;
 - le conteneur tourne sans root, en lecture seule, sans capacités Linux, sans npm ni apk, avec des
   en-têtes de sécurité (CSP, HSTS, anti-framing) et une sonde `/api/health`.
+
+### Image Docker Hub
+
+La CI (`.github/workflows/docker-image.yml`) construit l'image, la bloque si Trivy y trouve une
+faille critique ou haute corrigeable (exceptions justifiées dans `.trivyignore.yaml`), puis
+vérifie qu'elle démarre durcie et répond à `/api/health`. Elle publie ensuite sur
+`docker.io/gambijul/sudoklash`, avec SBOM, attestation de provenance et signature cosign :
+
+| Déclencheur            | Étiquettes publiées                        |
+| ---------------------- | ------------------------------------------ |
+| demande de fusion      | aucune (construction et analyse seulement) |
+| push sur `main`        | `edge`, `sha-<commit>`                     |
+| étiquette git `vX.Y.Z` | `X.Y.Z`, `X.Y`, `X` (dès 1.0.0), `latest`  |
+
+Pour utiliser l'image publiée plutôt que la construire, remplacez `build:` par
+`image: docker.io/gambijul/sudoklash:latest` dans `docker-compose.yml`, et vérifiez sa
+signature (cosign 3 ou plus récent) :
+
+```sh
+cosign verify --key cosign.pub --new-bundle-format --insecure-ignore-tlog=true docker.io/gambijul/sudoklash:latest
+```
 
 ## End-to-end tests
 

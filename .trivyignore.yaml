@@ -1,0 +1,9 @@
+# Failles acceptées par l'analyse Trivy de l'image (.github/workflows/docker-image.yml).
+# Chaque entrée porte une justification et une date d'expiration : passé cette date, la faille
+# bloque de nouveau la CI et doit être réexaminée. Exemple :
+#
+# vulnerabilities:
+#   - id: CVE-2026-00000
+#     statement: Module concerné non utilisé à l'exécution (outil de build uniquement).
+#     expired_at: 2027-01-31
+vulnerabilities: []
