@@ -31,7 +31,7 @@ export type Streak = {
  * after the last result, so playing in the evening never breaks the one of the day before.
  */
 export function streakOf(timestamps: readonly number[], now: number): Streak {
-  const days = [...new Set(timestamps.map(dayKey))].sort();
+  const days = [...new Set(timestamps.map(dayKey))].sort((a, b) => a.localeCompare(b));
   if (!days.length) return { current: 0, best: 0, playedToday: false };
   let best = 1;
   let run = 1;

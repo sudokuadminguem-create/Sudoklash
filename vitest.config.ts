@@ -21,8 +21,16 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       // Application logic and API routes; generated UI kit and pages are left out.
-      include: ["app/api/**", "app/lib/**", "lib/**", "app/_components/**"],
-      exclude: ["lib/puzzle-bank.ts", "lib/runtime/**"],
+      include: [
+        "app/api/**",
+        "app/lib/**",
+        "lib/**",
+        "app/_components/**",
+        "app/admin/**",
+        "hooks/**",
+        "components/ui/input-group.tsx",
+      ],
+      exclude: ["lib/puzzle-bank.ts", "lib/runtime/node-workers.ts"],
       reporter: ["text-summary", "json-summary", "lcovonly"],
       // A floor just under today's numbers: coverage may go up, not quietly back down.
       thresholds: { statements: 50, branches: 40, functions: 43, lines: 50 },

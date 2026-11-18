@@ -68,8 +68,8 @@ class Board {
   /** The last elimination technique that changed the candidates, and how. */
   pattern: HintPattern | null = null;
   constructor(puzzle: readonly number[]) {
-    this.values = Array(81).fill(0);
-    this.candidates = Array(81).fill(ALL);
+    this.values = new Array(81).fill(0);
+    this.candidates = new Array(81).fill(ALL);
     puzzle.forEach((value, cell) => value && this.place(cell, value));
   }
   place(cell: number, digit: number) {
@@ -330,7 +330,7 @@ export type LogicalStep = {
   pattern?: HintPattern;
 };
 
-const unitOrder = [...Array(27).keys()].map((i) => (i + 18) % 27);
+const unitOrder = [...new Array(27).keys()].map((i) => (i + 18) % 27);
 
 /**
  * Next cell a human can fill by logic from `grid` (0 for empty), trying the easiest

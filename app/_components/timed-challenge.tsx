@@ -213,8 +213,8 @@ export function TimedChallenge({
     );
   if (data.status === "completed")
     return (
-      <div className="panel weekly-state weekly-complete" style={{position:"relative"}}>
-        <VictoryEffect won={earnedXp!==null}/>
+      <div className="panel weekly-state weekly-complete" style={{ position: "relative" }}>
+        <VictoryEffect won={earnedXp !== null} />
         <Trophy />
         <span className="eyebrow">GRILLE TERMINÉE</span>
         <h2>Votre temps : {formatDuration(data.elapsedSeconds || 0)}</h2>
@@ -259,11 +259,11 @@ export function TimedChallenge({
           initialSeconds={initialSeconds}
           initialMistakes={data.mistakes}
           challengeLabel={label}
-          onReady={() => request("ready")}
+          onReady={() => void request("ready")}
           readyBusy={busy}
           onSolved={(grid) => {
             setPendingGrid(grid);
-            request("complete", grid);
+            void request("complete", grid);
           }}
         />
         {error && (

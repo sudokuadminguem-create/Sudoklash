@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     /^data:image\/(webp|png|jpeg);base64,([A-Za-z0-9+/]+={0,2})$/,
   );
   if (!match) return new Response(null, { status: 404 });
-  const bytes = Uint8Array.from(atob(match[2]), (char) => char.charCodeAt(0));
+  const bytes = Uint8Array.from(atob(match[2]), (char) => char.codePointAt(0)!);
   return new Response(bytes, {
     headers: {
       "Content-Type": `image/${match[1]}`,

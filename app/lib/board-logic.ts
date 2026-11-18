@@ -28,7 +28,9 @@ export function toggleNote(notes: Notes, index: number, n: number): Notes {
   const current = notes[index] || [];
   return {
     ...notes,
-    [index]: current.includes(n) ? current.filter((x) => x !== n) : [...current, n].sort(),
+    [index]: current.includes(n)
+      ? current.filter((x) => x !== n)
+      : [...current, n].sort((a, b) => a - b),
   };
 }
 

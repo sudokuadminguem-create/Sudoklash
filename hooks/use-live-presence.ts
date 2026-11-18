@@ -29,7 +29,7 @@ export function useLivePresence() {
           headers: { "Content-Type": "application/json" },
           body,
         });
-        if (!r.ok) throw Error("presence");
+        if (!r.ok) throw new Error("presence");
         const { count } = (await r.json()) as { count: number };
         if (live && sent === revision && !document.hidden) setCount(count);
       } catch {

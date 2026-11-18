@@ -107,7 +107,7 @@ async function avatarDataUrl(file: File) {
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext("2d");
-    if (!ctx || !side) throw Error("invalid_image");
+    if (!ctx || !side) throw new Error("invalid_image");
     ctx.drawImage(
       img,
       (img.naturalWidth - side) / 2,

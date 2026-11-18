@@ -29,11 +29,11 @@ type Session = {
   livemode: boolean;
 };
 export async function retrieveSession(id: string): Promise<Session> {
-  if (!/^cs_(live|test)_[A-Za-z0-9]+$/.test(id)) throw Error("invalid_session");
+  if (!/^cs_(live|test)_[A-Za-z0-9]+$/.test(id)) throw new Error("invalid_session");
   const r = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(id)}`, {
     headers: { Authorization: `Bearer ${paymentConfig().key}` },
   });
-  if (!r.ok) throw Error("payment_unavailable");
+  if (!r.ok) throw new Error("payment_unavailable");
   return (await r.json()) as Session;
 }
 export async function creditSession(id: string, expectedUser?: string) {
@@ -46,7 +46,7 @@ export async function creditSession(id: string, expectedUser?: string) {
     s.client_reference_id !== userId ||
     (expectedUser && expectedUser !== userId)
   )
-    throw Error("wrong_owner");
+    throw new Error("wrong_owner");
   if (
     !s.livemode ||
     s.status !== "complete" ||
@@ -54,7 +54,7 @@ export async function creditSession(id: string, expectedUser?: string) {
     s.currency !== "eur" ||
     s.amount_total !== pack.cents
   )
-    throw Error("payment_not_confirmed");
+    throw new Error("payment_not_confirmed");
   await env
     .DB!.prepare(
       "INSERT OR IGNORE INTO premium_credits (session_id,user_id,pack_id,gems,amount_cents,credited_at) VALUES (?,?,?,?,?,?)",
@@ -83,7 +83,7 @@ export async function verifySignature(raw: string, header: string, secret: strin
   );
   for (const signature of signatures) {
     if (!/^[a-f0-9]{64}$/.test(signature)) continue;
-    const bytes = new Uint8Array(signature.match(/../g)!.map((v) => parseInt(v, 16)));
+    const bytes = new Uint8Array(signature.match(/../g)!.map((v) => Number.parseInt(v, 16)));
     if (await crypto.subtle.verify("HMAC", key, bytes, encoder.encode(`${timestamp}.${raw}`)))
       return true;
   }

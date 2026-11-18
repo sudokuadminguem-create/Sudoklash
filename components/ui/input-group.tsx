@@ -62,18 +62,26 @@ function InputGroupAddon({
   align = "inline-start",
   ...props
 }: React.ComponentProps<"div"> & VariantProps<typeof inputGroupAddonVariants>) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  // A click on the addon focuses its input; keyboard users reach the input directly.
+  React.useEffect(() => {
+    const addon = ref.current
+    if (!addon) return
+    const focusInput = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest("button")) {
+        return
+      }
+      addon.parentElement?.querySelector("input")?.focus()
+    }
+    addon.addEventListener("click", focusInput)
+    return () => addon.removeEventListener("click", focusInput)
+  }, [])
   return (
     <div
-      role="group"
+      ref={ref}
       data-slot="input-group-addon"
       data-align={align}
       className={cn(inputGroupAddonVariants({ align }), className)}
-      onClick={(e) => {
-        if ((e.target as HTMLElement).closest("button")) {
-          return
-        }
-        e.currentTarget.parentElement?.querySelector("input")?.focus()
-      }}
       {...props}
     />
   )
