@@ -268,13 +268,8 @@ export function AuthDialog({
     );
   };
   return (
-    <div className="account-backdrop" role="presentation">
-      <section
-        className="account-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="account-title"
-      >
+    <div className="account-backdrop">
+      <dialog open className="account-dialog" aria-modal="true" aria-labelledby="account-title">
         <button className="account-close" aria-label="Fermer" onClick={onClose}>
           <X />
         </button>
@@ -304,7 +299,7 @@ export function AuthDialog({
             {info}
           </p>
         )}
-      </section>
+      </dialog>
     </div>
   );
 }

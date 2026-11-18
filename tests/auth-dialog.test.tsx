@@ -50,6 +50,9 @@ const message = () => container.querySelector(".form-error, .form-info")?.textCo
 it("signs in with an e-mail and a password", async () => {
   auth.signInWithPassword.mockResolvedValue({ data: { session: {} }, error: null });
   await render();
+  const dialog = container.querySelector("dialog.account-dialog")!;
+  expect(dialog.hasAttribute("open")).toBe(true);
+  expect(dialog.getAttribute("aria-labelledby")).toBe("account-title");
   expect(title()).toBe("Se connecter");
   expect(container.querySelector("small")?.textContent).toContain("Tu resteras connecté");
   const submit = button("Se connecter");
