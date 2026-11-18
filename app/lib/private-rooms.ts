@@ -33,6 +33,6 @@ export async function roomRequest<T>(body?: Record<string, unknown>, id?: string
       : { headers, cache: "no-store" },
   );
   const data = (await response.json()) as T & { error?: string };
-  if (!response.ok) throw Error(data.error ?? "Salon indisponible.");
+  if (!response.ok) throw new Error(data.error ?? "Salon indisponible.");
   return data;
 }

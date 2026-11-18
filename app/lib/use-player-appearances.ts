@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 export type PlayerAppearance = { avatarId: string; frameId: string; image: string | null };
 
 export function usePlayerAppearances(ids: string[]) {
-  const key = [...new Set(ids.filter(Boolean))].sort().join(",");
+  const key = [...new Set(ids.filter(Boolean))].sort((a, b) => a.localeCompare(b)).join(",");
   const [appearances, setAppearances] = useState<Record<string, PlayerAppearance>>({});
   useEffect(() => {
     if (!key) return;

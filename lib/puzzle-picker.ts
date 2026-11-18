@@ -16,7 +16,7 @@ export function pickPuzzle(difficulty: Difficulty, random: () => number = Math.r
 /** The bank puzzle assigned to a period, the same for every player. */
 export function puzzleForPeriod(difficulty: Difficulty, key: string) {
   let hash = 2166136261;
-  for (const char of key) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0;
+  for (const char of key) hash = Math.imul(hash ^ char.codePointAt(0)!, 16777619) >>> 0;
   const bank = puzzleBank[difficulty];
   return bank[hash % bank.length];
 }

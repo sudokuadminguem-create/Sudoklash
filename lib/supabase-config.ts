@@ -10,7 +10,7 @@ export const supabasePublishableKey =
 
 /** Reads the bearer token of an API request. */
 export function bearerToken(request?: Request) {
-  return request?.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null;
+  return request?.headers.get("authorization")?.match(/^Bearer\s+(\S.*)$/i)?.[1] ?? null;
 }
 
 /** The Supabase user behind an access token, or null when it is missing or invalid. */

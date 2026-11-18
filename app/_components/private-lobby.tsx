@@ -105,7 +105,7 @@ export function PrivateLobby({
         <fieldset className="room-settings" disabled={busy}>
           <legend>Paramètres de la partie</legend>
           <label>
-            Nombre maximal de joueurs
+            <span>Nombre maximal de joueurs</span>
             <select value={maxPlayers} onChange={(e) => setMaxPlayers(Number(e.target.value))}>
               {Array.from({ length: 7 }, (_, i) => i + 2).map((n) => (
                 <option key={n} value={n}>
@@ -115,7 +115,7 @@ export function PrivateLobby({
             </select>
           </label>
           <label>
-            Mode de jeu
+            <span>Mode de jeu</span>
             <select value={variant} onChange={(e) => setVariant(e.target.value as typeof variant)}>
               <option value="classic">Classique 9×9</option>
               {variantIds.map((id) => (
@@ -127,7 +127,7 @@ export function PrivateLobby({
           </label>
           {variant === "classic" ? (
             <label>
-              Difficulté
+              <span>Difficulté</span>
               <select
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value as Difficulty)}

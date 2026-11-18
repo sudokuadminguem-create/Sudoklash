@@ -188,6 +188,7 @@
   color: #ffce9c;
 }
 .store-message {
+  display: block;
   padding: 18px;
   border-radius: 14px;
   background: var(--panel);
