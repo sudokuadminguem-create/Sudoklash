@@ -187,11 +187,13 @@ jobs:
           cosign sign --yes --key env://COSIGN_PRIVATE_KEY \
             --signing-config "${RUNNER_TEMP}/signing-config.json" "${IMAGE}@${DIGEST}"
 
+      # cosign 3 signe au format « bundle » Sigstore, rangé comme référent OCI de l'image :
+      # la vérification doit chercher ce format, sinon elle ne trouve aucune signature.
       - name: Vérification de la signature
         if: inputs.push
         env:
           DIGEST: ${{ steps.publish.outputs.digest }}
-        run: cosign verify --key cosign.pub --insecure-ignore-tlog=true "${IMAGE}@${DIGEST}" > /dev/null
+        run: cosign verify --key cosign.pub --new-bundle-format --insecure-ignore-tlog=true "${IMAGE}@${DIGEST}" > /dev/null
 
       - name: Résumé de la publication
         if: inputs.push
