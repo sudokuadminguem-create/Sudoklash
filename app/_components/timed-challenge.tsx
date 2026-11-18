@@ -83,8 +83,8 @@ function ChallengeRules({
         {isDaily ? " et par difficulté" : ""}
       </h3>
       <p>
-        La grille apparaît au clic sur « Je suis prêt ». Le chronomètre continue même si vous
-        fermez la page.
+        La grille apparaît au clic sur « Je suis prêt ». Le chronomètre continue même si vous fermez
+        la page.
       </p>
       <p>Trois erreurs mettent fin à la tentative.</p>
       <div className="next-week compact">
@@ -312,11 +312,11 @@ export function TimedChallenge({
           initialSeconds={initialSeconds}
           initialMistakes={data.mistakes}
           challengeLabel={label}
-          onReady={() => request("ready")}
+          onReady={() => void request("ready")}
           readyBusy={busy}
           onSolved={(grid) => {
             setPendingGrid(grid);
-            request("complete", grid);
+            void request("complete", grid);
           }}
         />
         {error && (

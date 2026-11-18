@@ -242,7 +242,11 @@ export function SudokuBoard({
           setExperience(result && typeof result === "object" ? result.xpGained : "guest");
         })
         .catch(() => setExperience("error"));
-    } else onSolved?.(grid, Math.max(1, seconds), puzzle);
+    } else {
+      Promise.resolve(onSolved?.(grid, Math.max(1, seconds), puzzle)).catch((error: unknown) =>
+        console.error("onSolved failed", error),
+      );
+    }
   };
   const submit = async (entry: Entry, grid: number[]) => {
     setFailedEntries((list) => list.filter((e) => e.id !== entry.id));

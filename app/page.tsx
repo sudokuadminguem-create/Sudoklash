@@ -145,7 +145,11 @@ function GuestDailyInvite({
       <aside className="panel daily-invite">
         <div>
           <h3>{fr ? "Débloque le défi du jour" : "Unlock the daily challenge"}</h3>
-          <p>{fr ? "Un compte gratuit suffit pour jouer et enregistrer ton score." : "Create a free account to play and save your score."}</p>
+          <p>
+            {fr
+              ? "Un compte gratuit suffit pour jouer et enregistrer ton score."
+              : "Create a free account to play and save your score."}
+          </p>
         </div>
         <button type="button" className="primary" onClick={onSignup}>
           {fr ? "Créer un compte gratuit" : "Create a free account"}
@@ -153,10 +157,17 @@ function GuestDailyInvite({
       </aside>
     );
   return (
-    <aside className="panel daily-invite" aria-label={fr ? "Découvrir le défi du jour" : "Discover the daily challenge"}>
+    <aside
+      className="panel daily-invite"
+      aria-label={fr ? "Découvrir le défi du jour" : "Discover the daily challenge"}
+    >
       <div>
         <h3>{fr ? "À toi de jouer : le défi du jour" : "Try today’s challenge"}</h3>
-        <p>{fr ? "Crée un compte gratuit pour jouer la grille du jour et comparer ton temps." : "Create a free account to play today’s puzzle and compare your time."}</p>
+        <p>
+          {fr
+            ? "Crée un compte gratuit pour jouer la grille du jour et comparer ton temps."
+            : "Create a free account to play today’s puzzle and compare your time."}
+        </p>
       </div>
       <button type="button" className="primary" onClick={onDiscover}>
         {fr ? "Voir la grille du jour" : "See today’s puzzle"}
@@ -170,7 +181,10 @@ function HomeContent() {
   const onlineCount = useLivePresence();
   const tournamentFeed = useTournaments();
   const [tournamentId, setTournamentId] = useState<string | null>(null);
-  const openTournament = (id?:string) => { setTournamentId(id ?? null); setMode("tournaments"); };
+  const openTournament = (id?: string) => {
+    setTournamentId(id ?? null);
+    setMode("tournaments");
+  };
   const fr = locale === "fr";
   const [view, setView] = useState<View>("jouer"),
     [mode, setMode] = useState("solo"),
@@ -191,7 +205,13 @@ function HomeContent() {
     [recoveryStatus, setRecoveryStatus] = useState<"checking" | "ready" | "expired">("checking");
   useEffect(() => {
     const query = new URLSearchParams(location.search);
-    if (query.has("premium_session") || query.has("premium_cancelled") || query.has("support_session") || query.has("support_cancelled")) setView("boutique");
+    if (
+      query.has("premium_session") ||
+      query.has("premium_cancelled") ||
+      query.has("support_session") ||
+      query.has("support_cancelled")
+    )
+      setView("boutique");
   }, []);
   const account = useAccount();
   const cosmetics = useCosmetics(account);
@@ -368,7 +388,12 @@ function HomeContent() {
               </div>
               <div className="header-actions">
                 {account.user && !account.loading && (
-                  <WalletBalances coins={cosmetics.state?.coins} gems={cosmetics.state?.gems} locale={locale} openShop={() => setView("boutique")} />
+                  <WalletBalances
+                    coins={cosmetics.state?.coins}
+                    gems={cosmetics.state?.gems}
+                    locale={locale}
+                    openShop={() => setView("boutique")}
+                  />
                 )}
                 <AccountButton
                   key={account.user?.id ?? "guest"}
@@ -426,18 +451,39 @@ function HomeContent() {
                     {modeTabs.map(([id, label, I]) => (
                       <button
                         key={id}
-                        onClick={() => id === "tournaments" ? openTournament() : setMode(id)}
+                        onClick={() => (id === "tournaments" ? openTournament() : setMode(id))}
                         aria-pressed={mode === id}
                         className={mode === id ? "active" : ""}
                       >
                         <I />
-                        {id === "classée" ? <span className="ranked-tab-copy">{t(label)}<span className="ranked-online">{onlineCount === null ? "—" : new Intl.NumberFormat(locale).format(onlineCount)} {fr ? "en ligne" : "online"}</span></span> : t(label)}
+                        {id === "classée" ? (
+                          <span className="ranked-tab-copy">
+                            {t(label)}
+                            <span className="ranked-online">
+                              {onlineCount === null
+                                ? "—"
+                                : new Intl.NumberFormat(locale).format(onlineCount)}{" "}
+                              {fr ? "en ligne" : "online"}
+                            </span>
+                          </span>
+                        ) : (
+                          t(label)
+                        )}
                         {id === "duel" && duelInvites > 0 && <small>{duelInvites}</small>}
                       </button>
                     ))}
                   </div>
                   {mode === "tournaments" ? (
-                    <Tournaments key={account.user?.id ?? "guest"} feed={tournamentFeed} id={tournamentId} onOpen={openTournament} userId={account.user?.id} coins={cosmetics.state?.coins} openAuth={() => setAuthOpen(true)} walletRefresh={() => void cosmetics.refresh()} />
+                    <Tournaments
+                      key={account.user?.id ?? "guest"}
+                      feed={tournamentFeed}
+                      id={tournamentId}
+                      onOpen={openTournament}
+                      userId={account.user?.id}
+                      coins={cosmetics.state?.coins}
+                      openAuth={() => setAuthOpen(true)}
+                      walletRefresh={() => void cosmetics.refresh()}
+                    />
                   ) : mode === "classée" ? (
                     <RankedMatch
                       account={account}
@@ -457,7 +503,7 @@ function HomeContent() {
                     />
                   ) : (
                     <ModePanel
-                      key={mode === "daily" ? account.user?.id ?? "daily-guest" : "other-modes"}
+                      key={mode === "daily" ? (account.user?.id ?? "daily-guest") : "other-modes"}
                       mode={mode}
                       notify={notify}
                       account={account}
@@ -518,7 +564,14 @@ function HomeContent() {
             <div className="toast" role="status" aria-live="polite">
               <Check />
               {toast}
-              <button type="button" className="toast-close" aria-label={fr ? "Fermer la notification" : "Dismiss notification"} onClick={() => setToast("")}><X aria-hidden="true" /></button>
+              <button
+                type="button"
+                className="toast-close"
+                aria-label={fr ? "Fermer la notification" : "Dismiss notification"}
+                onClick={() => setToast("")}
+              >
+                <X aria-hidden="true" />
+              </button>
             </div>
           )}
           {authOpen && (
@@ -533,7 +586,10 @@ function HomeContent() {
                 setAuthOpen(false);
                 notify("Mot de passe mis à jour");
               }}
-              onClose={() => { setStartSignup(false); setAuthOpen(false); }}
+              onClose={() => {
+                setStartSignup(false);
+                setAuthOpen(false);
+              }}
             />
           )}
         </main>

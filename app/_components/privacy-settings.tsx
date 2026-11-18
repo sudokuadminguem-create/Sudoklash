@@ -245,7 +245,11 @@ export function PrivacySettings({
             <button type="button" disabled={busy} onClick={() => dialog.current?.close()}>
               {text.cancel}
             </button>
-            <button className="privacy-delete" disabled={busy || confirmation !== "SUPPRIMER"}>
+            <button
+              type="submit"
+              className="privacy-delete"
+              disabled={busy || confirmation !== "SUPPRIMER"}
+            >
               {busy ? text.loading : text.danger}
             </button>
           </div>

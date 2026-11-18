@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
+import { friendPairKey } from "@/lib/friend-pair";
 import { rankFor } from "@/lib/ranked-rules";
 import { rankedPosition } from "@/lib/ranked-position";
 
@@ -112,7 +113,7 @@ async function sendRequest(db: D1Database, userId: string, rawUsername: string |
     .first<{ user_id: string }>();
   if (!target) return Response.json({ error: "player_not_found" }, { status: 404 });
   if (target.user_id === userId) return Response.json({ error: "self_request" }, { status: 400 });
-  const pairKey = [userId, target.user_id].sort().join(":");
+  const pairKey = friendPairKey(userId, target.user_id);
   const existing = await db
     .prepare("SELECT id, requester_id, status FROM friendships WHERE pair_key = ?")
     .bind(pairKey)

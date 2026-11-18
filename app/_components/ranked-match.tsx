@@ -97,7 +97,9 @@ export function RankedMatch({
     void cosmetics.refresh().then((updated) => {
       if (live && updated) setReward({ matchId, totalXp: updated.xp });
     });
-    return () => { live = false; };
+    return () => {
+      live = false;
+    };
   }, [state?.status, state?.id, cosmetics.refresh]);
   const submit = async (action: "join" | "cancel") => {
     setBusy(true);

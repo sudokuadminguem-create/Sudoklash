@@ -159,10 +159,10 @@ vérifie qu'elle démarre durcie et répond à `/api/health`. Elle publie ensuit
 
 Pour utiliser l'image publiée plutôt que la construire, remplacez `build:` par
 `image: docker.io/gambijul/sudoklash:latest` dans `docker-compose.yml`, et vérifiez sa
-signature :
+signature (cosign 3 ou plus récent) :
 
 ```sh
-cosign verify --key cosign.pub --insecure-ignore-tlog=true docker.io/gambijul/sudoklash:latest
+cosign verify --key cosign.pub --new-bundle-format --insecure-ignore-tlog=true docker.io/gambijul/sudoklash:latest
 ```
 
 ## End-to-end tests

@@ -39,7 +39,7 @@ function DailyRanking({ difficulty, openAuth }: { difficulty: Difficulty; openAu
           if (live) setAuth(true);
           return;
         }
-        if (!response.ok) throw Error("ranking");
+        if (!response.ok) throw new Error("ranking");
         const data = (await response.json()) as { players: Player[] };
         if (live) setPlayers(data.players);
       } catch {

@@ -1,9 +1,22 @@
 type Variant = { puzzle: number[]; solution: number[] };
 
+const UINT32_RANGE = 2 ** 32;
+
+// Uniform integer in [0, max) from the Web Crypto CSPRNG, using rejection
+// sampling to avoid modulo bias.
+function randomInt(max: number) {
+  const limit = UINT32_RANGE - (UINT32_RANGE % max);
+  const buffer = new Uint32Array(1);
+  do {
+    globalThis.crypto.getRandomValues(buffer);
+  } while (buffer[0] >= limit);
+  return buffer[0] % max;
+}
+
 function shuffle(values: number[]) {
   const result = [...values];
   for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = randomInt(i + 1);
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
@@ -18,7 +31,7 @@ export function makeSudokuVariant(puzzle: number[], solution: number[]): Variant
   const rows = orderedLines();
   const columns = orderedLines();
   const digits = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-  const transpose = Math.random() < 0.5;
+  const transpose = randomInt(2) === 1;
   const transform = (grid: number[]) =>
     Array.from({ length: 81 }, (_, index) => {
       const row = Math.floor(index / 9);

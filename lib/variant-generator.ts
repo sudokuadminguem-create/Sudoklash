@@ -17,7 +17,7 @@ function shuffled<T>(values: readonly T[], random: Random) {
 /** A complete valid grid under the geometry's rules (cages excluded: they come afterwards). */
 export function randomVariantSolution(geometry: Geometry, random: Random) {
   const bare: Geometry = { ...geometry, cages: [] };
-  const found = solveVariant(bare, Array(cellCount(bare)).fill(0), { limit: 1, random });
+  const found = solveVariant(bare, new Array(cellCount(bare)).fill(0), { limit: 1, random });
   if (!found.solution) throw new Error("no_solution");
   return found.solution;
 }
@@ -39,7 +39,7 @@ export function makeCages(size: number, solution: readonly number[], random: Ran
       c < size - 1 ? cell + 1 : -1,
     ].filter((n) => n >= 0);
   };
-  for (const start of shuffled([...Array(size * size).keys()], random)) {
+  for (const start of shuffled([...new Array(size * size).keys()], random)) {
     if (cageOf[start] >= 0) continue;
     const wanted = 2 + Math.floor(random() * 3);
     const cells = [start];

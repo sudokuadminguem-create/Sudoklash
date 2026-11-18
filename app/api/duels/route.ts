@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
+import { friendPairKey } from "@/lib/friend-pair";
 import { isSoloDifficulty } from "@/lib/difficulties";
 import {
   isCellIndex,
@@ -257,7 +258,7 @@ async function challenge(db: D1Database, me: string, body: Body) {
   if (!isSoloDifficulty(body.difficulty)) return json({ error: "invalid_difficulty" }, 400);
   const friendship = await db
     .prepare("SELECT 1 AS ok FROM friendships WHERE pair_key = ? AND status = 'accepted'")
-    .bind([me, body.friendId].sort().join(":"))
+    .bind(friendPairKey(me, body.friendId))
     .first();
   if (!friendship) return json({ error: "not_friends" }, 403);
   await db
