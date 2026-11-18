@@ -111,7 +111,10 @@ function previewActionLabel(busy: boolean, equipped: boolean, owned: boolean, si
   return signedIn ? "Acheter" : "Se connecter";
 }
 
-function ProductArt({ product: p, data }: { product: Product; data: CosmeticState | null }) {
+function ProductArt({
+  product: p,
+  data,
+}: Readonly<{ product: Product; data: CosmeticState | null }>) {
   const background = p.colors
     ? `radial-gradient(circle at 20% 20%,${p.colors[0]}66,transparent 65%),linear-gradient(135deg,#081021,${p.colors[1]}55)`
     : undefined;
@@ -150,11 +153,11 @@ function ProductCard({
   product: p,
   pricing,
   onOpen,
-}: {
+}: Readonly<{
   product: Product;
   pricing: Pricing;
   onOpen: () => void;
-}) {
+}>) {
   const { data, balance, currencyLabel, cost } = pricing;
   const has = isOwned(data, p);
   const missing = Math.max(0, cost(p) - balance);
@@ -203,14 +206,14 @@ function PreviewDialog({
   signedIn,
   onClose,
   onChoose,
-}: {
+}: Readonly<{
   preview: Product | null;
   pricing: Pricing;
   busy: boolean;
   signedIn: boolean;
   onClose: () => void;
   onChoose: (p: Product) => void;
-}) {
+}>) {
   const dialog = useRef<HTMLDialogElement>(null);
   const previewTitle = useId();
   const onCloseRef = useRef(onClose);
@@ -263,7 +266,7 @@ function PreviewContent({
   titleId,
   onClose,
   onChoose,
-}: {
+}: Readonly<{
   preview: Product;
   pricing: Pricing;
   busy: boolean;
@@ -271,7 +274,7 @@ function PreviewContent({
   titleId: string;
   onClose: () => void;
   onChoose: (p: Product) => void;
-}) {
+}>) {
   const { data, balance, currencyLabel, cost } = pricing;
   const owned = isOwned(data, preview);
   const equipped = isEquipped(data, preview);
@@ -284,7 +287,6 @@ function PreviewContent({
         type="button"
         className="store-dialog-close"
         aria-label="Fermer l’aperçu"
-        autoFocus
         onClick={onClose}
       >
         <X aria-hidden="true" />
@@ -316,10 +318,10 @@ function PreviewContent({
 function CurrencyPicker({
   currency,
   setCurrency,
-}: {
+}: Readonly<{
   currency: Currency;
   setCurrency: (value: Currency) => void;
-}) {
+}>) {
   return (
     <>
       <div className="store-categories" aria-label="Monnaie pour les articles">
@@ -355,11 +357,11 @@ function AccountNotice({
   cosmetics,
   account,
   openAuth,
-}: {
+}: Readonly<{
   cosmetics: Cosmetics;
   account: Account;
   openAuth: () => void;
-}) {
+}>) {
   if (!account.user)
     return (
       <div className="store-message">
@@ -373,7 +375,7 @@ function AccountNotice({
     );
   if (cosmetics.state) return null;
   return (
-    <div className="store-message" role="status">
+    <output className="store-message">
       <p>
         {cosmetics.loading
           ? "Chargement de ton solde…"
@@ -382,7 +384,7 @@ function AccountNotice({
       <button onClick={() => void cosmetics.refresh()} disabled={cosmetics.loading}>
         Réessayer
       </button>
-    </div>
+    </output>
   );
 }
 
@@ -396,7 +398,7 @@ function CosmeticsShelf({
   cosmetics,
   account,
   openAuth,
-}: {
+}: Readonly<{
   ownedOnly: boolean;
   category: Category;
   setCategory: (value: Category) => void;
@@ -406,7 +408,7 @@ function CosmeticsShelf({
   cosmetics: Cosmetics;
   account: Account;
   openAuth: () => void;
-}) {
+}>) {
   const [preview, setPreview] = useState<Product | null>(null),
     [busy, setBusy] = useState(""),
     [purchase, setPurchase] = useState<Product | null>(null);
@@ -522,12 +524,12 @@ export function Shop({
   cosmetics,
   account,
   openAuth,
-}: {
+}: Readonly<{
   notify: (value: string) => void;
   cosmetics: Cosmetics;
   account: Account;
   openAuth: () => void;
-}) {
+}>) {
   const [shelf, setShelf] = useState<Shelf>("catalog");
   const [category, setCategory] = useState<Category>("all");
   const [currency, setCurrency] = useState<Currency>("coins");

@@ -150,6 +150,7 @@ it("asks a signed-in player without a username to choose one", async () => {
   const account = { user: { id: "alice" }, profile: null, refresh } as unknown as Account;
   await render({ account, onClose });
   expect(title()).toBe("Choisissez votre pseudo");
+  expect(document.activeElement).toBe(container.querySelector("input"));
   await type("input", "LogikRush");
   await click(button("Valider mon pseudo"));
   expect(fetchMock).toHaveBeenCalledWith(

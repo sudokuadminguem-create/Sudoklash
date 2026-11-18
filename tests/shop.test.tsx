@@ -86,7 +86,7 @@ it("shows the balances, filters the catalog and switches currency", async () => 
   expect(button("Fonds de grille").getAttribute("aria-pressed")).toBe("true");
   const themes = container.querySelectorAll(".store-product[data-kind='theme']").length;
   expect(themes).toBeGreaterThan(0);
-  expect(container.querySelectorAll(".store-product").length).toBe(themes);
+  expect(container.querySelectorAll(".store-product")).toHaveLength(themes);
   expect(themes).toBeLessThan(all);
   await click(button("Payer en Sudogemmes"));
   expect(button("Payer en Sudogemmes").className).toBe("active");
@@ -252,11 +252,11 @@ it("asks a guest to sign in before buying", async () => {
 it("offers to reload a balance that could not be loaded", async () => {
   const props = setup({ data: null });
   await render(props);
-  expect(container.querySelector("[role='status']")?.textContent).toContain("indisponible");
+  expect(container.querySelector("output.store-message")?.textContent).toContain("indisponible");
   await click(button("Réessayer"));
   expect(props.refresh).toHaveBeenCalledOnce();
   await render({ ...props, cosmetics: { ...props.cosmetics, loading: true } });
-  expect(container.querySelector("[role='status']")?.textContent).toContain("Chargement");
+  expect(container.querySelector("output.store-message")?.textContent).toContain("Chargement");
   await click(button("Mes articles"));
   expect(container.textContent).toContain("Aucun article dans ce rayon");
 });

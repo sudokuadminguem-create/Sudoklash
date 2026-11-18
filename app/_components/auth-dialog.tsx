@@ -1,10 +1,62 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, ShieldCheck, X } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import { friendlyError } from "@/app/lib/auth-messages";
 import { supabase } from "@/app/lib/supabase";
 import type { Account } from "@/hooks/use-account";
+
+type Mode = "signin" | "signup" | "forgot" | "reset";
+
+const titles: Record<Mode, string> = {
+  signin: "Se connecter",
+  signup: "Créer un compte",
+  forgot: "Mot de passe oublié",
+  reset: "Nouveau mot de passe",
+};
+
+/** Saves the username a new player chose; the server answers why it refuses one. */
+async function saveUsername(username: string) {
+  const response = await fetch("/api/profile", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+    body: JSON.stringify({ username }),
+  });
+  if (!response.ok) {
+    const data = (await response.json()) as { error?: string };
+    throw new Error(data.error ?? "profile_unavailable");
+  }
+}
+
+async function sendResetLink(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: `${window.location.origin}/?reset=1`,
+  });
+  if (error) throw error;
+}
+
+async function saveNewPassword(password: string) {
+  const { data: session, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !session.session)
+    throw new Error("Le lien de récupération est expiré ou invalide. Demandez un nouveau lien.");
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+}
+
+/** Signs in or up; true when a new account still waits for its e-mail confirmation. */
+async function signInOrUp(signup: boolean, email: string, password: string) {
+  const credentials = { email: email.trim(), password };
+  const result = signup
+    ? await supabase.auth.signUp(credentials)
+    : await supabase.auth.signInWithPassword(credentials);
+  if (result.error) throw result.error;
+  return signup && !result.data.session;
+}
+
+function initialMode(recovery: boolean, startSignup: boolean): Mode {
+  if (recovery) return "reset";
+  return startSignup ? "signup" : "signin";
+}
 
 export function AuthDialog({
   account,
@@ -21,9 +73,8 @@ export function AuthDialog({
   recoveryStatus?: "checking" | "ready" | "expired";
   onRecovered?: () => void;
 }) {
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "reset">(
-    recovery ? "reset" : startSignup ? "signup" : "signin",
-  );
+  const [mode, setMode] = useState<Mode>(() => initialMode(recovery, startSignup));
+  const usernameInput = useRef<HTMLInputElement>(null);
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [username, setUsername] = useState("");
@@ -35,6 +86,9 @@ export function AuthDialog({
     if (recovery) setMode("reset");
   }, [recovery]);
   const needsUsername = !!account.user && !account.profile?.username && mode !== "reset";
+  useEffect(() => {
+    if (needsUsername) usernameInput.current?.focus();
+  }, [needsUsername]);
   const changeMode = (next: typeof mode) => {
     setMode(next);
     setError("");
@@ -47,49 +101,22 @@ export function AuthDialog({
     setInfo("");
     try {
       if (needsUsername) {
-        const response = await fetch("/api/profile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-          body: JSON.stringify({ username }),
-        });
-        if (!response.ok) {
-          const data = (await response.json()) as { error?: string };
-          throw new Error(data.error ?? "profile_unavailable");
-        }
+        await saveUsername(username);
         await account.refresh();
         onClose();
-        return;
-      }
-      if (mode === "forgot") {
-        const { error: e } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: `${window.location.origin}/?reset=1`,
-        });
-        if (e) throw e;
+      } else if (mode === "forgot") {
+        await sendResetLink(email);
         setInfo(
           "Si cette adresse correspond à un compte, vous recevrez un e-mail avec un lien pour choisir un nouveau mot de passe.",
         );
-        return;
-      }
-      if (mode === "reset") {
-        const { data: session, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !session.session)
-          throw new Error(
-            "Le lien de récupération est expiré ou invalide. Demandez un nouveau lien.",
-          );
-        const { error: e } = await supabase.auth.updateUser({ password });
-        if (e) throw e;
+      } else if (mode === "reset") {
+        await saveNewPassword(password);
         setInfo("Mot de passe modifié. Votre compte est connecté.");
         setPassword("");
         onRecovered?.();
-        return;
-      }
-      const result =
-        mode === "signup"
-          ? await supabase.auth.signUp({ email: email.trim(), password })
-          : await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (result.error) throw result.error;
-      if (mode === "signup" && !result.data.session)
+      } else if (await signInOrUp(mode === "signup", email, password)) {
         setInfo("Compte créé. Ouvrez l’e-mail de confirmation, puis connectez-vous.");
+      }
     } catch (e) {
       setError(friendlyError(e instanceof Error ? e.message : "Connexion impossible"));
     } finally {
@@ -155,7 +182,7 @@ export function AuthDialog({
           <label>
             <span>Pseudo</span>
             <input
-              autoFocus
+              ref={usernameInput}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Ex. LogikRush"
@@ -255,17 +282,7 @@ export function AuthDialog({
           <ShieldCheck />
         </div>
         <span className="eyebrow">COMPTE SUDOKU CLASH</span>
-        <h2 id="account-title">
-          {needsUsername
-            ? "Choisissez votre pseudo"
-            : mode === "forgot"
-              ? "Mot de passe oublié"
-              : mode === "reset"
-                ? "Nouveau mot de passe"
-                : mode === "signup"
-                  ? "Créer un compte"
-                  : "Se connecter"}
-        </h2>
+        <h2 id="account-title">{needsUsername ? "Choisissez votre pseudo" : titles[mode]}</h2>
         {mode === "signup" && !needsUsername && (
           <div className="signup-benefits">
             <b>Ce que ton compte gratuit débloque</b>
