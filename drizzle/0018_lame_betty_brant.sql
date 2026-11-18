@@ -1,0 +1,1 @@
+ALTER TABLE `player_cosmetics` ADD `victory_effect_id` text DEFAULT 'none' NOT NULL;

@@ -9,18 +9,20 @@ import type { Account } from "@/hooks/use-account";
 export function AuthDialog({
   account,
   onClose,
+  startSignup = false,
   recovery = false,
   recoveryStatus = "checking",
   onRecovered,
 }: {
   account: Account;
   onClose: () => void;
+  startSignup?: boolean;
   recovery?: boolean;
   recoveryStatus?: "checking" | "ready" | "expired";
   onRecovered?: () => void;
 }) {
   const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "reset">(
-    recovery ? "reset" : "signin",
+    recovery ? "reset" : startSignup ? "signup" : "signin",
   );
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
@@ -88,7 +90,7 @@ export function AuthDialog({
       if (result.error) throw result.error;
       if (mode === "signup" && !result.data.session)
         setInfo("Compte créé. Ouvrez l’e-mail de confirmation, puis connectez-vous.");
-      else if (result.data.session) await account.refresh();
+
     } catch (e) {
       setError(friendlyError(e instanceof Error ? e.message : "Connexion impossible"));
     } finally {
@@ -143,6 +145,16 @@ export function AuthDialog({
                   ? "Créer un compte"
                   : "Se connecter"}
         </h2>
+        {mode === "signup" && !needsUsername && (
+          <div className="signup-benefits">
+            <b>Ce que ton compte gratuit débloque</b>
+            <ul>
+              <li>Les grilles du jour et de la semaine, avec leurs classements.</li>
+              <li>Les duels entre amis et les parties classées.</li>
+              <li>Ton profil et ta progression : XP, défis et récompenses.</li>
+            </ul>
+          </div>
+        )}
         {needsUsername ? (
           <>
             <p>Ce pseudo sera visible par vos amis et vos adversaires. Il doit être unique.</p>
@@ -237,6 +249,9 @@ export function AuthDialog({
             >
               {busy ? "Connexion…" : mode === "signup" ? "Créer mon compte" : "Se connecter"}
             </button>
+            {mode === "signin" && (
+              <small>Tu resteras connecté sur cet appareil. Pour quitter : Options → Déconnexion.</small>
+            )}
             {mode === "signin" && (
               <button className="auth-switch" onClick={() => changeMode("forgot")}>
                 Mot de passe oublié ?

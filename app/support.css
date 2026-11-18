@@ -1,0 +1,14 @@
+.support-podium { padding:14px; border:1px solid #79609c; border-radius:14px; background:#171729; margin-bottom:14px; }
+.support-podium h2 { display:flex; align-items:center; gap:8px; margin:0 0 10px; font-size:1rem; }
+.support-podium h2 svg { width:17px; height:17px; color:#e3adff; }
+.support-podium ol { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; padding:0; margin:0; list-style:none; }
+.support-podium li { display:flex; align-items:center; gap:8px; min-width:0; padding:10px; border:1px solid var(--rank-neon); border-radius:10px; color:var(--rank-neon); background:#111424; }
+.support-podium li[data-place="1"] { --rank-neon:#ffe171; }
+.support-podium li[data-place="2"] { --rank-neon:#cfe6ff; }
+.support-podium li[data-place="3"] { --rank-neon:#ffb088; }
+.support-podium li svg { width:21px; height:21px; flex:none; }
+.support-podium li span { min-width:0; display:grid; }
+.support-podium li strong { text-shadow:0 0 10px currentColor; overflow-wrap:anywhere; }
+.support-options { display:flex; flex-wrap:wrap; gap:10px; margin-block:14px; }
+.support-consent { display:flex; align-items:center; gap:8px; }
+@media(max-width:560px) { .support-podium ol { grid-template-columns:1fr; } }

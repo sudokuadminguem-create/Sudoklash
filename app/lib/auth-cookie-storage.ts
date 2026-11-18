@@ -52,27 +52,27 @@ function legacyCookies() {
 export const authCookieStorage = {
   getItem(key: string): string | null {
     if (typeof document === "undefined") return null;
-    const current = readChunks(scope(key));
-    if (current) return current;
-
-    // Migrate sessions from older versions, without copying them into code verifiers.
-    if (key.endsWith("-auth-token")) {
-      const old = readChunks(prefix);
-      if (old) {
-        this.setItem(key, old);
-        clearCookies(legacyCookies());
-        return old;
-      }
+    try {
+      const saved = window.localStorage.getItem(key);
+      if (saved !== null) return saved;
+    } catch {
+      // Use the existing cookie fallback if browser storage is blocked.
     }
-    const previous = window.localStorage.getItem(key);
-    if (previous) {
-      this.setItem(key, previous);
-      window.localStorage.removeItem(key);
-    }
+    const previous = readChunks(scope(key)) ??
+      (key.endsWith("-auth-token") ? readChunks(prefix) : null);
+    if (previous !== null) this.setItem(key, previous);
     return previous;
   },
   setItem(key: string, value: string): void {
     if (typeof document === "undefined") return;
+    try {
+      window.localStorage.setItem(key, value);
+      clearCookies(scopedCookies(scope(key)));
+      if (key.endsWith("-auth-token")) clearCookies(legacyCookies());
+      return;
+    } catch {
+      // Preserve sign-in on devices that allow cookies but block local storage.
+    }
     const cookiePrefix = scope(key);
     clearCookies(scopedCookies(cookiePrefix));
     const encoded = encodeURIComponent(value);
@@ -87,6 +87,6 @@ export const authCookieStorage = {
     if (typeof document === "undefined") return;
     clearCookies(scopedCookies(scope(key)));
     if (key.endsWith("-auth-token")) clearCookies(legacyCookies());
-    window.localStorage.removeItem(key);
+    try { window.localStorage.removeItem(key); } catch { /* browser storage blocked */ }
   },
 };
