@@ -66,7 +66,7 @@ export function SupportShop({ signedIn, openAuth }: { signedIn: boolean; openAut
           headers: { "Content-Type": "application/json", ...(await authHeaders()) },
           body: JSON.stringify({ action: "verify", sessionId }),
         });
-        if (!r.ok) throw new Error();
+        if (!r.ok) throw new Error("verify");
         if (live) {
           setMessage("Merci pour ton soutien ! Ton don a été confirmé.");
           const url = new URL(location.href);
@@ -98,9 +98,10 @@ export function SupportShop({ signedIn, openAuth }: { signedIn: boolean; openAut
         headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify({ packId, publishSupport: true }),
       });
-      if (!r.ok) throw new Error();
+      if (!r.ok) throw new Error("checkout");
       const url = new URL(((await r.json()) as { url: string }).url);
-      if (url.protocol !== "https:" || url.hostname !== "checkout.stripe.com") throw new Error();
+      if (url.protocol !== "https:" || url.hostname !== "checkout.stripe.com")
+        throw new Error("url");
       location.assign(url.href);
     } catch {
       setMessage("Impossible d’ouvrir le paiement. Réessaie dans un instant.");

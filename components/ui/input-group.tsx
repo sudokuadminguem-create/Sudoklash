@@ -79,7 +79,6 @@ function InputGroupAddon({
   return (
     <div
       ref={ref}
-      role="group"
       data-slot="input-group-addon"
       data-align={align}
       className={cn(inputGroupAddonVariants({ align }), className)}

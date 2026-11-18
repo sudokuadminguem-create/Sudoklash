@@ -20,6 +20,7 @@ export function ConfirmDialog({
   onCancel: () => void;
 }) {
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   // The parent may re-render every second (the game clock): keep the effect below from
   // re-running, which would steal the focus back each time.
   const onCancelRef = useRef(onCancel);
@@ -34,19 +35,21 @@ export function ConfirmDialog({
       // Keep digit and shortcut keys from reaching the board behind.
       e.stopImmediatePropagation();
     };
+    // A click on the backdrop itself, outside the dialog, cancels too.
+    const backdrop = backdropRef.current;
+    const click = (e: MouseEvent) => {
+      if (e.target === backdrop) onCancelRef.current();
+    };
     window.addEventListener("keydown", key, true);
-    return () => window.removeEventListener("keydown", key, true);
+    backdrop?.addEventListener("click", click);
+    return () => {
+      window.removeEventListener("keydown", key, true);
+      backdrop?.removeEventListener("click", click);
+    };
   }, []);
   // Rendered at the page root, so no transformed parent can trap the fixed backdrop.
   return createPortal(
-    <div
-      className="account-backdrop"
-      role="presentation"
-      onClick={(e) => {
-        // Only a click on the backdrop itself, outside the dialog, cancels.
-        if (e.target === e.currentTarget) onCancel();
-      }}
-    >
+    <div ref={backdropRef} className="account-backdrop">
       <section
         className="account-dialog confirm-dialog"
         role="alertdialog"

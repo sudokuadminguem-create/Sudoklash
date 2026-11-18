@@ -9,7 +9,7 @@ type Result<T> = { results: T[]; success: true; meta: { changes: number } };
 
 /** Runs synchronous work as D1 would: its result, or what it throws, comes back as a promise. */
 function settle<T>(work: () => T): Promise<T> {
-  return new Promise((resolve) => resolve(work()));
+  return Promise.resolve().then(work);
 }
 
 class Statement {
