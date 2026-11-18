@@ -5,16 +5,16 @@ import "./themes.css";
 import { displayScript } from "./lib/settings-model";
 export const metadata: Metadata = {
   metadataBase: new URL("https://sudoklash.galletguemeric.chatgpt.site"),
-  title: "Sudoku Clash — Le Sudoku compétitif",
+  title: "Sudoku Clash (Sudoklash) — Sudoku gratuit en ligne",
   description:
-    "Jouez au Sudoku en ligne sur des grilles 9×9, relevez les défis quotidiens et hebdomadaires et mesurez-vous aux autres joueurs.",
-  keywords: ["Sudoku Clash", "sudoku en ligne", "grille sudoku", "sudoku quotidien", "défi sudoku"],
+    "Joue gratuitement et sans compte à Sudoku Clash, aussi appelé Sudoklash. Choisis ta difficulté en solo ou connecte-toi pour les défis et les duels classés.",
+  keywords: ["Sudoku Clash", "Sudoklash", "sudoku en ligne", "grille sudoku", "sudoku quotidien", "défi sudoku"],
   applicationName: "Sudoku Clash",
   creator: "Sudoku Clash",
   alternates: { canonical: "/" },
   robots: { index: true, follow: true },
   openGraph: {
-    title: "Sudoku Clash — Le Sudoku compétitif",
+    title: "Sudoku Clash (Sudoklash) — Sudoku gratuit en ligne",
     description: "Des grilles 9×9, des défis quotidiens et hebdomadaires et une arène compétitive.",
     siteName: "Sudoku Clash",
     locale: "fr_FR",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Sudoku Clash — Le Sudoku compétitif",
+    title: "Sudoku Clash (Sudoklash) — Sudoku gratuit en ligne",
     description: "Jouez au Sudoku en ligne et relevez les défis quotidiens et hebdomadaires.",
   },
   icons: {

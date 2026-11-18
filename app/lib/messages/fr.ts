@@ -37,8 +37,8 @@ export const fr = {
 
   // Home
   "home.live": "BÊTA PUBLIQUE · COMPTES RÉELS",
-  "home.title": "Prêt pour le prochain clash ?",
-  "home.lead": "Joue en solo, trouve un duel classé ou crée un salon privé.",
+  "home.title": "Sudoku Clash — joue en ligne",
+  "home.lead": "Sudoklash : joue gratuitement en solo sans compte. Connecte-toi pour les défis et les duels classés.",
   "home.accountSignedIn": "Voir mon compte et personnaliser mon avatar",
   "home.accountSignedOut": "Se connecter au compte",
   "home.myAccount": "MON COMPTE",
