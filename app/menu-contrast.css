@@ -81,3 +81,14 @@ html:not([data-contrast="high"]) .daily-levels button.active {
   outline: 2px solid #e3efff;
   outline-offset: 2px;
 }
+
+.difficulty-grid button > .difficulty-mark {
+  display: grid;
+  place-items: center;
+  width: 43px;
+  height: 43px;
+  border: 1px solid currentColor;
+  border-radius: 13px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  line-height: 1;
+}

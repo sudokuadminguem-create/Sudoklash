@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { History } from "lucide-react";
+import { History, Compass, Gem, Mountain, Flame, Crown } from "lucide-react";
 import { useI18n } from "@/app/lib/i18n";
 import { levelName, type MessageKey } from "@/app/lib/i18n-core";
 import { formatClock } from "@/app/lib/format-time";
@@ -19,6 +19,8 @@ import { SoloGame } from "./solo-game";
 import { NearChallenges } from "./near-challenges";
 import { DailyChallenges } from "./daily-challenges";
 import { TimedChallenge } from "./timed-challenge";
+
+const difficultyMarks = [null, Compass, Gem, Mountain, Flame, Crown] as const;
 
 export function ModePanel({
   mode,
@@ -106,20 +108,25 @@ export function ModePanel({
             </button>
           )}
           <div className="difficulty-grid">
-            {soloDifficulties.map((d, i) => (
+            {soloDifficulties.map((d, i) => {
+              const Mark = difficultyMarks[i];
+              return (
               <button
                 // A new grid replaces the saved one: ask first.
                 onClick={() => (saved && settings.confirmNewGrid ? setReplacing(d) : pick(d))}
                 key={d}
               >
-                <span>{["🌱", "●", "◆", "▲", "⬢", "♛"][i]}</span>
+                <span className="difficulty-mark" aria-hidden="true">
+                  {Mark ? <Mark size={26} strokeWidth={1.8} /> : "🌱"}
+                </span>
                 <b>{levelName(t, d)}</b>
                 <small>{t(`levelHint.${d}` as MessageKey)}</small>
                 <span className="difficulty-xp">
                   {practice ? t("solo.practice") : `+${soloXpFor(d)} XP`}
                 </span>
               </button>
-            ))}
+              );
+            })}
           </div>
           {!practice && (
             <>
