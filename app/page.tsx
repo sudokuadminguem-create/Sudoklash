@@ -30,6 +30,7 @@ import { ChallengeAnnouncer } from "./_components/challenge-announcer";
 import { AccountOverview } from "./_components/account-overview";
 import { AuthDialog } from "./_components/auth-dialog";
 import { Leaderboard } from "./_components/leaderboard";
+import { TournamentBanner, Tournaments, useTournaments } from "./_components/tournaments";
 import { ModePanel } from "./_components/mode-panel";
 import { PlayerAvatar } from "./_components/player-cosmetics";
 import { RankedGame } from "./_components/ranked-game";
@@ -63,6 +64,7 @@ const modeTabs = [
   ["classée", "mode.ranked", Swords],
   ["solo", "mode.solo", Zap],
   ["daily", "mode.daily", CalendarDays],
+  ["tournaments", "mode.tournaments", Trophy],
   ["hebdo", "mode.weekly", Flame],
   ["duel", "mode.duel", Handshake],
   ["privée", "mode.lobby", Users],
@@ -87,6 +89,9 @@ export default function Home() {
 
 function HomeContent() {
   const { t, locale } = useI18n();
+  const tournamentFeed = useTournaments();
+  const [tournamentId, setTournamentId] = useState<string | null>(null);
+  const openTournament = (id?:string) => { setTournamentId(id ?? null); setMode("tournaments"); };
   const fr = locale === "fr";
   const [view, setView] = useState<View>("jouer"),
     [mode, setMode] = useState("solo"),
@@ -366,11 +371,12 @@ function HomeContent() {
                       </button>
                     </aside>
                   )}
+                  <TournamentBanner feed={tournamentFeed} onOpen={openTournament} />
                   <div className="mode-tabs">
                     {modeTabs.map(([id, label, I]) => (
                       <button
                         key={id}
-                        onClick={() => setMode(id)}
+                        onClick={() => id === "tournaments" ? openTournament() : setMode(id)}
                         className={mode === id ? "active" : ""}
                       >
                         <I />
@@ -380,7 +386,9 @@ function HomeContent() {
                       </button>
                     ))}
                   </div>
-                  {mode === "classée" ? (
+                  {mode === "tournaments" ? (
+                    <Tournaments key={account.user?.id ?? "guest"} feed={tournamentFeed} id={tournamentId} onOpen={openTournament} userId={account.user?.id} coins={cosmetics.state?.coins} openAuth={() => setAuthOpen(true)} walletRefresh={() => void cosmetics.refresh()} />
+                  ) : mode === "classée" ? (
                     <RankedMatch
                       account={account}
                       cosmetics={cosmetics}

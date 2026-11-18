@@ -141,6 +141,13 @@
       "when": 1795011952241,
       "tag": "0019_mushy_silvermane",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1795013199110,
+      "tag": "0020_wooden_professor_monster",
+      "breakpoints": true
     }
   ]
 }

@@ -49,6 +49,7 @@ export const fr = {
   "home.signInToCustomize": "Se connecter pour personnaliser",
   "mode.ranked": "Partie classée",
   "mode.solo": "Solo",
+  "mode.tournaments": "Tournois",
   "mode.daily": "Grille du jour",
   "mode.weekly": "Grille hebdo",
   "mode.duel": "Duel d’amis",

@@ -43,6 +43,8 @@ export async function deletePlayerData(db: D1Database, userId: string) {
     db.prepare("DELETE FROM private_room_players WHERE room_id IN (SELECT id FROM private_rooms WHERE host_id=?)").bind(userId),
     db.prepare("DELETE FROM private_rooms WHERE host_id=?").bind(userId),
     db.prepare("UPDATE private_rooms SET winner_id=? WHERE winner_id=?").bind(anonymous,userId),
+    db.prepare("UPDATE tournament_entries SET user_id=? WHERE user_id=?").bind(anonymous,userId),
+    db.prepare("UPDATE tournaments SET host_id=? WHERE host_id=?").bind(anonymous,userId),
     db.prepare("UPDATE premium_credits SET user_id=? WHERE user_id=?").bind(anonymous,userId),
     db
       .prepare("DELETE FROM friendships WHERE requester_id=? OR addressee_id=?")

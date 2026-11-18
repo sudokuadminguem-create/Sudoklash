@@ -1,3 +1,5 @@
+import { counts } from "@/lib/player-counts";
+import { settleTournaments, tournamentNetSQL } from "@/lib/tournament-wallet";
 import { premiumOwned, parseCollectionItem, bundlePrice } from "@/lib/premium-collections";
 import { premiumPrice } from "@/lib/premium";
 import { env } from "cloudflare:workers";
@@ -11,8 +13,6 @@ import {
   progressFor,
   shopAvatars,
   shopFrames,
-  soloXpFor,
-  type ProgressCounts,
 } from "@/lib/cosmetics";
 import { rankedPosition } from "@/lib/ranked-position";
 import { rankFor } from "@/lib/ranked-rules";
@@ -27,46 +27,11 @@ const json = (data: unknown, status = 200) =>
 const MAX_AVATAR_IMAGE_LENGTH = 200_000;
 const AVATAR_IMAGE_PATTERN = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 
-async function counts(userId: string): Promise<ProgressCounts> {
-  const db = env.DB!;
-  const [solo, daily, weekly, rating] = await Promise.all([
-    db
-      .prepare(
-        "SELECT difficulty, COUNT(*) AS n FROM solo_results WHERE user_id=? GROUP BY difficulty",
-      )
-      .bind(userId)
-      .all<{ difficulty: string; n: number }>(),
-    db
-      .prepare(
-        "SELECT COUNT(*) AS n FROM daily_attempts WHERE user_id=? AND completed_at IS NOT NULL",
-      )
-      .bind(userId)
-      .first<{ n: number }>(),
-    db
-      .prepare(
-        "SELECT COUNT(*) AS n FROM weekly_attempts WHERE user_id=? AND completed_at IS NOT NULL",
-      )
-      .bind(userId)
-      .first<{ n: number }>(),
-    db
-      .prepare("SELECT wins,losses FROM ranked_ratings WHERE user_id=?")
-      .bind(userId)
-      .first<{ wins: number; losses: number }>(),
-  ]);
-  return {
-    solo: solo.results.reduce((total, row) => total + row.n, 0),
-    soloXp: solo.results.reduce((total, row) => total + row.n * soloXpFor(row.difficulty), 0),
-    daily: daily?.n ?? 0,
-    weekly: weekly?.n ?? 0,
-    wins: rating?.wins ?? 0,
-    losses: rating?.losses ?? 0,
-  };
-}
-
 async function state(userId: string) {
   const db = env.DB!;
-  const [score, selection, purchases, rating, image, premium] = await Promise.all([
-    counts(userId),
+  await settleTournaments(db, Date.now(), userId);
+  const [score, selection, purchases, rating, image, premium, tournament] = await Promise.all([
+    counts(db, userId),
     db
       .prepare(
         "SELECT avatar_id,frame_id,theme_id,profile_card_id,profile_title_id,victory_effect_id FROM player_cosmetics WHERE user_id=?",
@@ -96,6 +61,7 @@ async function state(userId: string) {
       .prepare("SELECT COALESCE(SUM(gems),0) AS gems FROM premium_credits WHERE user_id=?")
       .bind(userId)
       .first<{ gems: number }>(),
+    db.prepare(`SELECT ${tournamentNetSQL} AS net`).bind(userId).first<{ net: number }>(),
   ]);
   const progress = progressFor(score);
   const owned = [
@@ -144,7 +110,9 @@ async function state(userId: string) {
     counts: score,
     coins: Math.max(
       0,
-      progress.earnedCoins - purchases.results.reduce((sum, p) => sum + p.price, 0),
+      progress.earnedCoins +
+        (tournament?.net ?? 0) -
+        purchases.results.reduce((sum, p) => sum + p.price, 0),
     ),
     gems: Math.max(
       0,
@@ -375,7 +343,7 @@ export async function POST(request: Request) {
       const result = await db
         .prepare(
           `INSERT INTO cosmetic_purchases (user_id,item_id,price,purchased_at)
-    SELECT ?,?,?,? WHERE ? - COALESCE((SELECT SUM(price) FROM cosmetic_purchases WHERE user_id=?),0) >= ?
+    SELECT ?,?,?,? WHERE ? + ${tournamentNetSQL} - COALESCE((SELECT SUM(price) FROM cosmetic_purchases WHERE user_id=?),0) >= ?
     AND NOT EXISTS (SELECT 1 FROM cosmetic_purchases WHERE user_id=? AND item_id=?)`,
         )
         .bind(
@@ -384,6 +352,7 @@ export async function POST(request: Request) {
           product.price,
           Date.now(),
           current.earnedCoins,
+          user.userId,
           user.userId,
           product.price,
           user.userId,

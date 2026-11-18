@@ -285,3 +285,28 @@ export const privateRoomPlayers = sqliteTable("private_room_players", {
   isReady: integer("is_ready").notNull().default(0),
   progress: integer("progress").notNull().default(0),
 }, table => [primaryKey({ columns: [table.roomId, table.userId] })]);
+
+export const tournaments = sqliteTable("tournaments", {
+  id: text("id").primaryKey(),
+  hostId: text("host_id").notNull(),
+  difficulty: text("difficulty").notNull(),
+  startsAt: integer("starts_at").notNull(),
+  endsAt: integer("ends_at").notNull(),
+  puzzle: text("puzzle").notNull(),
+  solution: text("solution").notNull(),
+  settled: text("settled"),
+}, t => [index("tournaments_start").on(t.startsAt)]);
+
+export const tournamentEntries = sqliteTable("tournament_entries", {
+  tournamentId: text("tournament_id").notNull(),
+  userId: text("user_id").notNull(),
+  joinedAt: integer("joined_at").notNull(),
+  fee: integer("fee").notNull(),
+  payout: integer("payout").notNull().default(0),
+  mistakes: integer("mistakes").notNull().default(0),
+  lastMistake: text("last_mistake"),
+  finishedAt: integer("finished_at"),
+}, t => [
+  primaryKey({columns:[t.tournamentId,t.userId]}),
+  index("tournament_entries_user").on(t.userId),
+]);
