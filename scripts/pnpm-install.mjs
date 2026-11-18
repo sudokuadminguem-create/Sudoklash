@@ -126,7 +126,7 @@ async function openLock(filename, waitSeconds) {
     if (!filename || !constants.O_NOFOLLOW || !constants.O_NONBLOCK) throw new Error("Unsupported lock");
     fd = openSync(filename, constants.O_CREAT | constants.O_RDWR | constants.O_NOFOLLOW | constants.O_NONBLOCK, 0o600);
     if (!fstatSync(fd).isFile()) throw new Error("Expected a regular lock file");
-    const child = spawn("flock", ["-w", waitSeconds, "3"], { stdio: ["ignore", "ignore", "ignore", fd] });
+    const child = spawn("/usr/bin/flock", ["-w", waitSeconds, "3"], { stdio: ["ignore", "ignore", "ignore", fd] });
     const code = await new Promise((resolve) => {
       child.once("error", () => resolve(undefined));
       child.once("close", resolve);

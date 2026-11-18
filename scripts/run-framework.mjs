@@ -7,7 +7,7 @@ if (!["dev", "build"].includes(command)) throw new Error("Expected dev or build.
 const managedLinux = readExecutionProfile() === "managed-linux";
 
 if (managedLinux && command === "build") {
-  const result = spawnSync("bash", [
+  const result = spawnSync("/bin/bash", [
     fileURLToPath(new URL("./build-verified.sh", import.meta.url)), ...args,
   ], { stdio: "inherit" });
   if (result.error) throw result.error;
