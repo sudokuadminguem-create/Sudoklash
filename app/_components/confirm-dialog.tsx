@@ -39,14 +39,20 @@ export function ConfirmDialog({
   }, []);
   // Rendered at the page root, so no transformed parent can trap the fixed backdrop.
   return createPortal(
-    <div className="account-backdrop" role="presentation" onClick={onCancel}>
+    <div
+      className="account-backdrop"
+      role="presentation"
+      onClick={(e) => {
+        // Only a click on the backdrop itself, outside the dialog, cancels.
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
       <section
         className="account-dialog confirm-dialog"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
         aria-describedby="confirm-message"
-        onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"

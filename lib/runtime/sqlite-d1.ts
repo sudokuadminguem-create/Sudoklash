@@ -7,6 +7,11 @@ import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 
 type Result<T> = { results: T[]; success: true; meta: { changes: number } };
 
+/** Runs synchronous work as D1 would: its result, or what it throws, comes back as a promise. */
+function settle<T>(work: () => T): Promise<T> {
+  return new Promise((resolve) => resolve(work()));
+}
+
 class Statement {
   constructor(
     private db: DatabaseSync,
@@ -29,14 +34,14 @@ class Statement {
     return { results: [], success: true, meta: { changes: Number(info.changes) } };
   }
 
-  async first<T>(): Promise<T | null> {
-    return this.execute<T>().results[0] ?? null;
+  first<T>(): Promise<T | null> {
+    return settle(() => this.execute<T>().results[0] ?? null);
   }
-  async all<T>(): Promise<Result<T>> {
-    return this.execute<T>();
+  all<T>(): Promise<Result<T>> {
+    return settle(() => this.execute<T>());
   }
-  async run(): Promise<Result<never>> {
-    return this.execute<never>();
+  run(): Promise<Result<never>> {
+    return settle(() => this.execute<never>());
   }
 }
 
@@ -74,17 +79,18 @@ export function openSqliteD1(path: string, migrationsDir: string) {
   const d1 = {
     prepare: (sql: string) => new Statement(db, sql),
     // D1 runs a batch as one transaction.
-    batch: async (statements: Statement[]) => {
-      db.exec("BEGIN");
-      try {
-        const results = statements.map((statement) => statement.execute());
-        db.exec("COMMIT");
-        return results;
-      } catch (error) {
-        db.exec("ROLLBACK");
-        throw error;
-      }
-    },
+    batch: (statements: Statement[]) =>
+      settle(() => {
+        db.exec("BEGIN");
+        try {
+          const results = statements.map((statement) => statement.execute());
+          db.exec("COMMIT");
+          return results;
+        } catch (error) {
+          db.exec("ROLLBACK");
+          throw error;
+        }
+      }),
   };
   return { d1: d1 as unknown as D1Database, sqlite: db };
 }

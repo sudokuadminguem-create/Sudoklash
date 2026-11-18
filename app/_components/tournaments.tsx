@@ -66,7 +66,7 @@ async function api<T>(
       : { headers, cache: "no-store" },
   );
   const data = (await response.json()) as T & { error?: string };
-  if (!response.ok) throw Error(data.error ?? "Tournois indisponibles.");
+  if (!response.ok) throw new Error(data.error ?? "Tournois indisponibles.");
   return data;
 }
 

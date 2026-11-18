@@ -71,7 +71,7 @@ export function challengeWindow(kind: ChallengeKind, now = new Date()) {
 export function periodPuzzle(puzzle: string, kind: ChallengeKind, periodId: string) {
   let seed = 2166136261;
   for (const char of `${kind}:${periodId}:${puzzle}`)
-    seed = Math.imul(seed ^ char.charCodeAt(0), 16777619) >>> 0;
+    seed = Math.imul(seed ^ char.codePointAt(0)!, 16777619) >>> 0;
   const random = () => {
     seed ^= seed << 13;
     seed ^= seed >>> 17;

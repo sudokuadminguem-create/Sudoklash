@@ -44,7 +44,7 @@ export function PremiumPacks({
           headers: { "Content-Type": "application/json", ...(await authHeaders()) },
           body: JSON.stringify({ action: "verify", sessionId }),
         });
-        if (!r.ok) throw Error("verify");
+        if (!r.ok) throw new Error("verify");
         const data = (await r.json()) as { gems: number };
         await cosmetics.refresh();
         if (live) {
@@ -78,10 +78,10 @@ export function PremiumPacks({
         headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify({ packId }),
       });
-      if (!r.ok) throw Error("checkout");
+      if (!r.ok) throw new Error("checkout");
       const data = (await r.json()) as { url: string };
       const url = new URL(data.url);
-      if (url.protocol !== "https:" || url.hostname !== "checkout.stripe.com") throw Error("url");
+      if (url.protocol !== "https:" || url.hostname !== "checkout.stripe.com") throw new Error("url");
       location.assign(url.href);
     } catch {
       setMessage("Paiement indisponible pour le moment. Aucun crédit ajouté.");

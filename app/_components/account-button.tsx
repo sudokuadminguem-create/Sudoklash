@@ -164,7 +164,7 @@ export function AccountButton({
       >
         <div className="profile-dropdown-heading">
           <Bell aria-hidden="true" />
-          <h2>{en ? "Notifications" : "Notifications"}</h2>
+          <h2>Notifications</h2>
         </div>
         {loading ? (
           <p role="status">{en ? "Loading…" : "Chargement…"}</p>

@@ -131,7 +131,11 @@ export function SettingsPanel({
             <section key={group.title} className="settings-group">
               <h3>{t(group.title)}</h3>
               {group.items.map((key) => (
-                <label key={key} className="setting-row">
+                <label
+                  key={key}
+                  className="setting-row"
+                  aria-label={t(`settings.${key}` as MessageKey)}
+                >
                   <span>
                     <b>{t(`settings.${key}` as MessageKey)}</b>
                     <small>{t(`settings.${key}.help` as MessageKey)}</small>

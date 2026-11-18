@@ -13,14 +13,14 @@ export type Judge = {
 /** Judge for games whose solution the browser already knows (guest solo, private rooms). */
 export function localJudge(puzzle: readonly number[], solution: readonly number[]): Judge {
   return {
-    check: async ({ index, number }) => ({ correct: solution[index] === number }),
-    hint: async (grid, preferred) => {
+    check: ({ index, number }) => Promise.resolve({ correct: solution[index] === number }),
+    hint: (grid, preferred) => {
       const needs = (i: number) => !puzzle[i] && grid[i] !== solution[i];
       const index =
         preferred !== undefined && needs(preferred)
           ? preferred
           : grid.findIndex((_, i) => needs(i));
-      return index < 0 ? null : { index, number: solution[index] };
+      return Promise.resolve(index < 0 ? null : { index, number: solution[index] });
     },
   };
 }

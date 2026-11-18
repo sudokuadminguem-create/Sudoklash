@@ -225,7 +225,7 @@ export function SudokuBoard({
           setExperience(result && typeof result === "object" ? result.xpGained : "guest");
         })
         .catch(() => setExperience("error"));
-    } else onSolved?.(grid, Math.max(1, seconds), puzzle);
+    } else void onSolved?.(grid, Math.max(1, seconds), puzzle);
   };
   const submit = async (entry: Entry, grid: number[]) => {
     setFailedEntries((list) => list.filter((e) => e.id !== entry.id));

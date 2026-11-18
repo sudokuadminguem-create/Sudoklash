@@ -15,7 +15,7 @@ export default function MajesticCollection() {
     void authHeaders()
       .then(headers => fetch("/api/admin/majestueux", { cache: "no-store", headers }))
       .then(async response => {
-        if (!response.ok) throw Error("unavailable");
+        if (!response.ok) throw new Error("unavailable");
         return response.json() as Promise<{ achievements: Item[] }>;
       })
       .then(body => { if (active) setItems(body.achievements); })

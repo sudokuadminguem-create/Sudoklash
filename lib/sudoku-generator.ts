@@ -27,7 +27,7 @@ function shuffle<T>(values: T[], random: Random) {
 
 /** A random complete, valid grid. */
 export function randomSolution(random: Random): number[] {
-  const grid = Array(81).fill(0);
+  const grid = new Array(81).fill(0);
   const fits = (cell: number, digit: number) => {
     const row = Math.floor(cell / 9),
       column = cell % 9;

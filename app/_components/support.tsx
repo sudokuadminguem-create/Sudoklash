@@ -40,7 +40,7 @@ export function SupportShop({signedIn,openAuth}:{signedIn:boolean;openAuth:()=>v
     void (async()=>{
       try {
         const r=await fetch("/api/premium/checkout",{method:"POST",headers:{"Content-Type":"application/json",...await authHeaders()},body:JSON.stringify({action:"verify",sessionId})});
-        if(!r.ok)throw Error();
+        if(!r.ok)throw new Error();
         if(live){setMessage("Merci pour ton soutien ! Ton don a été confirmé.");const url=new URL(location.href);url.searchParams.delete("support_session");history.replaceState(null,"",url);}
       } catch {if(live)setMessage("Le paiement n’a pas encore pu être confirmé. Tu peux réessayer en rechargeant cette page.");}
     })();
@@ -52,9 +52,9 @@ export function SupportShop({signedIn,openAuth}:{signedIn:boolean;openAuth:()=>v
     setBusy(true);setMessage("");
     try{
       const r=await fetch("/api/premium/checkout",{method:"POST",headers:{"Content-Type":"application/json",...await authHeaders()},body:JSON.stringify({packId,publishSupport:true})});
-      if(!r.ok)throw Error();
+      if(!r.ok)throw new Error();
       const url=new URL(((await r.json()) as {url:string}).url);
-      if(url.protocol!=="https:"||url.hostname!=="checkout.stripe.com")throw Error();
+      if(url.protocol!=="https:"||url.hostname!=="checkout.stripe.com")throw new Error();
       location.assign(url.href);
     }catch{setMessage("Impossible d’ouvrir le paiement. Réessaie dans un instant.");setBusy(false);}
   };

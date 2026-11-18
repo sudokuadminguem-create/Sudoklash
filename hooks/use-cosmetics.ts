@@ -62,7 +62,7 @@ export function useCosmetics(account: AccountState) {
         cache: "no-store",
         headers: await authHeaders(),
       });
-      if (!response.ok) throw Error("load");
+      if (!response.ok) throw new Error("load");
       const updated = (await response.json()) as CosmeticState;
       setState(updated);
       return updated;
@@ -82,7 +82,7 @@ export function useCosmetics(account: AccountState) {
       headers: { "Content-Type": "application/json", ...(await authHeaders()) },
       body: JSON.stringify({ action, id, currency }),
     });
-    if (!response.ok) throw Error(((await response.json()) as { error: string }).error);
+    if (!response.ok) throw new Error(((await response.json()) as { error: string }).error);
     const updated = (await response.json()) as CosmeticState;
     setState(updated);
     return updated;

@@ -100,7 +100,7 @@ export default function AdminPanel({ displayName }: { displayName: string }) {
                 <span>{kind === "daily" ? "DÉFI QUOTIDIEN" : "DÉFI HEBDOMADAIRE"}</span>
                 <h2>{kind === "daily" ? "Chaque jour" : "Chaque semaine"}</h2>
                 <label>
-                  Nom du défi
+                  <span>Nom du défi</span>
                   <input
                     value={configs[kind].title}
                     maxLength={80}
@@ -108,7 +108,7 @@ export default function AdminPanel({ displayName }: { displayName: string }) {
                   />
                 </label>
                 <label>
-                  Grille Sudoku
+                  <span>Grille Sudoku</span>
                   <textarea
                     value={configs[kind].puzzle}
                     maxLength={81}

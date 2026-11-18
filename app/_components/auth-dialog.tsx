@@ -159,7 +159,7 @@ export function AuthDialog({
           <>
             <p>Ce pseudo sera visible par vos amis et vos adversaires. Il doit être unique.</p>
             <label>
-              Pseudo
+              <span>Pseudo</span>
               <input
                 autoFocus
                 value={username}
@@ -183,7 +183,7 @@ export function AuthDialog({
               un nouveau mot de passe.
             </p>
             <label>
-              E-mail
+              <span>E-mail</span>
               <input
                 type="email"
                 autoComplete="email"
@@ -232,7 +232,7 @@ export function AuthDialog({
         ) : (
           <>
             <label>
-              E-mail
+              <span>E-mail</span>
               <input
                 type="email"
                 autoComplete="email"

@@ -5,7 +5,7 @@ import { paymentsEnabled, paymentConfig, creditSession } from "@/lib/premium-pay
 export const dynamic = "force-dynamic";
 const json = (data: unknown, status = 200) =>
   Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
-export async function GET() {
+export function GET() {
   return json({ available: paymentsEnabled() });
 }
 export async function POST(request: Request) {
@@ -47,10 +47,10 @@ export async function POST(request: Request) {
       },
       body: form.toString(),
     });
-    if (!response.ok) throw Error("payment_unavailable");
+    if (!response.ok) throw new Error("payment_unavailable");
     const session = (await response.json()) as { url?: string };
     if (!session.url || new URL(session.url).hostname !== "checkout.stripe.com")
-      throw Error("invalid_checkout");
+      throw new Error("invalid_checkout");
     return json({ url: session.url });
   } catch (e) {
     return json(

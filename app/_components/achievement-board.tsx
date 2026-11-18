@@ -39,7 +39,7 @@ export function AchievementBoard({
     void authHeaders()
       .then((headers) => fetch("/api/achievements", { cache: "no-store", headers }))
       .then(async (response) => {
-        if (!response.ok) throw Error("unavailable");
+        if (!response.ok) throw new Error("unavailable");
         return response.json() as Promise<Payload>;
       })
       .then((payload) => {

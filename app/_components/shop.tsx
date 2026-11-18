@@ -76,6 +76,16 @@ export function Shop({
     if (preview && dialog.current && !dialog.current.open) dialog.current.showModal();
     else if (!preview && dialog.current?.open) dialog.current.close();
   }, [preview]);
+  // A click on the backdrop closes the preview; the keyboard closes it with Escape (onCancel).
+  useEffect(() => {
+    const element = dialog.current;
+    if (!element) return;
+    const closeOnBackdrop = (event: MouseEvent) => {
+      if (event.target === element) setPreview(null);
+    };
+    element.addEventListener("click", closeOnBackdrop);
+    return () => element.removeEventListener("click", closeOnBackdrop);
+  }, []);
   const ownedOnly = shelf === "owned";
   const [category, setCategory] = useState<Kind | "all">("all"),
     [busy, setBusy] = useState(""),
@@ -350,9 +360,6 @@ export function Shop({
         aria-labelledby={previewTitle}
         onCancel={() => setPreview(null)}
         onClose={() => setPreview(null)}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) setPreview(null);
-        }}
       >
         {preview && (
           <div className="store-dialog-inner">
