@@ -12,7 +12,11 @@ export async function settleTournaments(db: D1Database, now = Date.now(), userId
     )
     .bind(now, now, tournamentMinimum, ...(userId ? [userId] : []))
     .all<{ id: string; ends_at: number }>();
-  for (const { id, ends_at } of pending.results) await settleTournament(db, id, ends_at, now);
+  // One tournament after the other: each settlement is its own guarded batch.
+  await pending.results.reduce<Promise<void>>(
+    (previous, { id, ends_at }) => previous.then(() => settleTournament(db, id, ends_at, now)),
+    Promise.resolve(),
+  );
 }
 
 type EntryRow = { user_id: string; fee: number; finished_at: number | null; mistakes: number };

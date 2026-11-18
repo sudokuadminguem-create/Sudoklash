@@ -64,7 +64,12 @@ export async function GET(request: Request) {
 
 type Body = Record<string, unknown>;
 /** A room action; a null result answers with the refreshed room. */
-type RoomAction = (db: D1Database, room: Room, userId: string, b: Body) => Promise<Response | null>;
+type RoomAction = (
+  db: D1Database,
+  room: Room,
+  userId: string,
+  b: Body,
+) => Response | null | Promise<Response | null>;
 
 const impossible = () => fail("Action impossible pour cette partie.", 409);
 const racing = (room: Room) => Boolean(room.started_at && !room.winner_id);
@@ -153,7 +158,7 @@ const startRace: RoomAction = async (db, room, userId) => {
   return null;
 };
 
-const checkDigit: RoomAction = async (_db, room, _userId, b) => {
+const checkDigit: RoomAction = (_db, room, _userId, b) => {
   const { index, number } = b;
   if (
     !racing(room) ||

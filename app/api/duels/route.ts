@@ -342,7 +342,7 @@ type Columns = { solved: string; progress: string; mistakes: string; lastMistake
 async function confirmCell(db: D1Database, duel: Duel, index: number, columns: Columns) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const latest = (await duelById(duel.id)) as unknown as DuelRecord | null;
-    if (!latest || latest.status !== "playing") return;
+    if (latest?.status !== "playing") return;
     const known = String(latest[columns.solved]).padEnd(81, "0");
     if (known[index] === "1") return;
     const solved = `${known.slice(0, index)}1${known.slice(index + 1)}`;

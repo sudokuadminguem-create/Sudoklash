@@ -43,7 +43,10 @@ function frameLabel(
   return achievement ? "cadre de défi" : `cadre ${levelFrameName}`;
 }
 
-function FrameDecorations({ frameId, achievement }: { frameId: string; achievement: FrameStyle }) {
+function FrameDecorations({
+  frameId,
+  achievement,
+}: Readonly<{ frameId: string; achievement: FrameStyle }>) {
   return (
     <>
       {achievement && frameId !== "challenge-mini-playground" && (
@@ -83,13 +86,13 @@ export function PlayerAvatar({
   size = "normal",
   fallback,
   image,
-}: {
+}: Readonly<{
   avatarId?: string;
   frameId?: string;
   size?: "normal" | "large" | "small";
   fallback?: string;
   image?: string | null;
-}) {
+}>) {
   const custom = avatarId === "custom" && !!image && fallback === undefined;
   const avatar = avatars.find((a) => a.id === avatarId) ?? avatars[0],
     frame = levelFrames.find((f) => f.id === frameId) ?? levelFrames[0],

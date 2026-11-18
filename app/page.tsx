@@ -32,12 +32,8 @@ import { AccountOverview } from "./_components/account-overview";
 import { AuthDialog } from "./_components/auth-dialog";
 import { Leaderboard } from "./_components/leaderboard";
 import { SupportPodium } from "./_components/support";
-import { TournamentBanner, Tournaments, useTournaments } from "./_components/tournaments";
-import { ModePanel } from "./_components/mode-panel";
-import { PlayerAvatar } from "./_components/player-cosmetics";
-import { RankedGame } from "./_components/ranked-game";
-import { RankedMatch } from "./_components/ranked-match";
-import { FriendDuel } from "./_components/friend-duel";
+import { TournamentBanner, useTournaments } from "./_components/tournaments";
+import { GuestDailyInvite, HomeAccountButton, PlayModeContent } from "./_components/home-play";
 import { RealFriends } from "./_components/real-friends";
 import { useDuelInvites } from "./lib/use-duel-invites";
 import { PwaStatus } from "./_components/pwa-status";
@@ -87,92 +83,6 @@ export default function Home() {
     <I18nProvider>
       <HomeContent />
     </I18nProvider>
-  );
-}
-
-function HomeAccountButton({
-  account,
-  cosmetics,
-  onClick,
-}: {
-  account: ReturnType<typeof useAccount>;
-  cosmetics: ReturnType<typeof useCosmetics>;
-  onClick: () => void;
-}) {
-  const { t } = useI18n();
-  const signedIn = !!account.user;
-  return (
-    <button
-      className="rank-card beta-account home-account-button"
-      onClick={onClick}
-      aria-label={signedIn ? t("home.accountSignedIn") : t("home.accountSignedOut")}
-    >
-      <PlayerAvatar
-        avatarId={cosmetics.state?.avatarId}
-        image={cosmetics.state?.customAvatar}
-        frameId={cosmetics.state?.frameId}
-        size="large"
-        fallback={signedIn ? undefined : "?"}
-      />
-      <span className="home-account-text">
-        <small>
-          {t("home.myAccount")} ·{" "}
-          {signedIn
-            ? t("home.level", { level: cosmetics.state?.level ?? 1 })
-            : t("home.notConnected")}
-        </small>
-        <b>{account.profile?.username || t("home.chooseAvatar")}</b>
-        <span>{signedIn ? t("home.viewProfile") : t("home.signInToCustomize")}</span>
-      </span>
-    </button>
-  );
-}
-
-/** Invites a guest to the daily challenge, or to sign up once they are looking at it. */
-function GuestDailyInvite({
-  fr,
-  daily,
-  onDiscover,
-  onSignup,
-}: {
-  fr: boolean;
-  daily: boolean;
-  onDiscover: () => void;
-  onSignup: () => void;
-}) {
-  if (daily)
-    return (
-      <aside className="panel daily-invite">
-        <div>
-          <h3>{fr ? "Débloque le défi du jour" : "Unlock the daily challenge"}</h3>
-          <p>
-            {fr
-              ? "Un compte gratuit suffit pour jouer et enregistrer ton score."
-              : "Create a free account to play and save your score."}
-          </p>
-        </div>
-        <button type="button" className="primary" onClick={onSignup}>
-          {fr ? "Créer un compte gratuit" : "Create a free account"}
-        </button>
-      </aside>
-    );
-  return (
-    <aside
-      className="panel daily-invite"
-      aria-label={fr ? "Découvrir le défi du jour" : "Discover the daily challenge"}
-    >
-      <div>
-        <h3>{fr ? "À toi de jouer : le défi du jour" : "Try today’s challenge"}</h3>
-        <p>
-          {fr
-            ? "Crée un compte gratuit pour jouer la grille du jour et comparer ton temps."
-            : "Create a free account to play today’s puzzle and compare your time."}
-        </p>
-      </div>
-      <button type="button" className="primary" onClick={onDiscover}>
-        {fr ? "Voir la grille du jour" : "See today’s puzzle"}
-      </button>
-    </aside>
   );
 }
 
@@ -473,44 +383,16 @@ function HomeContent() {
                       </button>
                     ))}
                   </div>
-                  {mode === "tournaments" ? (
-                    <Tournaments
-                      key={account.user?.id ?? "guest"}
-                      feed={tournamentFeed}
-                      id={tournamentId}
-                      onOpen={openTournament}
-                      userId={account.user?.id}
-                      coins={cosmetics.state?.coins}
-                      openAuth={() => setAuthOpen(true)}
-                      walletRefresh={() => void cosmetics.refresh()}
-                    />
-                  ) : mode === "classée" ? (
-                    <RankedMatch
-                      account={account}
-                      cosmetics={cosmetics}
-                      openAuth={() => setAuthOpen(true)}
-                      renderGame={(match, refresh) => (
-                        <RankedGame match={match} refresh={refresh} account={account} />
-                      )}
-                    />
-                  ) : mode === "duel" ? (
-                    <FriendDuel
-                      account={account}
-                      openAuth={() => setAuthOpen(true)}
-                      notify={notify}
-                      target={duelTarget}
-                      onTargetUsed={() => setDuelTarget(null)}
-                    />
-                  ) : (
-                    <ModePanel
-                      key={mode === "daily" ? (account.user?.id ?? "daily-guest") : "other-modes"}
-                      mode={mode}
-                      notify={notify}
-                      account={account}
-                      cosmetics={cosmetics}
-                      openAuth={() => setAuthOpen(true)}
-                    />
-                  )}
+                  <PlayModeContent
+                    mode={mode}
+                    account={account}
+                    cosmetics={cosmetics}
+                    notify={notify}
+                    openAuth={() => setAuthOpen(true)}
+                    tournaments={{ feed: tournamentFeed, id: tournamentId, onOpen: openTournament }}
+                    duelTarget={duelTarget}
+                    onDuelTargetUsed={() => setDuelTarget(null)}
+                  />
                 </>
               )}
               {view === "compte" && (

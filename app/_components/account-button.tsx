@@ -65,21 +65,28 @@ function NoticeList({
   notices,
   appearances,
   onSelect,
-}: {
+}: Readonly<{
   en: boolean;
   loading: boolean;
   error: boolean;
   notices: Notice[];
   appearances: ReturnType<typeof usePlayerAppearances>;
   onSelect: (notice: Notice) => void;
-}) {
-  if (loading) return <p role="status">{en ? "Loading…" : "Chargement…"}</p>;
+}>) {
+  if (loading)
+    return (
+      <p>
+        <output>{en ? "Loading…" : "Chargement…"}</output>
+      </p>
+    );
   if (error)
     return (
-      <p role="status">
-        {en
-          ? "Notifications temporarily unavailable."
-          : "Notifications momentanément indisponibles."}
+      <p>
+        <output>
+          {en
+            ? "Notifications temporarily unavailable."
+            : "Notifications momentanément indisponibles."}
+        </output>
       </p>
     );
   if (!notices.length)

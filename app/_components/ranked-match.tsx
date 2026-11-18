@@ -140,7 +140,7 @@ export function RankedMatch({
   );
 }
 
-function FormError({ error }: { error: string }) {
+function FormError({ error }: Readonly<{ error: string }>) {
   if (!error) return null;
   return (
     <p role="alert" className="form-error">
@@ -162,14 +162,14 @@ function RankedSummary({
   busy,
   error,
   onJoin,
-}: {
+}: Readonly<{
   state: RankedState;
   won: boolean;
   reward: { matchId: string; totalXp: number } | null;
   busy: boolean;
   error: string;
   onJoin: () => void;
-}) {
+}>) {
   const change = state.pointsChange;
   return (
     <div className="panel ranked-lobby ranked-finished">
@@ -226,12 +226,12 @@ function RankedLobby({
   busy,
   error,
   submit,
-}: {
+}: Readonly<{
   state: RankedState | null;
   busy: boolean;
   error: string;
   submit: (action: "join" | "cancel") => void;
-}) {
+}>) {
   const waiting = state?.status === "waiting";
   return (
     <div className="panel ranked-lobby">

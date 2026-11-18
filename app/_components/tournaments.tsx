@@ -250,12 +250,12 @@ function TournamentSummary({
   now,
   busy,
   onJoin,
-}: {
+}: Readonly<{
   current: Detail;
   now: number;
   busy: boolean;
   onJoin: () => void;
-}) {
+}>) {
   const status = current.tournament.phase;
   return (
     <section className="panel tournament-card">
@@ -314,9 +314,11 @@ function TournamentSummary({
             grilles validées.
           </p>
           <ol>
-            {current.estimates.map((amount, i) => (
-              <li key={i}>{amount} Sudokoins</li>
-            ))}
+            {current.estimates
+              .map((amount, index) => ({ amount, place: index + 1 }))
+              .map(({ amount, place }) => (
+                <li key={place}>{amount} Sudokoins</li>
+              ))}
           </ol>
         </details>
       )}
@@ -324,7 +326,7 @@ function TournamentSummary({
   );
 }
 
-function TournamentRanking({ current }: { current: Detail }) {
+function TournamentRanking({ current }: Readonly<{ current: Detail }>) {
   const status = current.tournament.phase;
   return (
     <section className="panel tournament-card">
@@ -355,10 +357,10 @@ function TournamentRanking({ current }: { current: Detail }) {
 function TournamentList({
   feed,
   onOpen,
-}: {
+}: Readonly<{
   feed: ReturnType<typeof useTournaments>;
   onOpen: (id?: string) => void;
-}) {
+}>) {
   if (feed.error) return <button onClick={feed.refresh}>Réessayer de charger les tournois</button>;
   if (!feed.list) return <p>Chargement…</p>;
   if (!feed.list.length) return <p>Pas de tournois en cours</p>;

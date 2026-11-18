@@ -29,12 +29,12 @@ function FinishedChallenge({
   earnedXp,
   remaining,
   isDaily,
-}: {
+}: Readonly<{
   data: ChallengeData;
   earnedXp: number | null;
   remaining: number;
   isDaily: boolean;
-}) {
+}>) {
   if (data.status === "completed")
     return (
       <div className="panel weekly-state weekly-complete" style={{ position: "relative" }}>
@@ -70,11 +70,11 @@ function ChallengeRules({
   frequency,
   isDaily,
   remaining,
-}: {
+}: Readonly<{
   frequency: string;
   isDaily: boolean;
   remaining: number;
-}) {
+}>) {
   return (
     <aside className="card rightcol weekly-rules">
       <span className="eyebrow">RÈGLES DU DÉFI</span>

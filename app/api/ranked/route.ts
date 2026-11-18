@@ -348,7 +348,7 @@ async function confirmCell(
 ) {
   for (let attempt = 0; attempt < 3; attempt++) {
     const current = await matchFor(match.id);
-    if (!current || current.status !== "playing") return;
+    if (current?.status !== "playing") return;
     const known = current[solvedColumn].padEnd(81, "0");
     if (known[index] === "1") return;
     const solved = `${known.slice(0, index)}1${known.slice(index + 1)}`;

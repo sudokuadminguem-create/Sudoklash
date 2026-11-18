@@ -92,13 +92,16 @@ function hintClass({ i, props }: CellState) {
   return props.hintCells.has(i) ? "hint-unit" : "";
 }
 
+const cageEdgeClass = (edge: string) => `cage-${edge}`;
+const cageEdgeClasses = (edges: string) => [...edges].map(cageEdgeClass).join(" ");
+
 function cellClass(state: CellState & { sameValue: boolean; failed: boolean }) {
   const { i, props, sameValue, wrong, locked, failed, diagonal, cage } = state;
-  const cageClass = cage ? `cage ${[...cage.edges].map((e) => `cage-${e}`).join(" ")}` : "";
+  const cageClass = cage ? `cage ${cageEdgeClasses(cage.edges)}` : "";
   return `${props.puzzle[i] ? "given" : "entered"} ${props.selected === i ? "sel" : ""} ${props.isRelated(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${locked ? "confirmed" : ""} ${failed ? "unverified" : ""} ${diagonal ? "diag" : ""} ${cageClass} ${hintClass(state)}`;
 }
 
-function CellNotes({ notes, digits }: { notes: number[] | undefined; digits: number[] }) {
+function CellNotes({ notes, digits }: Readonly<{ notes: number[] | undefined; digits: number[] }>) {
   if (!notes?.length) return "";
   return (
     <span className="cell-notes">

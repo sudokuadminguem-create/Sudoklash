@@ -86,7 +86,7 @@ function SoloExperience({
   experience,
   experienceTotal,
   onConnect,
-}: Pick<VictoryProps, "experience" | "experienceTotal" | "onConnect">) {
+}: Readonly<Pick<VictoryProps, "experience" | "experienceTotal" | "onConnect">>) {
   const { t } = useI18n();
   if (typeof experience === "number")
     return (

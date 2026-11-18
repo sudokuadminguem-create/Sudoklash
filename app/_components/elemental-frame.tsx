@@ -123,24 +123,36 @@ function crownPath(variant: number) {
   );
 }
 
+/** Classic frames get small ornaments; the others alternate large and medium ones. */
+function ornamentScale(simple: boolean, index: number) {
+  if (simple) return 0.57;
+  return index % 2 ? 0.79 : 1;
+}
+
+function signatureScale(archetype: boolean, legendary: boolean) {
+  if (archetype) return 0.85;
+  return legendary ? 1.15 : 0.9;
+}
+
 export function ElementalFrame({
   element,
   variant,
   motif,
   legendary,
-}: {
+}: Readonly<{
   element: Element | null;
   variant: number;
   motif: number;
   legendary: boolean;
-}) {
+}>) {
   const ornaments = [3, 4, 6, 8, 10][variant];
   const simple = element === null;
   const engraving = element ? motifs[element] : classicMotifs[motif];
   const archetype = element && archetypeCrowns[element];
+  const elementClass = simple ? "element-classic" : `element-${element}`;
   return (
     <svg
-      className={`elemental-art ${simple ? "element-classic" : `element-${element}`} ${archetype ? "archetype-art" : ""} crown-${variant}`}
+      className={`elemental-art ${elementClass} ${archetype ? "archetype-art" : ""} crown-${variant}`}
       viewBox="-56 -56 112 112"
       aria-hidden="true"
       focusable="false"
@@ -192,7 +204,7 @@ export function ElementalFrame({
               key={i}
               className="element-ornament"
               style={{ animationDelay: `${i * -0.21}s` }}
-              transform={`translate(${(41 * Math.cos(radians)).toFixed(2)} ${(41 * Math.sin(radians)).toFixed(2)}) rotate(${angle - 90}) scale(${simple ? 0.57 : i % 2 ? 0.79 : 1})`}
+              transform={`translate(${(41 * Math.cos(radians)).toFixed(2)} ${(41 * Math.sin(radians)).toFixed(2)}) rotate(${angle - 90}) scale(${ornamentScale(simple, i)})`}
             >
               <path
                 d={engraving}
@@ -214,7 +226,7 @@ export function ElementalFrame({
         <path
           className="element-signature"
           d={engraving}
-          transform={`translate(0 -43) scale(${archetype ? 0.85 : legendary ? 1.15 : 0.9})`}
+          transform={`translate(0 -43) scale(${signatureScale(!!archetype, legendary)})`}
           fill="var(--frame-accent)"
           stroke="var(--frame-highlight)"
           strokeWidth="1.5"
