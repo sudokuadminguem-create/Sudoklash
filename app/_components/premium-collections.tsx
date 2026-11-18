@@ -232,6 +232,14 @@ export function PremiumCollections({
         }}
         onClose={() => setPreview(null)}
       >
+        <button
+          type="button"
+          className="store-dialog-close"
+          aria-label="Fermer l’aperçu"
+          onClick={() => setPreview(null)}
+        >
+          ×
+        </button>
         <h2 id={previewTitleId}>
           {premiumCollections.find((c) => c.id === preview?.id)?.name} · Effet de victoire
         </h2>

@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { Coins, Check, ShoppingBag, Gem } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { Coins, Check, ShoppingBag, Gem, X, Sparkles, Grid2X2 } from "lucide-react";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics, CosmeticAction } from "@/hooks/use-cosmetics";
 import { gridThemes, shopAvatars, shopFrames } from "@/lib/cosmetics";
@@ -62,8 +62,20 @@ export function Shop({
   account: Account;
   openAuth: () => void;
 }) {
+  const [shelf, setShelf] = useState<"catalog" | "collections" | "owned" | "gems">("catalog");
+  const [preview, setPreview] = useState<Product | null>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const previewTitle = useId();
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    if (query.has("premium_session") || query.has("premium_cancelled")) setShelf("gems");
+  }, []);
+  useEffect(() => {
+    if (preview && dialog.current && !dialog.current.open) dialog.current.showModal();
+    else if (!preview && dialog.current?.open) dialog.current.close();
+  }, [preview]);
+  const ownedOnly = shelf === "owned";
   const [category, setCategory] = useState<Kind | "all">("all"),
-    [ownedOnly, setOwnedOnly] = useState(false),
     [busy, setBusy] = useState(""),
     [purchase, setPurchase] = useState<Product | null>(null);
   const [currency, setCurrency] = useState<"coins" | "gems">("coins");
@@ -116,204 +128,289 @@ export function Shop({
       setBusy("");
     }
   };
+  const productArt = (p: Product) => (
+    <div
+      className={`store-preview store-preview-${p.kind}`}
+      style={
+        p.colors
+          ? {
+              background: `radial-gradient(circle at 20% 20%,${p.colors[0]}66,transparent 65%),linear-gradient(135deg,#081021,${p.colors[1]}55)`,
+            }
+          : undefined
+      }
+    >
+      {p.kind === "theme" ? (
+        <div className="store-mini-grid" aria-hidden="true">
+          {Array.from({ length: 81 }, (_, i) => (
+            <span key={i}>{i % 4 === 0 ? ((i * 7) % 9) + 1 : ""}</span>
+          ))}
+        </div>
+      ) : (
+        <PlayerAvatar
+          avatarId={p.kind === "avatar" ? p.id : (data?.avatarId ?? "nova")}
+          image={p.kind === "frame" ? data?.customAvatar : undefined}
+          frameId={p.kind === "frame" ? p.id : "none"}
+          size="large"
+        />
+      )}
+    </div>
+  );
   return (
     <div className="shop-catalog">
       <header className="store-header">
         <div>
-          <span className="eyebrow">BOUTIQUE SUDOKU CLASH</span>
-          <h2>Choisis ton style</h2>
-          <p>
-            Cadres, avatars et fonds de grille. Achats permanents en Sudokoins, la monnaie gagnée en
-            jouant.
-          </p>
+          <span className="eyebrow">SUDOKU CLASH</span>
+          <h2>Boutique</h2>
+          <p>Personnalise ton avatar et tes grilles.</p>
         </div>
-        <div className="store-wallet">
-          <Coins aria-hidden="true" />
+        <div className="store-balances" aria-label="Tes soldes">
           <span>
-            Ton solde<b>{data ? data.coins.toLocaleString("fr-FR") : "—"}</b>Sudokoins
+            <Coins aria-hidden="true" />
+            <b>{data?.coins.toLocaleString("fr-FR") ?? "—"}</b> Sudokoins
+          </span>
+          <span>
+            <Gem aria-hidden="true" />
+            <b>{data?.gems.toLocaleString("fr-FR") ?? "—"}</b> Sudogemmes
           </span>
         </div>
       </header>
-      <div className="premium-wallet">
-        <Gem aria-hidden="true" />
-        <span>
-          Sudogemmes : <b>{(data?.gems ?? 0).toLocaleString("fr-FR")}</b>
-        </span>
-      </div>
-      <PremiumPacks signedIn={!!account.user} openAuth={openAuth} cosmetics={cosmetics} />
-      <PremiumCollections
-        cosmetics={cosmetics}
-        signedIn={!!account.user}
-        username={account.profile?.username ?? "Ton profil"}
-        openAuth={openAuth}
-        notify={notify}
-      />
-      <div className="store-categories" aria-label="Monnaie pour les articles">
-        <button
-          aria-pressed={currency === "coins"}
-          className={currency === "coins" ? "active" : ""}
-          onClick={() => setCurrency("coins")}
-        >
-          Payer en Sudokoins
-        </button>
-        <button
-          aria-pressed={currency === "gems"}
-          className={currency === "gems" ? "active" : ""}
-          onClick={() => setCurrency("gems")}
-        >
-          Payer en Sudogemmes
-        </button>
-      </div>
-      <details className="store-help">
-        <summary>Comment gagner des Sudokoins ?</summary>
-        <p>
-          300 à la création du compte · 20 par grille solo terminée · 60 par défi quotidien · 150
-          par défi hebdomadaire · 70 par victoire classée. Les parties hors ligne ne rapportent pas
-          de monnaie. Tous les achats sont cosmétiques.
-        </p>
-      </details>
-      <div className="store-filters">
-        <div className="store-categories" aria-label="Catégories de boutique">
-          {(["all", "frame", "theme", "avatar"] as const).map((c) => (
-            <button
-              key={c}
-              aria-pressed={category === c}
-              className={category === c ? "active" : ""}
-              onClick={() => setCategory(c)}
-            >
-              {c === "all"
-                ? "Tout"
-                : c === "frame"
-                  ? "Cadres"
-                  : c === "theme"
-                    ? "Fonds de grille"
-                    : "Avatars"}
-            </button>
-          ))}
-        </div>
-        <label>
-          <input
-            type="checkbox"
-            checked={ownedOnly}
-            disabled={!data}
-            onChange={(e) => setOwnedOnly(e.target.checked)}
-          />
-          <ShoppingBag aria-hidden="true" />
-          Mes articles
-        </label>
-      </div>
-      {!account.user && (
-        <div className="store-message">
-          <p>
-            Explore la boutique. Connecte-toi pour acheter et conserver tes articles sur ton compte.
-          </p>
-          <button className="primary" onClick={openAuth}>
-            Se connecter
+      <nav className="store-shelves" aria-label="Rayons de la boutique">
+        {(
+          [
+            ["catalog", "Cosmétiques", Grid2X2],
+            ["collections", "Collections", Sparkles],
+            ["owned", "Mes articles", ShoppingBag],
+            ["gems", "Sudogemmes", Gem],
+          ] as const
+        ).map(([id, label, Icon]) => (
+          <button
+            type="button"
+            key={id}
+            aria-current={shelf === id ? "page" : undefined}
+            onClick={() => {
+              setShelf(id);
+              setCategory("all");
+            }}
+          >
+            <Icon aria-hidden="true" />
+            {label}
           </button>
-        </div>
+        ))}
+      </nav>
+      {shelf === "gems" && (
+        <PremiumPacks signedIn={!!account.user} openAuth={openAuth} cosmetics={cosmetics} />
       )}
-      {account.user && !data && (
-        <div className="store-message" role="status">
-          <p>
-            {cosmetics.loading
-              ? "Chargement de ton solde…"
-              : "Ton solde est indisponible pour le moment."}
-          </p>
-          <button onClick={() => void cosmetics.refresh()} disabled={cosmetics.loading}>
-            Réessayer
-          </button>
-        </div>
+      {shelf === "collections" && (
+        <PremiumCollections
+          cosmetics={cosmetics}
+          signedIn={!!account.user}
+          username={account.profile?.username ?? "Ton profil"}
+          openAuth={openAuth}
+          notify={notify}
+        />
       )}
-      <p className="store-count">
-        {products.length} article{products.length > 1 ? "s" : ""}
-        {ownedOnly ? " possédé" + (products.length > 1 ? "s" : "") : ""}
-      </p>
-      {!products.length ? (
-        <p className="store-message">Aucun article acheté dans cette catégorie pour le moment.</p>
-      ) : (
-        <div className="store-products">
-          {products.map((p) => {
-            const has = owned(p),
-              selected = equipped(p),
-              missing = Math.max(0, cost(p) - balance);
-            return (
-              <article className="store-product" key={`${p.kind}:${p.id}`}>
-                <div
-                  className={`store-preview store-preview-${p.kind}`}
-                  style={
-                    p.colors
-                      ? {
-                          background: `radial-gradient(circle at 20% 20%,${p.colors[0]}66,transparent 65%),linear-gradient(135deg,#081021,${p.colors[1]}55)`,
-                        }
-                      : undefined
-                  }
+      {(shelf === "catalog" || shelf === "owned") && (
+        <>
+          {!ownedOnly && (
+            <div className="store-categories" aria-label="Monnaie pour les articles">
+              <button
+                aria-pressed={currency === "coins"}
+                className={currency === "coins" ? "active" : ""}
+                onClick={() => setCurrency("coins")}
+              >
+                Payer en Sudokoins
+              </button>
+              <button
+                aria-pressed={currency === "gems"}
+                className={currency === "gems" ? "active" : ""}
+                onClick={() => setCurrency("gems")}
+              >
+                Payer en Sudogemmes
+              </button>
+            </div>
+          )}
+          {!ownedOnly && (
+            <details className="store-help">
+              <summary>Comment gagner des Sudokoins ?</summary>
+              <p>
+                300 à la création du compte · 20 par grille solo terminée · 60 par défi quotidien ·
+                150 par défi hebdomadaire · 70 par victoire classée. Les parties hors ligne ne
+                rapportent pas de monnaie. Tous les achats sont cosmétiques.
+              </p>
+            </details>
+          )}
+          <div className="store-filters">
+            <div className="store-categories" aria-label="Catégories de boutique">
+              {(["all", "frame", "theme", "avatar"] as const).map((c) => (
+                <button
+                  key={c}
+                  aria-pressed={category === c}
+                  className={category === c ? "active" : ""}
+                  onClick={() => setCategory(c)}
                 >
-                  {p.kind === "theme" ? (
-                    <div className="store-mini-grid" aria-hidden="true">
-                      {Array.from({ length: 81 }, (_, i) => (
-                        <span key={i}>{i % 4 === 0 ? ((i * 7) % 9) + 1 : ""}</span>
-                      ))}
+                  {c === "all"
+                    ? "Tout"
+                    : c === "frame"
+                      ? "Cadres"
+                      : c === "theme"
+                        ? "Fonds de grille"
+                        : "Avatars"}
+                </button>
+              ))}
+            </div>
+          </div>
+          {!account.user && (
+            <div className="store-message">
+              <p>
+                Explore la boutique. Connecte-toi pour acheter et conserver tes articles sur ton
+                compte.
+              </p>
+              <button className="primary" onClick={openAuth}>
+                Se connecter
+              </button>
+            </div>
+          )}
+          {account.user && !data && (
+            <div className="store-message" role="status">
+              <p>
+                {cosmetics.loading
+                  ? "Chargement de ton solde…"
+                  : "Ton solde est indisponible pour le moment."}
+              </p>
+              <button onClick={() => void cosmetics.refresh()} disabled={cosmetics.loading}>
+                Réessayer
+              </button>
+            </div>
+          )}
+          <p className="store-count">
+            {products.length} article{products.length > 1 ? "s" : ""}
+            {ownedOnly ? " possédé" + (products.length > 1 ? "s" : "") : ""}
+          </p>
+          {!products.length ? (
+            <p className="store-message">
+              {account.user
+                ? "Aucun article dans ce rayon pour le moment."
+                : "Connecte-toi pour retrouver tes articles."}
+            </p>
+          ) : (
+            <div className="store-products">
+              {products.map((p) => {
+                const has = owned(p),
+                  selected = equipped(p),
+                  missing = Math.max(0, cost(p) - balance);
+                return (
+                  <article className="store-product" key={`${p.kind}:${p.id}`}>
+                    <button
+                      type="button"
+                      className="store-preview-trigger"
+                      aria-label={`Voir ${p.name}`}
+                      onClick={() => setPreview(p)}
+                    >
+                      {productArt(p)}
+                      {has && (
+                        <span className="store-owned">
+                          <Check aria-hidden="true" />
+                          {selected ? "Équipé" : "Possédé"}
+                        </span>
+                      )}
+                    </button>
+                    <div className="store-product-body">
+                      <small>{labels[p.kind]}</small>
+                      <h3>{p.name}</h3>
+
+                      <div className="store-price">
+                        <Coins aria-hidden="true" />
+                        {p.price === 0
+                          ? "Inclus"
+                          : `${cost(p).toLocaleString("fr-FR")} ${currencyLabel}`}
+                      </div>
+                      <button type="button" className="store-equip" onClick={() => setPreview(p)}>
+                        Voir l’article
+                      </button>
+                      {data && !has && missing > 0 && (
+                        <small className="store-shortfall">
+                          Il te manque {missing.toLocaleString("fr-FR")} {currencyLabel}
+                        </small>
+                      )}
                     </div>
-                  ) : (
-                    <PlayerAvatar
-                      avatarId={p.kind === "avatar" ? p.id : (data?.avatarId ?? "nova")}
-                      image={p.kind === "frame" ? data?.customAvatar : undefined}
-                      frameId={p.kind === "frame" ? p.id : "none"}
-                      size="large"
-                    />
-                  )}
-                  {has && (
-                    <span className="store-owned">
-                      <Check aria-hidden="true" />
-                      {selected ? "Équipé" : "Possédé"}
-                    </span>
-                  )}
-                </div>
-                <div className="store-product-body">
-                  <small>{labels[p.kind]}</small>
-                  <h3>{p.name}</h3>
-                  <p>{p.description}</p>
-                  <div className="store-price">
-                    <Coins aria-hidden="true" />
-                    {p.price === 0
-                      ? "Inclus"
-                      : `${cost(p).toLocaleString("fr-FR")} ${currencyLabel}`}
-                  </div>
-                  <button
-                    className={has ? "store-equip" : "primary"}
-                    disabled={
-                      !!busy || selected || (!!account.user && (!data || (!has && missing > 0)))
-                    }
-                    onClick={() => {
-                      if (!account.user) {
-                        openAuth();
-                        return;
-                      }
-                      if (has) void equip(p);
-                      else setPurchase(p);
-                    }}
-                  >
-                    {busy === p.id
-                      ? "En cours…"
-                      : selected
-                        ? "Équipé"
-                        : has
-                          ? "Équiper"
-                          : !account.user
-                            ? "Se connecter pour acheter"
-                            : "Acheter"}
-                  </button>
-                  {data && !has && missing > 0 && (
-                    <small className="store-shortfall">
-                      Il te manque {missing.toLocaleString("fr-FR")} {currencyLabel}
-                    </small>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
+      <dialog
+        ref={dialog}
+        className="store-dialog"
+        aria-labelledby={previewTitle}
+        onCancel={() => setPreview(null)}
+        onClose={() => setPreview(null)}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) setPreview(null);
+        }}
+      >
+        {preview && (
+          <div className="store-dialog-inner">
+            <button
+              type="button"
+              className="store-dialog-close"
+              aria-label="Fermer l’aperçu"
+              autoFocus
+              onClick={() => setPreview(null)}
+            >
+              <X aria-hidden="true" />
+            </button>
+            {productArt(preview)}
+            <span className="eyebrow">{labels[preview.kind]}</span>
+            <h2 id={previewTitle}>{preview.name}</h2>
+            <p>{preview.description}</p>
+            <div className="store-price">
+              {owned(preview)
+                ? equipped(preview)
+                  ? "Équipé"
+                  : "Possédé"
+                : `${cost(preview).toLocaleString("fr-FR")} ${currencyLabel}`}
+            </div>
+            <button
+              type="button"
+              className="primary"
+              disabled={
+                !!busy ||
+                equipped(preview) ||
+                (!!account.user && (!data || (!owned(preview) && cost(preview) > balance)))
+              }
+              onClick={() => {
+                if (!account.user) {
+                  setPreview(null);
+                  openAuth();
+                  return;
+                }
+                if (owned(preview)) void equip(preview);
+                else {
+                  setPurchase(preview);
+                  setPreview(null);
+                }
+              }}
+            >
+              {busy
+                ? "En cours…"
+                : equipped(preview)
+                  ? "Équipé"
+                  : owned(preview)
+                    ? "Équiper"
+                    : !account.user
+                      ? "Se connecter"
+                      : "Acheter"}
+            </button>
+            {data && !owned(preview) && cost(preview) > balance && (
+              <p>
+                Il te manque {(cost(preview) - balance).toLocaleString("fr-FR")} {currencyLabel}.
+              </p>
+            )}
+          </div>
+        )}
+      </dialog>
       {purchase && data && (
         <ConfirmDialog
           title={`Acheter ${purchase.name} ?`}
