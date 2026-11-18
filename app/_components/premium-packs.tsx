@@ -93,8 +93,7 @@ export function PremiumPacks({
       <span className="eyebrow">MONNAIE PREMIUM</span>
       <h2>Les Sudogemmes</h2>
       <p>
-        Achète des cosmétiques avec cette monnaie payante. Les Sudokoins gagnés en jouant restent
-        disponibles pour tous les articles.
+        Acheter des Sudogemmes, c’est avant tout une façon de soutenir le développement de Sudoku Clash. Elles servent à débloquer des cosmétiques et ne donnent aucun avantage en partie.
       </p>
       {available === false && (
         <p className="premium-unavailable" role="status">

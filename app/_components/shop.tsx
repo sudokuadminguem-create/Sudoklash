@@ -299,7 +299,7 @@ export function Shop({
                   selected = equipped(p),
                   missing = Math.max(0, cost(p) - balance);
                 return (
-                  <article className="store-product" key={`${p.kind}:${p.id}`}>
+                  <article className="store-product" data-kind={p.kind} key={`${p.kind}:${p.id}`}>
                     <button
                       type="button"
                       className="store-preview-trigger"
@@ -363,7 +363,7 @@ export function Shop({
             </button>
             {productArt(preview)}
             <span className="eyebrow">{labels[preview.kind]}</span>
-            <h2 id={previewTitle}>{preview.name}</h2>
+            <h2 id={previewTitle} className={preview.kind === "theme" ? "store-grid-name" : undefined}>{preview.name}</h2>
             <p>{preview.description}</p>
             <div className="store-price">
               {owned(preview)

@@ -457,3 +457,13 @@
     grid-template-columns: 1fr;
   }
 }
+
+.shop-catalog .store-product[data-kind="theme"] h3,
+.shop-catalog .store-dialog-inner .store-grid-name {
+  color: #f5f8ff;
+  font-size: 1.175rem;
+  line-height: 1.35;
+  font-weight: 800;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
