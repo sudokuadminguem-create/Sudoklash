@@ -124,11 +124,7 @@ export function AchievementBoard({
       </div>
       <div className="challenge-filter">
         <strong>Filtrer par rareté</strong>
-        <div
-          className="challenge-categories"
-          role="group"
-          aria-label="Filtrer les défis par rareté"
-        >
+        <fieldset className="challenge-categories" aria-label="Filtrer les défis par rareté">
           {(
             [
               ["all", "Tous", tab === "todo" ? remaining.length : done.length],
@@ -160,7 +156,7 @@ export function AchievementBoard({
               <small>{count}</small>
             </button>
           ))}
-        </div>
+        </fieldset>
       </div>
       {loading && <p className="challenge-message">Chargement des défis…</p>}
       {error && (

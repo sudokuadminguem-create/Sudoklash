@@ -118,6 +118,128 @@ export function AuthDialog({
       </div>
     </label>
   );
+  const submitLabel = mode === "signup" ? "Créer mon compte" : "Se connecter";
+  const resetContent = () => {
+    if (recoveryStatus === "checking") return <p>Vérification du lien de récupération…</p>;
+    if (recoveryStatus === "expired")
+      return (
+        <>
+          <p>
+            Ce lien a expiré ou ne permet pas de modifier le mot de passe. Demandez un nouveau lien
+            depuis votre adresse e-mail.
+          </p>
+          <button className="primary account-submit" onClick={() => changeMode("forgot")}>
+            Demander un nouveau lien
+          </button>
+        </>
+      );
+    return (
+      <>
+        <p>Choisissez un nouveau mot de passe d’au moins 8 caractères pour votre compte.</p>
+        {passwordField}
+        <button
+          className="primary account-submit"
+          disabled={busy || password.length < 8}
+          onClick={submit}
+        >
+          {busy ? "Enregistrement…" : "Enregistrer le mot de passe"}
+        </button>
+      </>
+    );
+  };
+  const content = () => {
+    if (needsUsername)
+      return (
+        <>
+          <p>Ce pseudo sera visible par vos amis et vos adversaires. Il doit être unique.</p>
+          <label>
+            <span>Pseudo</span>
+            <input
+              autoFocus
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Ex. LogikRush"
+              maxLength={20}
+            />
+          </label>
+          <button
+            className="primary account-submit"
+            disabled={busy || username.length < 3}
+            onClick={submit}
+          >
+            {busy ? "Enregistrement…" : "Valider mon pseudo"}
+          </button>
+        </>
+      );
+    if (mode === "forgot")
+      return (
+        <>
+          <p>
+            Saisissez l’adresse e-mail de votre compte. Nous vous enverrons un lien pour choisir un
+            nouveau mot de passe.
+          </p>
+          <label>
+            <span>E-mail</span>
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="vous@exemple.fr"
+            />
+          </label>
+          <button
+            className="primary account-submit"
+            disabled={busy || !email.includes("@")}
+            onClick={submit}
+          >
+            {busy ? "Envoi…" : "Envoyer le lien"}
+          </button>
+          <button className="auth-switch" onClick={() => changeMode("signin")}>
+            Retour à la connexion
+          </button>
+        </>
+      );
+    if (mode === "reset") return resetContent();
+    return (
+      <>
+        <label>
+          <span>E-mail</span>
+          <input
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="vous@exemple.fr"
+          />
+        </label>
+        {passwordField}
+        <button
+          className="primary account-submit"
+          disabled={busy || !email.includes("@") || password.length < 8}
+          onClick={submit}
+        >
+          {busy ? "Connexion…" : submitLabel}
+        </button>
+        {mode === "signin" && (
+          <small>
+            Tu resteras connecté sur cet appareil. Pour quitter : Options → Déconnexion.
+          </small>
+        )}
+        {mode === "signin" && (
+          <button className="auth-switch" onClick={() => changeMode("forgot")}>
+            Mot de passe oublié ?
+          </button>
+        )}
+        <button
+          className="auth-switch"
+          onClick={() => changeMode(mode === "signup" ? "signin" : "signup")}
+        >
+          {mode === "signup" ? "J’ai déjà un compte" : "Créer un compte gratuitement"}
+        </button>
+      </>
+    );
+  };
   return (
     <div className="account-backdrop" role="presentation">
       <section
@@ -154,118 +276,7 @@ export function AuthDialog({
             </ul>
           </div>
         )}
-        {needsUsername ? (
-          <>
-            <p>Ce pseudo sera visible par vos amis et vos adversaires. Il doit être unique.</p>
-            <label>
-              <span>Pseudo</span>
-              <input
-                autoFocus
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Ex. LogikRush"
-                maxLength={20}
-              />
-            </label>
-            <button
-              className="primary account-submit"
-              disabled={busy || username.length < 3}
-              onClick={submit}
-            >
-              {busy ? "Enregistrement…" : "Valider mon pseudo"}
-            </button>
-          </>
-        ) : mode === "forgot" ? (
-          <>
-            <p>
-              Saisissez l’adresse e-mail de votre compte. Nous vous enverrons un lien pour choisir
-              un nouveau mot de passe.
-            </p>
-            <label>
-              <span>E-mail</span>
-              <input
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="vous@exemple.fr"
-              />
-            </label>
-            <button
-              className="primary account-submit"
-              disabled={busy || !email.includes("@")}
-              onClick={submit}
-            >
-              {busy ? "Envoi…" : "Envoyer le lien"}
-            </button>
-            <button className="auth-switch" onClick={() => changeMode("signin")}>
-              Retour à la connexion
-            </button>
-          </>
-        ) : mode === "reset" ? (
-          recoveryStatus === "checking" ? (
-            <p>Vérification du lien de récupération…</p>
-          ) : recoveryStatus === "expired" ? (
-            <>
-              <p>
-                Ce lien a expiré ou ne permet pas de modifier le mot de passe. Demandez un nouveau
-                lien depuis votre adresse e-mail.
-              </p>
-              <button className="primary account-submit" onClick={() => changeMode("forgot")}>
-                Demander un nouveau lien
-              </button>
-            </>
-          ) : (
-            <>
-              <p>Choisissez un nouveau mot de passe d’au moins 8 caractères pour votre compte.</p>
-              {passwordField}
-              <button
-                className="primary account-submit"
-                disabled={busy || password.length < 8}
-                onClick={submit}
-              >
-                {busy ? "Enregistrement…" : "Enregistrer le mot de passe"}
-              </button>
-            </>
-          )
-        ) : (
-          <>
-            <label>
-              <span>E-mail</span>
-              <input
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="vous@exemple.fr"
-              />
-            </label>
-            {passwordField}
-            <button
-              className="primary account-submit"
-              disabled={busy || !email.includes("@") || password.length < 8}
-              onClick={submit}
-            >
-              {busy ? "Connexion…" : mode === "signup" ? "Créer mon compte" : "Se connecter"}
-            </button>
-            {mode === "signin" && (
-              <small>
-                Tu resteras connecté sur cet appareil. Pour quitter : Options → Déconnexion.
-              </small>
-            )}
-            {mode === "signin" && (
-              <button className="auth-switch" onClick={() => changeMode("forgot")}>
-                Mot de passe oublié ?
-              </button>
-            )}
-            <button
-              className="auth-switch"
-              onClick={() => changeMode(mode === "signup" ? "signin" : "signup")}
-            >
-              {mode === "signup" ? "J’ai déjà un compte" : "Créer un compte gratuitement"}
-            </button>
-          </>
-        )}
+        {content()}
         {error && (
           <p className="form-error" role="alert">
             {error}

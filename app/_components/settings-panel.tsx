@@ -45,6 +45,8 @@ export function SettingsPanel({
   const install = useInstall();
   const [signingOut, setSigningOut] = useState(false);
   const fr = locale === "fr";
+  let signOutLabel = fr ? "Déconnexion" : "Sign out";
+  if (signingOut) signOutLabel = fr ? "Déconnexion…" : "Signing out…";
   const signOut = async () => {
     setSigningOut(true);
     try {
@@ -82,13 +84,7 @@ export function SettingsPanel({
               disabled={signingOut}
               onClick={() => void signOut()}
             >
-              {signingOut
-                ? fr
-                  ? "Déconnexion…"
-                  : "Signing out…"
-                : fr
-                  ? "Déconnexion"
-                  : "Sign out"}
+              {signOutLabel}
             </button>
           </div>
         </section>

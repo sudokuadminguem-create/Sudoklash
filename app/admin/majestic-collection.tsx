@@ -60,18 +60,12 @@ export default function MajesticCollection() {
                   <small>MAJESTUEUX · {element ? elementLabels[element] : "Cadre"}</small>
                   <h3>{item.name}</h3>
                   <p>{item.requirement}</p>
-                  <div
+                  <progress
                     className="admin-majestic-progress"
-                    role="progressbar"
                     aria-label={`Progression : ${item.name}`}
-                    aria-valuemin={0}
-                    aria-valuemax={item.target}
-                    aria-valuenow={Math.min(item.progress, item.target)}
-                  >
-                    <span
-                      style={{ width: `${Math.min(100, (item.progress / item.target) * 100)}%` }}
-                    />
-                  </div>
+                    max={item.target}
+                    value={Math.min(item.progress, item.target)}
+                  />
                   <b>
                     {item.unlocked
                       ? "Débloqué"
