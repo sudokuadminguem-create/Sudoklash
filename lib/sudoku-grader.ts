@@ -118,73 +118,68 @@ function hiddenSingle(board: Board) {
   return false;
 }
 
-function lockedCandidates(board: Board) {
-  const found = (
-    cells: number[],
-    digit: number,
-    unit: number,
-    targetUnit: number,
-    from: number[],
-  ) => {
-    if (!board.eliminate(from, bit(digit))) return false;
-    board.pattern = {
-      technique: "lockedCandidates",
-      level: Technique.LockedCandidates,
-      cells,
-      digits: [digit],
-      unit: unitOf(unit),
-      targetUnit: unitOf(targetUnit),
-    };
-    return true;
+function recordLocked(
+  board: Board,
+  cells: number[],
+  digit: number,
+  unit: number,
+  targetUnit: number,
+  from: number[],
+) {
+  if (!board.eliminate(from, bit(digit))) return false;
+  board.pattern = {
+    technique: "lockedCandidates",
+    level: Technique.LockedCandidates,
+    cells,
+    digits: [digit],
+    unit: unitOf(unit),
+    targetUnit: unitOf(targetUnit),
   };
-  for (const [b, box] of boxes.entries()) {
-    for (let digit = 1; digit <= 9; digit++) {
-      const spots = box.filter((cell) => board.candidates[cell] & bit(digit));
-      if (spots.length < 2) continue;
-      const row = Math.floor(spots[0] / 9),
-        column = spots[0] % 9;
-      if (
-        spots.every((cell) => Math.floor(cell / 9) === row) &&
-        found(
-          spots,
-          digit,
-          18 + b,
-          row,
-          rows[row].filter((cell) => !box.includes(cell)),
-        )
-      )
-        return true;
-      if (
-        spots.every((cell) => cell % 9 === column) &&
-        found(
-          spots,
-          digit,
-          18 + b,
-          9 + column,
-          columns[column].filter((cell) => !box.includes(cell)),
-        )
-      )
-        return true;
-    }
-  }
-  for (const [l, line] of [...rows, ...columns].entries()) {
-    for (let digit = 1; digit <= 9; digit++) {
-      const spots = line.filter((cell) => board.candidates[cell] & bit(digit));
-      if (spots.length < 2) continue;
-      const box = boxOf(spots[0]);
-      if (
-        spots.every((cell) => boxOf(cell) === box) &&
-        found(
-          spots,
-          digit,
-          l,
-          18 + box,
-          boxes[box].filter((cell) => !line.includes(cell)),
-        )
-      )
-        return true;
-    }
-  }
+  return true;
+}
+
+// Pointing: a digit confined to one row or column of a box leaves the rest of that line.
+function pointingInBox(board: Board, b: number, digit: number) {
+  const box = boxes[b];
+  const spots = box.filter((cell) => board.candidates[cell] & bit(digit));
+  if (spots.length < 2) return false;
+  const row = Math.floor(spots[0] / 9),
+    column = spots[0] % 9;
+  const outsideBox = (cell: number) => !box.includes(cell);
+  if (
+    spots.every((cell) => Math.floor(cell / 9) === row) &&
+    recordLocked(board, spots, digit, 18 + b, row, rows[row].filter(outsideBox))
+  )
+    return true;
+  return (
+    spots.every((cell) => cell % 9 === column) &&
+    recordLocked(board, spots, digit, 18 + b, 9 + column, columns[column].filter(outsideBox))
+  );
+}
+
+// Claiming: a digit confined to one box within a line leaves the rest of that box.
+function claimingInLine(board: Board, l: number, line: number[], digit: number) {
+  const spots = line.filter((cell) => board.candidates[cell] & bit(digit));
+  if (spots.length < 2) return false;
+  const box = boxOf(spots[0]);
+  return (
+    spots.every((cell) => boxOf(cell) === box) &&
+    recordLocked(
+      board,
+      spots,
+      digit,
+      l,
+      18 + box,
+      boxes[box].filter((cell) => !line.includes(cell)),
+    )
+  );
+}
+
+function lockedCandidates(board: Board) {
+  for (let b = 0; b < 9; b++)
+    for (let digit = 1; digit <= 9; digit++) if (pointingInBox(board, b, digit)) return true;
+  for (const [l, line] of [...rows, ...columns].entries())
+    for (let digit = 1; digit <= 9; digit++) if (claimingInLine(board, l, line, digit)) return true;
   return false;
 }
 
@@ -195,58 +190,73 @@ function combinations<T>(items: T[], size: number): T[][] {
   );
 }
 
+function nakedSubsetIn(board: Board, u: number, open: number[], size: number) {
+  for (const group of combinations(open, size)) {
+    const mask = group.reduce((acc, cell) => acc | board.candidates[cell], 0);
+    if (
+      count(mask) === size &&
+      board.eliminate(
+        open.filter((cell) => !group.includes(cell)),
+        mask,
+      )
+    ) {
+      board.pattern = {
+        technique: "nakedSubset",
+        level: subsetLevel(size),
+        cells: group,
+        digits: digitsOf(mask),
+        unit: unitOf(u),
+      };
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Keeps only `mask` in `cells`; true when any candidate was removed. */
+function restrictTo(board: Board, cells: number[], mask: number) {
+  let changed = false;
+  for (const cell of cells) {
+    if (board.candidates[cell] & ~mask) {
+      board.candidates[cell] &= mask;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function hiddenSubsetIn(board: Board, u: number, open: number[], size: number) {
+  const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((digit) =>
+    open.some((cell) => board.candidates[cell] & bit(digit)),
+  );
+  for (const group of combinations(digits, size)) {
+    const mask = group.reduce((acc, digit) => acc | bit(digit), 0);
+    const cells = open.filter((cell) => board.candidates[cell] & mask);
+    if (cells.length !== size) continue;
+    if (!group.every((digit) => cells.some((cell) => board.candidates[cell] & bit(digit))))
+      continue;
+    if (restrictTo(board, cells, mask)) {
+      board.pattern = {
+        technique: "hiddenSubset",
+        level: subsetLevel(size),
+        cells,
+        digits: group,
+        unit: unitOf(u),
+      };
+      return true;
+    }
+  }
+  return false;
+}
+
+const subsetLevel = (size: number) => (size === 2 ? Technique.Pairs : Technique.TriplesAndXWing);
+
 // Naked subsets: `size` cells sharing `size` candidates. Hidden subsets: `size` digits
 // confined to `size` cells.
 function subsets(board: Board, size: number) {
-  const level = size === 2 ? Technique.Pairs : Technique.TriplesAndXWing;
   for (const [u, unit] of units.entries()) {
     const open = unit.filter((cell) => !board.values[cell]);
-    for (const group of combinations(open, size)) {
-      const mask = group.reduce((acc, cell) => acc | board.candidates[cell], 0);
-      if (
-        count(mask) === size &&
-        board.eliminate(
-          open.filter((cell) => !group.includes(cell)),
-          mask,
-        )
-      ) {
-        board.pattern = {
-          technique: "nakedSubset",
-          level,
-          cells: group,
-          digits: digitsOf(mask),
-          unit: unitOf(u),
-        };
-        return true;
-      }
-    }
-    const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((digit) =>
-      open.some((cell) => board.candidates[cell] & bit(digit)),
-    );
-    for (const group of combinations(digits, size)) {
-      const mask = group.reduce((acc, digit) => acc | bit(digit), 0);
-      const cells = open.filter((cell) => board.candidates[cell] & mask);
-      if (cells.length !== size) continue;
-      if (!group.every((digit) => cells.some((cell) => board.candidates[cell] & bit(digit))))
-        continue;
-      let changed = false;
-      for (const cell of cells) {
-        if (board.candidates[cell] & ~mask) {
-          board.candidates[cell] &= mask;
-          changed = true;
-        }
-      }
-      if (changed) {
-        board.pattern = {
-          technique: "hiddenSubset",
-          level,
-          cells,
-          digits: group,
-          unit: unitOf(u),
-        };
-        return true;
-      }
-    }
+    if (nakedSubsetIn(board, u, open, size) || hiddenSubsetIn(board, u, open, size)) return true;
   }
   return false;
 }
@@ -332,6 +342,37 @@ export type LogicalStep = {
 
 const unitOrder = [...Array(27).keys()].map((i) => (i + 18) % 27);
 
+type SingleStep = Pick<LogicalStep, "index" | "digit" | "technique" | "unit">;
+
+function findNakedSingle(board: Board): SingleStep | null {
+  for (let cell = 0; cell < 81; cell++) {
+    const mask = board.candidates[cell];
+    if (!board.values[cell] && count(mask) === 1)
+      return { index: cell, digit: digitsOf(mask)[0], technique: Technique.NakedSingle };
+  }
+  return null;
+}
+
+function findHiddenSingle(board: Board): SingleStep | null {
+  // Boxes first: that is where most players look for a hidden single.
+  for (const u of unitOrder) {
+    const unit = units[u];
+    for (let digit = 1; digit <= 9; digit++) {
+      const spots = unit.filter((cell) => board.candidates[cell] & bit(digit));
+      if (spots.length === 1)
+        return { index: spots[0], digit, technique: Technique.HiddenSingle, unit: unitOf(u) };
+    }
+  }
+  return null;
+}
+
+/** The hardest pattern, and the last of those. */
+const mainPattern = (patterns: HintPattern[]) =>
+  patterns.reduce<HintPattern | undefined>(
+    (best, p) => (!best || p.level >= best.level ? p : best),
+    undefined,
+  );
+
 /**
  * Next cell a human can fill by logic from `grid` (0 for empty), trying the easiest
  * techniques first. `grid` must only hold correct digits. Null when the techniques above
@@ -342,36 +383,12 @@ export function nextLogicalStep(grid: readonly number[]): LogicalStep | null {
   let eliminatedWith: TechniqueLevel | undefined;
   const patterns: HintPattern[] = [];
   while (!board.solved && !board.stuck) {
-    const main = patterns.reduce<HintPattern | undefined>(
-      (best, p) => (!best || p.level >= best.level ? p : best),
-      undefined,
-    );
-    const extra =
-      eliminatedWith && main ? { eliminatedWith, patterns: [...patterns], pattern: main } : {};
-    for (let cell = 0; cell < 81; cell++) {
-      const mask = board.candidates[cell];
-      if (!board.values[cell] && count(mask) === 1)
-        return {
-          index: cell,
-          digit: digitsOf(mask)[0],
-          technique: Technique.NakedSingle,
-          ...extra,
-        };
-    }
-    // Boxes first: that is where most players look for a hidden single.
-    for (const u of unitOrder) {
-      const unit = units[u];
-      for (let digit = 1; digit <= 9; digit++) {
-        const spots = unit.filter((cell) => board.candidates[cell] & bit(digit));
-        if (spots.length === 1)
-          return {
-            index: spots[0],
-            digit,
-            technique: Technique.HiddenSingle,
-            unit: unitOf(u),
-            ...extra,
-          };
-      }
+    const single = findNakedSingle(board) ?? findHiddenSingle(board);
+    if (single) {
+      const main = mainPattern(patterns);
+      const extra =
+        eliminatedWith && main ? { eliminatedWith, patterns: [...patterns], pattern: main } : {};
+      return { ...single, ...extra };
     }
     const step = steps.slice(2).find(([, apply]) => apply(board));
     if (!step) return null;

@@ -4,6 +4,24 @@ import { cellCount, peerTable, type Geometry } from "./variants";
 
 const bit = (digit: number) => 1 << (digit - 1);
 
+const bitCount = (mask: number) => {
+  let n = 0;
+  for (let m = mask; m; m &= m - 1) n++;
+  return n;
+};
+
+/** Digits of `mask`, shuffled with `random` when given. */
+function digitOrder(mask: number, size: number, random?: () => number) {
+  const digits: number[] = [];
+  for (let d = 1; d <= size; d++) if (mask & bit(d)) digits.push(d);
+  if (random)
+    for (let i = digits.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [digits[i], digits[j]] = [digits[j], digits[i]];
+    }
+  return digits;
+}
+
 type Options = {
   /** Stop counting after this many solutions. */
   limit?: number;
@@ -57,42 +75,41 @@ export function solveVariant(geometry: Geometry, puzzle: readonly number[], opti
 
   let count = 0;
   let first: number[] | null = null;
-  const search = () => {
-    if (count >= limit) return;
-    // The empty cell with the fewest candidates.
-    let bestCell = -1;
-    let bestMask = 0;
+  const candidates = (cell: number) => {
+    let mask = all;
+    for (const peer of peers[cell]) if (grid[peer]) mask &= ~bit(grid[peer]);
+    return mask;
+  };
+  // The empty cell with the fewest candidates; "dead" when one has none, null when full.
+  const pickCell = (): { cell: number; mask: number } | "dead" | null => {
+    let best: { cell: number; mask: number } | null = null;
     let bestSize = size + 1;
     for (let cell = 0; cell < total; cell++) {
       if (grid[cell]) continue;
-      let mask = all;
-      for (const peer of peers[cell]) if (grid[peer]) mask &= ~bit(grid[peer]);
-      let n = 0;
-      for (let m = mask; m; m &= m - 1) n++;
-      if (n === 0) return;
+      const mask = candidates(cell);
+      const n = bitCount(mask);
+      if (n === 0) return "dead";
       if (n < bestSize) {
-        bestCell = cell;
-        bestMask = mask;
+        best = { cell, mask };
         bestSize = n;
         if (n === 1) break;
       }
     }
-    if (bestCell < 0) {
+    return best;
+  };
+  const search = () => {
+    if (count >= limit) return;
+    const best = pickCell();
+    if (best === "dead") return;
+    if (!best) {
       count++;
       first ??= [...grid];
       return;
     }
-    const digits: number[] = [];
-    for (let d = 1; d <= size; d++) if (bestMask & bit(d)) digits.push(d);
-    if (options.random)
-      for (let i = digits.length - 1; i > 0; i--) {
-        const j = Math.floor(options.random() * (i + 1));
-        [digits[i], digits[j]] = [digits[j], digits[i]];
-      }
-    for (const digit of digits) {
-      grid[bestCell] = digit;
-      if (cageOf[bestCell] < 0 || cageFeasible(cageOf[bestCell])) search();
-      grid[bestCell] = 0;
+    for (const digit of digitOrder(best.mask, size, options.random)) {
+      grid[best.cell] = digit;
+      if (cageOf[best.cell] < 0 || cageFeasible(cageOf[best.cell])) search();
+      grid[best.cell] = 0;
       if (count >= limit) return;
     }
   };

@@ -294,20 +294,38 @@ export const achievementFrames = [
   { id: "challenge-l-026", name: "Ascension divine", requirement: "Super méga défi : réussir 1 grille Killer", metric: "killer" as const, target: 1, rarity: "legendary" as const, color: "#ffe9a3", accent: "#b87d26", symbol: "☀" },
 ];
 export type AchievementProgress = Record<Metric, number>;
-export function earnedAchievements(progress: AchievementProgress, alreadyEarned:Iterable<string>=[]) {
-  const earned=new Set(alreadyEarned);
-  let changed=true;
-  while(changed){
-    changed=false;
-    const visible=achievementFrames.filter(a=>a.rarity==="simple"&&earned.has(a.id)).length;
-    const epic=achievementFrames.filter(a=>a.rarity==="epic"&&earned.has(a.id)).length;
-    for(const a of achievementFrames){
-      if(earned.has(a.id))continue;
-      // The two original collection finales count their original 150 frames.
-      const originalCount=[...earned].filter(id=>!id.startsWith("challenge-m-")&&id!=="challenge-l-026"&&id!=="challenge-mini-playground").length;
-      const count=a.metric==="frames"?visible:a.metric==="epicFrames"?epic:a.metric==="otherFrames"?originalCount:progress[a.metric];
-      if(count>=a.target){earned.add(a.id);changed=true}
+type AchievementFrame = (typeof achievementFrames)[number];
+const countEarned = (earned: Set<string>, rarity: AchievementFrame["rarity"]) =>
+  achievementFrames.filter((a) => a.rarity === rarity && earned.has(a.id)).length;
+// The two original collection finales count their original 150 frames.
+const isOriginalFrame = (id: string) =>
+  !id.startsWith("challenge-m-") && id !== "challenge-l-026" && id !== "challenge-mini-playground";
+function metricCount(
+  metric: Metric,
+  progress: AchievementProgress,
+  earned: Set<string>,
+  collected: { visible: number; epic: number },
+) {
+  if (metric === "frames") return collected.visible;
+  if (metric === "epicFrames") return collected.epic;
+  if (metric === "otherFrames") return [...earned].filter(isOriginalFrame).length;
+  return progress[metric];
+}
+export function earnedAchievements(
+  progress: AchievementProgress,
+  alreadyEarned: Iterable<string> = [],
+) {
+  const earned = new Set(alreadyEarned);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const collected = { visible: countEarned(earned, "simple"), epic: countEarned(earned, "epic") };
+    for (const a of achievementFrames) {
+      if (earned.has(a.id) || metricCount(a.metric, progress, earned, collected) < a.target)
+        continue;
+      earned.add(a.id);
+      changed = true;
     }
   }
-  return achievementFrames.filter(a=>earned.has(a.id));
+  return achievementFrames.filter((a) => earned.has(a.id));
 }
