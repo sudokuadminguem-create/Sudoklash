@@ -31,6 +31,7 @@ import { ChallengeAnnouncer } from "./_components/challenge-announcer";
 import { AccountOverview } from "./_components/account-overview";
 import { AuthDialog } from "./_components/auth-dialog";
 import { Leaderboard } from "./_components/leaderboard";
+import { SupportPodium } from "./_components/support";
 import { TournamentBanner, Tournaments, useTournaments } from "./_components/tournaments";
 import { ModePanel } from "./_components/mode-panel";
 import { PlayerAvatar } from "./_components/player-cosmetics";
@@ -115,7 +116,7 @@ function HomeContent() {
     [recoveryStatus, setRecoveryStatus] = useState<"checking" | "ready" | "expired">("checking");
   useEffect(() => {
     const query = new URLSearchParams(location.search);
-    if (query.has("premium_session") || query.has("premium_cancelled")) setView("boutique");
+    if (query.has("premium_session") || query.has("premium_cancelled") || query.has("support_session") || query.has("support_cancelled")) setView("boutique");
   }, []);
   const account = useAccount();
   const cosmetics = useCosmetics(account);
@@ -377,6 +378,7 @@ function HomeContent() {
                       </button>
                     </aside>
                   )}
+                  <SupportPodium />
                   <TournamentBanner feed={tournamentFeed} onOpen={openTournament} />
                   <div className="mode-tabs">
                     {modeTabs.map(([id, label, I]) => (

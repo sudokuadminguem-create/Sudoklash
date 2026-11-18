@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { premiumPacks } from "./premium";
+import { premiumPacks, supportPacks } from "./premium";
 export const paymentConfig = () => ({
   key: env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY,
   webhook: env.STRIPE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET,
@@ -38,7 +38,7 @@ export async function retrieveSession(id: string): Promise<Session> {
 }
 export async function creditSession(id: string, expectedUser?: string) {
   const s = await retrieveSession(id);
-  const pack = premiumPacks.find((p) => p.id === s.metadata?.pack_id),
+  const pack = [...premiumPacks, ...supportPacks].find((p) => p.id === s.metadata?.pack_id),
     userId = s.metadata?.user_id;
   if (
     !pack ||

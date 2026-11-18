@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
-import { Coins, Check, ShoppingBag, Gem, X, Sparkles, Grid2X2 } from "lucide-react";
+import { Coins, Check, ShoppingBag, Gem, Heart, X, Sparkles, Grid2X2 } from "lucide-react";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics, CosmeticAction } from "@/hooks/use-cosmetics";
 import { gridThemes, shopAvatars, shopFrames } from "@/lib/cosmetics";
 import { PlayerAvatar } from "./player-cosmetics";
 import { premiumPrice } from "@/lib/premium";
 import { PremiumCollections } from "./premium-collections";
+import { SupportShop } from "./support";
 import { PremiumPacks } from "./premium-packs";
 import { ConfirmDialog } from "./confirm-dialog";
 import "../shop-catalog.css";
@@ -62,13 +63,14 @@ export function Shop({
   account: Account;
   openAuth: () => void;
 }) {
-  const [shelf, setShelf] = useState<"catalog" | "collections" | "owned" | "gems">("catalog");
+  const [shelf, setShelf] = useState<"catalog" | "collections" | "owned" | "gems" | "support">("catalog");
   const [preview, setPreview] = useState<Product | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const previewTitle = useId();
   useEffect(() => {
     const query = new URLSearchParams(location.search);
-    if (query.has("premium_session") || query.has("premium_cancelled")) setShelf("gems");
+    if (query.has("support_session") || query.has("support_cancelled")) setShelf("support");
+    else if (query.has("premium_session") || query.has("premium_cancelled")) setShelf("gems");
   }, []);
   useEffect(() => {
     if (preview && dialog.current && !dialog.current.open) dialog.current.showModal();
@@ -181,6 +183,7 @@ export function Shop({
             ["collections", "Collections", Sparkles],
             ["owned", "Mes articles", ShoppingBag],
             ["gems", "Sudogemmes", Gem],
+            ["support", "Dons", Heart],
           ] as const
         ).map(([id, label, Icon]) => (
           <button
@@ -197,6 +200,7 @@ export function Shop({
           </button>
         ))}
       </nav>
+      {shelf === "support" && <SupportShop signedIn={!!account.user} openAuth={openAuth} />}
       {shelf === "gems" && (
         <PremiumPacks signedIn={!!account.user} openAuth={openAuth} cosmetics={cosmetics} />
       )}

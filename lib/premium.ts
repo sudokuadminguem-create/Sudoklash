@@ -7,3 +7,9 @@ export const premiumPacks = [
 export const premiumPrice = (coins: number) => Math.ceil(coins / 10);
 export const euroPrice = (cents: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100);
+
+export const supportPacks = [
+  { id: "support-2", cents: 200, gems: 0 },
+  { id: "support-5", cents: 500, gems: 0 },
+  { id: "support-10", cents: 1000, gems: 0 },
+] as const;
