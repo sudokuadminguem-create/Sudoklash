@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trophy, Play } from "lucide-react";
 import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
 import { authHeaders } from "@/app/lib/auth-headers";
@@ -107,6 +107,19 @@ export function DailyChallenges({
 }) {
   const [difficulty, setDifficulty] = useState<Difficulty>("Facile"),
     [view, setView] = useState<"play" | "ranking">("play");
+  const grid = useRef<HTMLDivElement>(null);
+  const goToGrid = () => {
+    setView("play");
+    requestAnimationFrame(() => {
+      grid.current?.focus({ preventScroll: true });
+      grid.current?.scrollIntoView({
+        block: "start",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant"
+          : "smooth",
+      });
+    });
+  };
   return (
     <div className="daily-challenges">
       <section className="panel daily-selection">
@@ -129,7 +142,7 @@ export function DailyChallenges({
           <button
             aria-pressed={view === "play"}
             className={view === "play" ? "active" : ""}
-            onClick={() => setView("play")}
+            onClick={goToGrid}
           >
             <Play aria-hidden="true" />
             Jouer · {difficulty}
@@ -145,13 +158,20 @@ export function DailyChallenges({
         </div>
       </section>
       {view === "play" ? (
-        <TimedChallenge
-          key={difficulty}
-          kind="daily"
-          difficulty={difficulty}
-          openAuth={openAuth}
-          cosmetics={cosmetics}
-        />
+        <div
+          ref={grid}
+          tabIndex={-1}
+          aria-label={`Grille du jour · ${difficulty}`}
+          style={{ scrollMarginTop: "100px" }}
+        >
+          <TimedChallenge
+            key={difficulty}
+            kind="daily"
+            difficulty={difficulty}
+            openAuth={openAuth}
+            cosmetics={cosmetics}
+          />
+        </div>
       ) : (
         <DailyRanking key={difficulty} difficulty={difficulty} openAuth={openAuth} />
       )}
