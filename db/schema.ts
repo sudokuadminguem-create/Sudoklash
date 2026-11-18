@@ -310,3 +310,11 @@ export const tournamentEntries = sqliteTable("tournament_entries", {
   primaryKey({columns:[t.tournamentId,t.userId]}),
   index("tournament_entries_user").on(t.userId),
 ]);
+
+export const livePresence = sqliteTable("live_presence", {
+  tabId: text("tab_id").primaryKey(),
+  browserId: text("browser_id").notNull(),
+  revision: integer("revision").notNull(),
+  active: integer("active").notNull(),
+  seenAt: integer("seen_at").notNull(),
+}, t => [index("live_presence_seen_at").on(t.seenAt)]);

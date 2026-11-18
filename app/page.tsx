@@ -48,6 +48,7 @@ import type { MessageKey } from "./lib/i18n-core";
 import { SettingsProvider } from "./lib/settings";
 import { supabase } from "./lib/supabase";
 import { useAccount } from "@/hooks/use-account";
+import { useLivePresence } from "@/hooks/use-live-presence";
 import { useCosmetics } from "@/hooks/use-cosmetics";
 import { gridThemes } from "@/lib/cosmetics";
 
@@ -90,6 +91,7 @@ export default function Home() {
 
 function HomeContent() {
   const { t, locale } = useI18n();
+  const onlineCount = useLivePresence();
   const tournamentFeed = useTournaments();
   const [tournamentId, setTournamentId] = useState<string | null>(null);
   const openTournament = (id?:string) => { setTournamentId(id ?? null); setMode("tournaments"); };
@@ -385,8 +387,7 @@ function HomeContent() {
                         className={mode === id ? "active" : ""}
                       >
                         <I />
-                        {t(label)}
-                        {id === "hebdo" && <small>+500</small>}
+                        {id === "classée" ? <span className="ranked-tab-copy">{t(label)}<span className="ranked-online">{onlineCount === null ? "—" : new Intl.NumberFormat(locale).format(onlineCount)} {fr ? "en ligne" : "online"}</span></span> : t(label)}
                         {id === "duel" && duelInvites > 0 && <small>{duelInvites}</small>}
                       </button>
                     ))}
@@ -473,6 +474,7 @@ function HomeContent() {
             <div className="toast" role="status" aria-live="polite">
               <Check />
               {toast}
+              <button type="button" className="toast-close" aria-label={fr ? "Fermer la notification" : "Dismiss notification"} onClick={() => setToast("")}><X aria-hidden="true" /></button>
             </div>
           )}
           {authOpen && (
