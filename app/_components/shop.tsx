@@ -63,7 +63,9 @@ export function Shop({
   account: Account;
   openAuth: () => void;
 }) {
-  const [shelf, setShelf] = useState<"catalog" | "collections" | "owned" | "gems" | "support">("catalog");
+  const [shelf, setShelf] = useState<"catalog" | "collections" | "owned" | "gems" | "support">(
+    "catalog",
+  );
   const [preview, setPreview] = useState<Product | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const previewTitle = useId();
@@ -374,7 +376,12 @@ export function Shop({
             </button>
             {productArt(preview)}
             <span className="eyebrow">{labels[preview.kind]}</span>
-            <h2 id={previewTitle} className={preview.kind === "theme" ? "store-grid-name" : undefined}>{preview.name}</h2>
+            <h2
+              id={previewTitle}
+              className={preview.kind === "theme" ? "store-grid-name" : undefined}
+            >
+              {preview.name}
+            </h2>
             <p>{preview.description}</p>
             <div className="store-price">
               {owned(preview)

@@ -9,7 +9,12 @@ import type { Achievement } from "@/lib/achievement-frames";
 import { challengeFrameStyle, elementLabels } from "@/lib/achievement-styles";
 
 type Item = Achievement & { progress: number; unlocked: boolean };
-type Payload = { achievements: Item[]; visibleTotal: number; secretUnlocked: number; newlyUnlocked: string[] };
+type Payload = {
+  achievements: Item[];
+  visibleTotal: number;
+  secretUnlocked: number;
+  newlyUnlocked: string[];
+};
 type Category = "all" | Achievement["rarity"];
 export function AchievementBoard({
   account,
@@ -62,8 +67,10 @@ export function AchievementBoard({
   const epicCount = done.filter((a) => a.rarity === "epic").length;
   const legendaryCount = done.filter((a) => a.rarity === "legendary").length;
   const displayed = useMemo(
-    () => (tab === "todo" ? remaining : done)
-      .filter((a) => category === "all" || a.rarity === category),
+    () =>
+      (tab === "todo" ? remaining : done).filter(
+        (a) => category === "all" || a.rarity === category,
+      ),
     [tab, category, data],
   );
   const equip = async (id: string) => {
@@ -117,22 +124,42 @@ export function AchievementBoard({
       </div>
       <div className="challenge-filter">
         <strong>Filtrer par rareté</strong>
-        <div className="challenge-categories" role="group" aria-label="Filtrer les défis par rareté">
-        {([
-          ["all", "Tous", tab === "todo" ? remaining.length : done.length],
-          ["simple", "Classiques", tab === "todo" ? 100 - visible.filter((a) => a.unlocked).length : visible.filter((a) => a.unlocked).length],
-          ["epic", "Épiques", tab === "todo" ? 25 - epicCount : epicCount],
-          ["legendary", "Légendaires", tab === "todo" ? (data?.achievements.filter(a=>a.rarity==="legendary").length ?? 26) - legendaryCount : legendaryCount],
-        ] as const).map(([id, label, count]) => (
-          <button
-            key={id}
-            className={`${id}${category === id ? " active" : ""}`}
-            aria-pressed={category === id}
-            onClick={() => setCategory(id)}
-          >
-            <span>{label}</span><small>{count}</small>
-          </button>
-        ))}
+        <div
+          className="challenge-categories"
+          role="group"
+          aria-label="Filtrer les défis par rareté"
+        >
+          {(
+            [
+              ["all", "Tous", tab === "todo" ? remaining.length : done.length],
+              [
+                "simple",
+                "Classiques",
+                tab === "todo"
+                  ? 100 - visible.filter((a) => a.unlocked).length
+                  : visible.filter((a) => a.unlocked).length,
+              ],
+              ["epic", "Épiques", tab === "todo" ? 25 - epicCount : epicCount],
+              [
+                "legendary",
+                "Légendaires",
+                tab === "todo"
+                  ? (data?.achievements.filter((a) => a.rarity === "legendary").length ?? 26) -
+                    legendaryCount
+                  : legendaryCount,
+              ],
+            ] as const
+          ).map(([id, label, count]) => (
+            <button
+              key={id}
+              className={`${id}${category === id ? " active" : ""}`}
+              aria-pressed={category === id}
+              onClick={() => setCategory(id)}
+            >
+              <span>{label}</span>
+              <small>{count}</small>
+            </button>
+          ))}
         </div>
       </div>
       {loading && <p className="challenge-message">Chargement des défis…</p>}
@@ -163,7 +190,8 @@ export function AchievementBoard({
                       : a.rarity === "epic"
                         ? "ÉPIQUE"
                         : "LÉGENDAIRE"}
-                    {challengeFrameStyle(a.id)?.element && ` · ${elementLabels[challengeFrameStyle(a.id)!.element!]}`}
+                    {challengeFrameStyle(a.id)?.element &&
+                      ` · ${elementLabels[challengeFrameStyle(a.id)!.element!]}`}
                   </span>
                   <h3>{a.name}</h3>
                   {tab !== "frames" && <p>{a.requirement}</p>}

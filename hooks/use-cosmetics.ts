@@ -16,7 +16,11 @@ export type CosmeticState = {
   ownedAvatars: string[];
   ownedThemes: string[];
   unlockedFrames: string[];
-  achievementFrames: { id: string; name: string; rarity: "simple" | "epic" | "legendary" | "majestic" }[];
+  achievementFrames: {
+    id: string;
+    name: string;
+    rarity: "simple" | "epic" | "legendary" | "majestic";
+  }[];
   avatarId: string;
   frameId: string;
   frameSelection: string;
@@ -76,7 +80,11 @@ export function useCosmetics(account: AccountState) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
-  const action = async (action: CosmeticAction, id: string, currency: "coins" | "gems" = "coins") => {
+  const action = async (
+    action: CosmeticAction,
+    id: string,
+    currency: "coins" | "gems" = "coins",
+  ) => {
     const response = await fetch("/api/cosmetics", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(await authHeaders()) },

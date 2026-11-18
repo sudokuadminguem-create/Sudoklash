@@ -76,60 +76,79 @@ export default function AdminPanel({ displayName }: { displayName: string }) {
               Accès propriétaire uniquement
             </span>
             <h1>Panneau d’administration</h1>
-            <p>Gère les grilles quotidiennes et hebdomadaires, et consulte ta collection privée de défis Majestueux.</p>
+            <p>
+              Gère les grilles quotidiennes et hebdomadaires, et consulte ta collection privée de
+              défis Majestueux.
+            </p>
           </div>
         </div>
         <nav className="admin-section-tabs" aria-label="Rubriques d’administration">
-          <button className={section === "grids" ? "active" : ""} aria-current={section === "grids" ? "page" : undefined} onClick={() => setSection("grids")}>Grilles du jour et de la semaine</button>
-          <button className={section === "majestic" ? "active" : ""} aria-current={section === "majestic" ? "page" : undefined} onClick={() => setSection("majestic")}>Majestueux · 25 défis cachés</button>
+          <button
+            className={section === "grids" ? "active" : ""}
+            aria-current={section === "grids" ? "page" : undefined}
+            onClick={() => setSection("grids")}
+          >
+            Grilles du jour et de la semaine
+          </button>
+          <button
+            className={section === "majestic" ? "active" : ""}
+            aria-current={section === "majestic" ? "page" : undefined}
+            onClick={() => setSection("majestic")}
+          >
+            Majestueux · 25 défis cachés
+          </button>
         </nav>
-        {section === "majestic" ? <MajesticCollection /> : <>
-        {error && <div className="admin-alert error">{error}</div>}
-        {message && (
-          <div className="admin-alert success">
-            <Check />
-            {message}
-          </div>
-        )}
-        {!configs ? (
-          <div className="admin-loading">Chargement des réglages…</div>
+        {section === "majestic" ? (
+          <MajesticCollection />
         ) : (
-          <div className="admin-grid">
-            {(["daily", "weekly"] as Kind[]).map((kind) => (
-              <article className="admin-card" key={kind}>
-                <span>{kind === "daily" ? "DÉFI QUOTIDIEN" : "DÉFI HEBDOMADAIRE"}</span>
-                <h2>{kind === "daily" ? "Chaque jour" : "Chaque semaine"}</h2>
-                <label>
-                  <span>Nom du défi</span>
-                  <input
-                    value={configs[kind].title}
-                    maxLength={80}
-                    onChange={(event) => update(kind, "title", event.target.value)}
-                  />
-                </label>
-                <label>
-                  <span>Grille Sudoku</span>
-                  <textarea
-                    value={configs[kind].puzzle}
-                    maxLength={81}
-                    spellCheck={false}
-                    onChange={(event) =>
-                      update(kind, "puzzle", event.target.value.replace(/[^0-9]/g, ""))
-                    }
-                  />
-                  <small>
-                    {configs[kind].puzzle.length}/81 chiffres · utilisez 0 pour une case vide
-                  </small>
-                </label>
-                <button onClick={() => save(kind)} disabled={saving !== null}>
-                  <Save />
-                  {saving === kind ? "Enregistrement…" : "Enregistrer"}
-                </button>
-              </article>
-            ))}
-          </div>
+          <>
+            {error && <div className="admin-alert error">{error}</div>}
+            {message && (
+              <div className="admin-alert success">
+                <Check />
+                {message}
+              </div>
+            )}
+            {!configs ? (
+              <div className="admin-loading">Chargement des réglages…</div>
+            ) : (
+              <div className="admin-grid">
+                {(["daily", "weekly"] as Kind[]).map((kind) => (
+                  <article className="admin-card" key={kind}>
+                    <span>{kind === "daily" ? "DÉFI QUOTIDIEN" : "DÉFI HEBDOMADAIRE"}</span>
+                    <h2>{kind === "daily" ? "Chaque jour" : "Chaque semaine"}</h2>
+                    <label>
+                      <span>Nom du défi</span>
+                      <input
+                        value={configs[kind].title}
+                        maxLength={80}
+                        onChange={(event) => update(kind, "title", event.target.value)}
+                      />
+                    </label>
+                    <label>
+                      <span>Grille Sudoku</span>
+                      <textarea
+                        value={configs[kind].puzzle}
+                        maxLength={81}
+                        spellCheck={false}
+                        onChange={(event) =>
+                          update(kind, "puzzle", event.target.value.replace(/[^0-9]/g, ""))
+                        }
+                      />
+                      <small>
+                        {configs[kind].puzzle.length}/81 chiffres · utilisez 0 pour une case vide
+                      </small>
+                    </label>
+                    <button onClick={() => save(kind)} disabled={saving !== null}>
+                      <Save />
+                      {saving === kind ? "Enregistrement…" : "Enregistrer"}
+                    </button>
+                  </article>
+                ))}
+              </div>
+            )}
+          </>
         )}
-        </>}
       </section>
     </main>
   );

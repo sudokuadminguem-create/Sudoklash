@@ -70,10 +70,25 @@ export function SettingsPanel({
           <div className="setting-row">
             <span>
               <b>{fr ? "Session active" : "Signed in"}</b>
-              <small>{fr ? "Ta session est mémorisée sur cet appareil." : "Your session is remembered on this device."}</small>
+              <small>
+                {fr
+                  ? "Ta session est mémorisée sur cet appareil."
+                  : "Your session is remembered on this device."}
+              </small>
             </span>
-            <button type="button" className="primary" disabled={signingOut} onClick={() => void signOut()}>
-              {signingOut ? (fr ? "Déconnexion…" : "Signing out…") : (fr ? "Déconnexion" : "Sign out")}
+            <button
+              type="button"
+              className="primary"
+              disabled={signingOut}
+              onClick={() => void signOut()}
+            >
+              {signingOut
+                ? fr
+                  ? "Déconnexion…"
+                  : "Signing out…"
+                : fr
+                  ? "Déconnexion"
+                  : "Sign out"}
             </button>
           </div>
         </section>
@@ -100,7 +115,12 @@ export function SettingsPanel({
       </div>
       {tab === "privacy" ? (
         account && (
-          <PrivacySettings key={account.user?.id ?? "guest"} account={account} openAuth={openAuth ?? (() => {})} notify={notify} />
+          <PrivacySettings
+            key={account.user?.id ?? "guest"}
+            account={account}
+            openAuth={openAuth ?? (() => {})}
+            notify={notify}
+          />
         )
       ) : (
         <>

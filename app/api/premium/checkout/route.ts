@@ -37,7 +37,9 @@ export async function POST(request: Request) {
       "line_items[0][quantity]": "1",
       "line_items[0][price_data][currency]": "eur",
       "line_items[0][price_data][unit_amount]": String(pack.cents),
-      "line_items[0][price_data][product_data][name]": support ? "Soutien à Sudoku Clash" : `${pack.gems} Sudogemmes — Sudoku Clash`,
+      "line_items[0][price_data][product_data][name]": support
+        ? "Soutien à Sudoku Clash"
+        : `${pack.gems} Sudogemmes — Sudoku Clash`,
     });
     const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",

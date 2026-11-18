@@ -81,7 +81,8 @@ export function PremiumPacks({
       if (!r.ok) throw new Error("checkout");
       const data = (await r.json()) as { url: string };
       const url = new URL(data.url);
-      if (url.protocol !== "https:" || url.hostname !== "checkout.stripe.com") throw new Error("url");
+      if (url.protocol !== "https:" || url.hostname !== "checkout.stripe.com")
+        throw new Error("url");
       location.assign(url.href);
     } catch {
       setMessage("Paiement indisponible pour le moment. Aucun crédit ajouté.");
@@ -93,7 +94,8 @@ export function PremiumPacks({
       <span className="eyebrow">MONNAIE PREMIUM</span>
       <h2>Les Sudogemmes</h2>
       <p>
-        Acheter des Sudogemmes, c’est avant tout une façon de soutenir le développement de Sudoku Clash. Elles servent à débloquer des cosmétiques et ne donnent aucun avantage en partie.
+        Acheter des Sudogemmes, c’est avant tout une façon de soutenir le développement de Sudoku
+        Clash. Elles servent à débloquer des cosmétiques et ne donnent aucun avantage en partie.
       </p>
       {available === false && (
         <p className="premium-unavailable" role="status">

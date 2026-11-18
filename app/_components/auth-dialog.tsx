@@ -90,7 +90,6 @@ export function AuthDialog({
       if (result.error) throw result.error;
       if (mode === "signup" && !result.data.session)
         setInfo("Compte créé. Ouvrez l’e-mail de confirmation, puis connectez-vous.");
-
     } catch (e) {
       setError(friendlyError(e instanceof Error ? e.message : "Connexion impossible"));
     } finally {
@@ -250,7 +249,9 @@ export function AuthDialog({
               {busy ? "Connexion…" : mode === "signup" ? "Créer mon compte" : "Se connecter"}
             </button>
             {mode === "signin" && (
-              <small>Tu resteras connecté sur cet appareil. Pour quitter : Options → Déconnexion.</small>
+              <small>
+                Tu resteras connecté sur cet appareil. Pour quitter : Options → Déconnexion.
+              </small>
             )}
             {mode === "signin" && (
               <button className="auth-switch" onClick={() => changeMode("forgot")}>
