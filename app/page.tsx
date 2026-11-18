@@ -381,6 +381,7 @@ function HomeContent() {
                       <button
                         key={id}
                         onClick={() => id === "tournaments" ? openTournament() : setMode(id)}
+                        aria-pressed={mode === id}
                         className={mode === id ? "active" : ""}
                       >
                         <I />

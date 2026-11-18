@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./a11y.css";
 import "./themes.css";
+import "./menu-contrast.css";
 import { displayScript } from "./lib/settings-model";
 export const metadata: Metadata = {
   metadataBase: new URL("https://sudoklash.galletguemeric.chatgpt.site"),

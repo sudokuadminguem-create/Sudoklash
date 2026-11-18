@@ -1,0 +1,83 @@
+/* Accent colours stay local to the menus; the game board keeps its own palette. */
+html:not([data-contrast="high"]) .mode-tabs button {
+  background: #152137;
+  border-color: #536786;
+  color: #dce7fa;
+}
+html:not([data-contrast="high"]) .mode-tabs button:hover {
+  background: #1d3150;
+  border-color: #8faad6;
+}
+html:not([data-contrast="high"]) .mode-tabs button.active {
+  color: #fff;
+  background: #244472;
+  border-color: #a1c7ff;
+  box-shadow: inset 0 -3px #9bc6ff;
+}
+
+html:not([data-contrast="high"]) :is(.difficulty-grid, .daily-levels) button {
+  --menu-accent: #9dc6ff;
+  --menu-tint: #213350;
+  color: #f5f8ff;
+  border-color: color-mix(in srgb, var(--menu-accent) 64%, #26354d);
+  background: linear-gradient(155deg, var(--menu-tint), #132036 80%);
+}
+html:not([data-contrast="high"])
+  :is(.difficulty-grid:not(.variant-grid), .daily-levels)
+  button:nth-child(1) {
+  --menu-accent: #80e6b5;
+  --menu-tint: #1b3d35;
+}
+html:not([data-contrast="high"])
+  :is(.difficulty-grid:not(.variant-grid), .daily-levels)
+  button:nth-child(2) {
+  --menu-accent: #84e0ef;
+  --menu-tint: #1a3d4c;
+}
+html:not([data-contrast="high"])
+  :is(.difficulty-grid:not(.variant-grid), .daily-levels)
+  button:nth-child(3) {
+  --menu-accent: #a1c7ff;
+  --menu-tint: #233d64;
+}
+html:not([data-contrast="high"])
+  :is(.difficulty-grid:not(.variant-grid), .daily-levels)
+  button:nth-child(4) {
+  --menu-accent: #ffd18b;
+  --menu-tint: #493722;
+}
+html:not([data-contrast="high"])
+  :is(.difficulty-grid:not(.variant-grid), .daily-levels)
+  button:nth-child(5) {
+  --menu-accent: #ffacc4;
+  --menu-tint: #4a2c45;
+}
+html:not([data-contrast="high"])
+  :is(.difficulty-grid:not(.variant-grid), .daily-levels)
+  button:nth-child(6) {
+  --menu-accent: #d4b6ff;
+  --menu-tint: #382c56;
+}
+html:not([data-contrast="high"]) .difficulty-grid button {
+  box-shadow: inset 0 3px var(--menu-accent);
+}
+html:not([data-contrast="high"]) .difficulty-grid button small {
+  color: #d1def0;
+}
+html:not([data-contrast="high"]) .difficulty-grid button > span {
+  color: var(--menu-accent);
+}
+html:not([data-contrast="high"]) :is(.difficulty-grid, .daily-levels) button:hover {
+  border-color: var(--menu-accent);
+  background: var(--menu-tint);
+}
+html:not([data-contrast="high"]) .daily-levels button.active {
+  background: var(--menu-tint);
+  border-color: var(--menu-accent);
+  box-shadow: inset 0 -3px var(--menu-accent);
+  font-weight: 800;
+}
+:is(.mode-tabs, .difficulty-grid, .daily-levels) button:focus-visible {
+  outline: 2px solid #e3efff;
+  outline-offset: 2px;
+}
