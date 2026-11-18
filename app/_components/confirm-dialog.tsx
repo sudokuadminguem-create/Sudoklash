@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { TriangleAlert } from "lucide-react";
+import { TriangleAlert, X } from "lucide-react";
 
 /** Asks the player to confirm an action they cannot undo. */
 export function ConfirmDialog({
@@ -48,6 +48,14 @@ export function ConfirmDialog({
         aria-describedby="confirm-message"
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          type="button"
+          className="account-close"
+          aria-label="Fermer la confirmation"
+          onClick={onCancel}
+        >
+          <X aria-hidden="true" />
+        </button>
         <div className="account-shield">
           <TriangleAlert />
         </div>
