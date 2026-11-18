@@ -75,23 +75,16 @@ jobs:
             test-results/
           retention-days: 7
 
+  # Construction, analyse Trivy et test de démarrage à chaque demande de fusion ; sur main,
+  # publication en plus sur Docker Hub (étiquettes edge et sha-<commit>).
   docker:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Build the image
-        run: docker build -t sudoklash:ci .
-      - name: Start it hardened and wait for the health check
-        run: |
-          docker run -d --name sudoklash --read-only --cap-drop ALL \
-            --security-opt no-new-privileges:true \
-            --tmpfs /tmp --tmpfs /app/.next/cache:uid=1000,gid=1000 \
-            -p 3000:3000 sudoklash:ci
-          for i in $(seq 1 30); do
-            status=$(docker inspect -f '{{.State.Health.Status}}' sudoklash)
-            [ "$status" = healthy ] && break
-            sleep 2
-          done
-          docker logs sudoklash
-          test "$status" = healthy
-          curl -fsS http://127.0.0.1:3000/api/health
+    permissions:
+      contents: read
+    uses: ./.github/workflows/docker-image.yml
+    with:
+      push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+      COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}

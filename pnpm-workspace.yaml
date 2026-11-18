@@ -18,4 +18,7 @@ packageImportMethod: clone-or-copy
 verifyDepsBeforeRun: false
 optimisticRepeatInstall: false
 overrides:
-  miniflare>sharp: 0.35.4
+  miniflare>sharp: 0.35.5
+  # Transitive dependencies of next with fixed high-severity advisories.
+  browserslist: ^4.28.7
+  source-map-js: ^1.2.2
