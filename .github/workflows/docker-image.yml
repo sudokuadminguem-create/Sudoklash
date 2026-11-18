@@ -110,7 +110,9 @@ jobs:
 
       - name: Résumé de l'analyse
         if: ${{ !cancelled() }}
+        # Le rapport va aussi dans le journal du job, lisible sans ouvrir le résumé.
         run: |
+          cat trivy.txt 2>/dev/null || echo "Pas de rapport."
           {
             echo "### Analyse Trivy de l'image (failles critiques et hautes avec correctif)"
             echo '```'
