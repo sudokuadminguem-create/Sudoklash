@@ -234,90 +234,207 @@ export async function GET(request: Request) {
   }
 }
 
+type PostBody = {
+  action?: string;
+  index?: unknown;
+  number?: unknown;
+  mistakeId?: unknown;
+  grid?: unknown;
+};
+
+const releaseClaim = (id: string) =>
+  env.DB!.prepare("UPDATE ranked_queue SET match_id = NULL WHERE match_id = ?").bind(id).run();
+
+/** Settles and forgets the finished match the player was still attached to. */
+async function leaveFinishedMatch(userId: string, matchId: string) {
+  const old = await matchFor(matchId);
+  if (old?.status === "playing") return false;
+  if (old) await settle(old);
+  await env
+    .DB!.prepare("DELETE FROM ranked_queue WHERE user_id = ? AND match_id = ?")
+    .bind(userId, matchId)
+    .run();
+  return true;
+}
+
+/** Pairs the player with a waiting opponent of similar rating, if there is one. */
+async function tryPairing(
+  userId: string,
+  difficulty: RankedDifficulty,
+  points: number,
+  now: number,
+) {
+  const opponent = await env
+    .DB!.prepare(
+      "SELECT q.user_id FROM ranked_queue q LEFT JOIN ranked_ratings r ON r.user_id=q.user_id WHERE q.match_id IS NULL AND q.user_id != ? AND q.difficulty = ? AND q.heartbeat_at > ? AND ABS(COALESCE(r.points,0)-?) <= 300 ORDER BY ABS(COALESCE(r.points,0)-?),q.queued_at LIMIT 1",
+    )
+    .bind(userId, difficulty, now - 15000, points, points)
+    .first<{ user_id: string }>();
+  if (!opponent) return;
+  const id = crypto.randomUUID();
+  const claimed = await env
+    .DB!.prepare(
+      "UPDATE ranked_queue SET match_id = ? WHERE user_id IN (?, ?) AND match_id IS NULL AND heartbeat_at > ? RETURNING user_id",
+    )
+    .bind(id, userId, opponent.user_id, now - 15000)
+    .all<{ user_id: string }>();
+  if (claimed.results.length !== 2) {
+    await releaseClaim(id);
+    return;
+  }
+  try {
+    const { puzzle, solution } = pickPuzzle(difficulty);
+    await env
+      .DB!.prepare(
+        "INSERT INTO ranked_matches (id,player1_id,player2_id,puzzle,solution,difficulty,started_at) VALUES (?,?,?,?,?,?,?)",
+      )
+      .bind(id, opponent.user_id, userId, puzzle, solution, difficulty, Date.now())
+      .run();
+  } catch (error) {
+    await releaseClaim(id);
+    throw error;
+  }
+}
+
+async function joinQueue(userId: string) {
+  const previous = await queueFor(userId);
+  if (previous?.match_id && !(await leaveFinishedMatch(userId, previous.match_id)))
+    return json(await state(userId));
+  const now = Date.now();
+  // Forget players who left the queue without cancelling.
+  await env
+    .DB!.prepare("DELETE FROM ranked_queue WHERE match_id IS NULL AND heartbeat_at < ?")
+    .bind(now - 60_000)
+    .run();
+  await env
+    .DB!.prepare(
+      "INSERT OR IGNORE INTO ranked_ratings (user_id,points,wins,losses,updated_at) VALUES (?,0,0,0,?)",
+    )
+    .bind(userId, now)
+    .run();
+  const currentRank = await rankState(userId);
+  const difficulty = currentRank.rank.difficulty;
+  await env
+    .DB!.prepare(
+      "INSERT INTO ranked_queue (user_id,queued_at,heartbeat_at,match_id,difficulty) VALUES (?,?,?,NULL,?) ON CONFLICT(user_id) DO UPDATE SET heartbeat_at=excluded.heartbeat_at,difficulty=excluded.difficulty WHERE match_id IS NULL",
+    )
+    .bind(userId, now, now, difficulty)
+    .run();
+  const current = await queueFor(userId);
+  if (!current?.match_id) await tryPairing(userId, difficulty, currentRank.points, now);
+  return json(await state(userId));
+}
+
+type Player = "player1" | "player2";
+type Columns = {
+  progress: `${Player}_progress`;
+  mistakes: `${Player}_mistakes`;
+  lastId: `${Player}_last_mistake_id`;
+  solved: `${Player}_solved`;
+};
+const columnsOf = (player: Player): Columns => ({
+  progress: `${player}_progress`,
+  mistakes: `${player}_mistakes`,
+  lastId: `${player}_last_mistake_id`,
+  solved: `${player}_solved`,
+});
+
+// Progress counts only cells the server has confirmed one by one. Counting the cells
+// of the submitted grid would tell a player how many of their guesses are right.
+async function confirmCell(
+  match: Match,
+  index: number,
+  { solved: solvedColumn, progress }: Columns,
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const current = await matchFor(match.id);
+    if (current?.status !== "playing") return;
+    const known = current[solvedColumn].padEnd(81, "0");
+    if (known[index] === "1") return;
+    const solved = `${known.slice(0, index)}1${known.slice(index + 1)}`;
+    const written = await env
+      .DB!.prepare(
+        `UPDATE ranked_matches SET ${solvedColumn} = ?, ${progress} = ? WHERE id = ? AND status = 'playing' AND ${solvedColumn} = ?`,
+      )
+      .bind(solved, solved.split("1").length - 1, match.id, current[solvedColumn])
+      .run();
+    if (written.meta.changes) return;
+  }
+}
+
+// The browser never has the solution: it sends each digit (with its grid, to track
+// progress) and learns whether it is right. Three wrong digits lose the match.
+async function checkDigit(
+  match: Match,
+  userId: string,
+  opponentId: string,
+  columns: Columns,
+  body: PostBody,
+) {
+  const { index, number, mistakeId, grid } = body;
+  if (
+    !isCellIndex(index) ||
+    !isDigit(number) ||
+    !isEntryId(mistakeId) ||
+    !isGridOf(match.puzzle, grid) ||
+    match.puzzle[index] !== "0" ||
+    grid[index] !== number
+  )
+    return json({ error: "invalid_entry" }, 400);
+  if (match.solution[index] === String(number)) {
+    await confirmCell(match, index, columns);
+    return json({ ...(await state(userId)), correct: true });
+  }
+  const { mistakes, lastId } = columns;
+  const key = mistakeKey(mistakeId, index, number);
+  await env
+    .DB!.prepare(
+      `UPDATE ranked_matches SET ${mistakes} = ${mistakes} + 1, ${lastId} = ?, status = CASE WHEN ${mistakes} >= 2 THEN 'finished' ELSE status END, winner_id = CASE WHEN ${mistakes} >= 2 THEN ? ELSE winner_id END, finish_reason = CASE WHEN ${mistakes} >= 2 THEN 'three_mistakes' ELSE finish_reason END, finished_at = CASE WHEN ${mistakes} >= 2 THEN ? ELSE finished_at END WHERE id = ? AND status = 'playing' AND ${mistakes} < 3 AND (${lastId} IS NULL OR ${lastId} != ?)`,
+    )
+    .bind(key, opponentId, Date.now(), match.id, key)
+    .run();
+  return json({ ...(await state(userId)), correct: false });
+}
+
+async function completeMatch(match: Match, userId: string, columns: Columns, grid: unknown) {
+  if (!matchesSolution(match.solution, grid)) return json({ error: "invalid_grid" }, 422);
+  if (match.status === "playing" && Date.now() - match.started_at < MIN_COMPLETE_SECONDS * 1000)
+    return json({ error: "too_fast" }, 422);
+  await env
+    .DB!.prepare(
+      `UPDATE ranked_matches SET status='finished',winner_id=?,finish_reason='completed',finished_at=?,${columns.progress}=? WHERE id=? AND status='playing' AND ${columns.mistakes}<3`,
+    )
+    .bind(userId, Date.now(), totalToFill(match), match.id)
+    .run();
+  return json(await state(userId));
+}
+
+/** A move in the match the player is in. */
+async function playMove(userId: string, body: PostBody) {
+  const queue = await queueFor(userId);
+  const match = queue?.match_id ? await matchFor(queue.match_id) : null;
+  if (!match || ![match.player1_id, match.player2_id].includes(userId))
+    return json({ error: "match_not_found" }, 404);
+  const first = match.player1_id === userId;
+  const columns = columnsOf(first ? "player1" : "player2");
+  const opponentId = first ? match.player2_id : match.player1_id;
+  if (body.action === "check") return checkDigit(match, userId, opponentId, columns, body);
+  if (body.action === "forfeit") {
+    await finishMatch(match.id, opponentId, "forfeit");
+    return json(await state(userId));
+  }
+  if (body.action === "complete") return completeMatch(match, userId, columns, body.grid);
+  return json({ error: "invalid_action" }, 400);
+}
+
 export async function POST(request: Request) {
   const user = await getSiteUser(request);
   if (!user) return json({ error: "authentication_required" }, 401);
-  const body = (await request.json().catch(() => null)) as {
-    action?: string;
-    index?: unknown;
-    number?: unknown;
-    mistakeId?: unknown;
-    grid?: unknown;
-  } | null;
+  const body = (await request.json().catch(() => null)) as PostBody | null;
   if (!body) return json({ error: "invalid_request" }, 400);
   const userId = user.userId;
   try {
-    if (body.action === "join") {
-      const previous = await queueFor(userId);
-      if (previous?.match_id) {
-        const old = await matchFor(previous.match_id);
-        if (old?.status === "playing") return json(await state(userId));
-        if (old) await settle(old);
-        await env
-          .DB!.prepare("DELETE FROM ranked_queue WHERE user_id = ? AND match_id = ?")
-          .bind(userId, previous.match_id)
-          .run();
-      }
-      const now = Date.now();
-      // Forget players who left the queue without cancelling.
-      await env
-        .DB!.prepare("DELETE FROM ranked_queue WHERE match_id IS NULL AND heartbeat_at < ?")
-        .bind(now - 60_000)
-        .run();
-      await env
-        .DB!.prepare(
-          "INSERT OR IGNORE INTO ranked_ratings (user_id,points,wins,losses,updated_at) VALUES (?,0,0,0,?)",
-        )
-        .bind(userId, now)
-        .run();
-      const currentRank = await rankState(userId);
-      const difficulty = currentRank.rank.difficulty;
-      await env
-        .DB!.prepare(
-          "INSERT INTO ranked_queue (user_id,queued_at,heartbeat_at,match_id,difficulty) VALUES (?,?,?,NULL,?) ON CONFLICT(user_id) DO UPDATE SET heartbeat_at=excluded.heartbeat_at,difficulty=excluded.difficulty WHERE match_id IS NULL",
-        )
-        .bind(userId, now, now, difficulty)
-        .run();
-      const current = await queueFor(userId);
-      if (current?.match_id) return json(await state(userId));
-      const opponent = await env
-        .DB!.prepare(
-          "SELECT q.user_id FROM ranked_queue q LEFT JOIN ranked_ratings r ON r.user_id=q.user_id WHERE q.match_id IS NULL AND q.user_id != ? AND q.difficulty = ? AND q.heartbeat_at > ? AND ABS(COALESCE(r.points,0)-?) <= 300 ORDER BY ABS(COALESCE(r.points,0)-?),q.queued_at LIMIT 1",
-        )
-        .bind(userId, difficulty, now - 15000, currentRank.points, currentRank.points)
-        .first<{ user_id: string }>();
-      if (opponent) {
-        const id = crypto.randomUUID();
-        const claimed = await env
-          .DB!.prepare(
-            "UPDATE ranked_queue SET match_id = ? WHERE user_id IN (?, ?) AND match_id IS NULL AND heartbeat_at > ? RETURNING user_id",
-          )
-          .bind(id, userId, opponent.user_id, now - 15000)
-          .all<{ user_id: string }>();
-        if (claimed.results.length === 2) {
-          try {
-            const { puzzle, solution } = pickPuzzle(difficulty);
-            await env
-              .DB!.prepare(
-                "INSERT INTO ranked_matches (id,player1_id,player2_id,puzzle,solution,difficulty,started_at) VALUES (?,?,?,?,?,?,?)",
-              )
-              .bind(id, opponent.user_id, userId, puzzle, solution, difficulty, Date.now())
-              .run();
-          } catch (error) {
-            await env
-              .DB!.prepare("UPDATE ranked_queue SET match_id = NULL WHERE match_id = ?")
-              .bind(id)
-              .run();
-            throw error;
-          }
-        } else
-          await env
-            .DB!.prepare("UPDATE ranked_queue SET match_id = NULL WHERE match_id = ?")
-            .bind(id)
-            .run();
-      }
-      return json(await state(userId));
-    }
+    if (body.action === "join") return await joinQueue(userId);
     if (body.action === "cancel") {
       await env
         .DB!.prepare("DELETE FROM ranked_queue WHERE user_id = ? AND match_id IS NULL")
@@ -325,74 +442,7 @@ export async function POST(request: Request) {
         .run();
       return json(await state(userId));
     }
-    const queue = await queueFor(userId);
-    const match = queue?.match_id ? await matchFor(queue.match_id) : null;
-    if (!match || ![match.player1_id, match.player2_id].includes(userId))
-      return json({ error: "match_not_found" }, 404);
-    const first = match.player1_id === userId;
-    const progress = first ? "player1_progress" : "player2_progress";
-    const mistakes = first ? "player1_mistakes" : "player2_mistakes";
-    const lastId = first ? "player1_last_mistake_id" : "player2_last_mistake_id";
-    const solvedColumn = first ? "player1_solved" : "player2_solved";
-    const opponentId = first ? match.player2_id : match.player1_id;
-    // The browser never has the solution: it sends each digit (with its grid, to track
-    // progress) and learns whether it is right. Three wrong digits lose the match.
-    if (body.action === "check") {
-      const { index, number, mistakeId, grid } = body;
-      if (
-        !isCellIndex(index) ||
-        !isDigit(number) ||
-        !isEntryId(mistakeId) ||
-        !isGridOf(match.puzzle, grid) ||
-        match.puzzle[index] !== "0" ||
-        grid[index] !== number
-      )
-        return json({ error: "invalid_entry" }, 400);
-      if (match.solution[index] === String(number)) {
-        // Progress counts only cells the server has confirmed one by one. Counting the cells
-        // of the submitted grid would tell a player how many of their guesses are right.
-        for (let attempt = 0; attempt < 3; attempt++) {
-          const current = await matchFor(match.id);
-          if (!current || current.status !== "playing") break;
-          const known = current[solvedColumn].padEnd(81, "0");
-          if (known[index] === "1") break;
-          const solved = `${known.slice(0, index)}1${known.slice(index + 1)}`;
-          const written = await env
-            .DB!.prepare(
-              `UPDATE ranked_matches SET ${solvedColumn} = ?, ${progress} = ? WHERE id = ? AND status = 'playing' AND ${solvedColumn} = ?`,
-            )
-            .bind(solved, solved.split("1").length - 1, match.id, current[solvedColumn])
-            .run();
-          if (written.meta.changes) break;
-        }
-        return json({ ...(await state(userId)), correct: true });
-      }
-      const key = mistakeKey(mistakeId, index, number);
-      await env
-        .DB!.prepare(
-          `UPDATE ranked_matches SET ${mistakes} = ${mistakes} + 1, ${lastId} = ?, status = CASE WHEN ${mistakes} >= 2 THEN 'finished' ELSE status END, winner_id = CASE WHEN ${mistakes} >= 2 THEN ? ELSE winner_id END, finish_reason = CASE WHEN ${mistakes} >= 2 THEN 'three_mistakes' ELSE finish_reason END, finished_at = CASE WHEN ${mistakes} >= 2 THEN ? ELSE finished_at END WHERE id = ? AND status = 'playing' AND ${mistakes} < 3 AND (${lastId} IS NULL OR ${lastId} != ?)`,
-        )
-        .bind(key, opponentId, Date.now(), match.id, key)
-        .run();
-      return json({ ...(await state(userId)), correct: false });
-    }
-    if (body.action === "forfeit") {
-      await finishMatch(match.id, opponentId, "forfeit");
-      return json(await state(userId));
-    }
-    if (body.action === "complete") {
-      if (!matchesSolution(match.solution, body.grid)) return json({ error: "invalid_grid" }, 422);
-      if (match.status === "playing" && Date.now() - match.started_at < MIN_COMPLETE_SECONDS * 1000)
-        return json({ error: "too_fast" }, 422);
-      await env
-        .DB!.prepare(
-          `UPDATE ranked_matches SET status='finished',winner_id=?,finish_reason='completed',finished_at=?,${progress}=? WHERE id=? AND status='playing' AND ${mistakes}<3`,
-        )
-        .bind(userId, Date.now(), totalToFill(match), match.id)
-        .run();
-      return json(await state(userId));
-    }
-    return json({ error: "invalid_action" }, 400);
+    return await playMove(userId, body);
   } catch {
     return json({ error: "matchmaking_unavailable" }, 503);
   }

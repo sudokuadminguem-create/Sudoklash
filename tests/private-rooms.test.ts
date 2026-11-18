@@ -58,3 +58,75 @@ it("keeps the chosen classic level and preserves Killer cages", async () => {
     ).cages,
   ).not.toBe("[]");
 });
+
+/** A started two-player classic room, seen by the host. */
+async function startedRoom() {
+  const { body } = await send("create", {
+    variant: "classic",
+    difficulty: "Facile",
+    maxPlayers: 2,
+  });
+  const { id, code } = body.room;
+  signIn("guest");
+  await send("join", { code });
+  await send("ready", { id, ready: true });
+  signIn("host");
+  await send("ready", { id, ready: true });
+  await send("start", { id });
+  const room = db.prepare("SELECT puzzle, solution FROM private_rooms WHERE id=?").get(id) as {
+    puzzle: string;
+    solution: string;
+  };
+  return { id, ...room };
+}
+
+it("checks a digit of an empty cell against the room's solution", async () => {
+  const { id, puzzle, solution } = await startedRoom();
+  const index = puzzle.indexOf("0");
+  const right = Number(solution[index]);
+  expect((await send("check", { id, index, number: right })).body).toEqual({ correct: true });
+  expect((await send("check", { id, index, number: (right % 9) + 1 })).body).toEqual({
+    correct: false,
+  });
+  const given = puzzle.search(/[1-9]/);
+  for (const fields of [
+    { index: given, number: 1 },
+    { index: 1.5, number: 1 },
+    { index, number: 0 },
+    { index, number: 10 },
+    { index, number: "1" },
+  ])
+    expect((await send("check", { id, ...fields })).status).toBe(409);
+});
+
+it("records progress from the right digits only and keeps the best count", async () => {
+  const { id, puzzle, solution } = await startedRoom();
+  const grid = [...puzzle].map(Number);
+  const empty = [...puzzle].flatMap((c, i) => (c === "0" ? [i] : []));
+  grid[empty[0]] = Number(solution[empty[0]]);
+  grid[empty[1]] = Number(solution[empty[1]]);
+  grid[empty[2]] = (Number(solution[empty[2]]) % 9) + 1;
+  expect((await send("progress", { id, grid })).body).toEqual({ ok: true });
+  expect((await send("progress", { id, grid: [...puzzle].map(Number) })).status).toBe(200);
+  const { progress } = db
+    .prepare("SELECT progress FROM private_room_players WHERE room_id=? AND user_id='host'")
+    .get(id) as { progress: number };
+  expect(progress).toBe(2);
+  expect((await send("progress", { id, grid: [1, 2, 3] })).status).toBe(409);
+});
+
+it("refuses moves before the start, unknown actions and invalid readiness", async () => {
+  const { body } = await send("create", {
+    variant: "classic",
+    difficulty: "Facile",
+    maxPlayers: 2,
+  });
+  const { id } = body.room;
+  expect((await send("check", { id, index: 0, number: 1 })).status).toBe(409);
+  expect((await send("progress", { id, grid: [] })).status).toBe(409);
+  expect((await send("ready", { id, ready: "yes" })).status).toBe(409);
+  expect((await send("teleport", { id })).status).toBe(409);
+  expect((await send("toString", { id })).status).toBe(409);
+  expect((await send("ready", { id: 42 })).status).toBe(400);
+  expect((await send("ready", { id: "missing", ready: true })).status).toBe(404);
+});

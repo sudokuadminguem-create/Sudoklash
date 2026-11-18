@@ -252,6 +252,181 @@ export async function GET(request: Request) {
   }
 }
 
+async function challenge(db: D1Database, me: string, body: Body) {
+  if (typeof body.friendId !== "string" || body.friendId === me)
+    return json({ error: "invalid_friend" }, 400);
+  if (!isSoloDifficulty(body.difficulty)) return json({ error: "invalid_difficulty" }, 400);
+  const friendship = await db
+    .prepare("SELECT 1 AS ok FROM friendships WHERE pair_key = ? AND status = 'accepted'")
+    .bind(friendPairKey(me, body.friendId))
+    .first();
+  if (!friendship) return json({ error: "not_friends" }, 403);
+  await db
+    .prepare(
+      "UPDATE friend_duels SET status = 'expired' WHERE status = 'pending' AND created_at < ?",
+    )
+    .bind(Date.now() - CHALLENGE_TTL_MS)
+    .run();
+  if (await busy(me, body.friendId)) return json({ error: "busy" }, 409);
+  const id = crypto.randomUUID();
+  await db
+    .prepare(
+      "INSERT INTO friend_duels (id, challenger_id, opponent_id, difficulty, created_at) VALUES (?, ?, ?, ?, ?)",
+    )
+    .bind(id, me, body.friendId, body.difficulty, Date.now())
+    .run();
+  return json({ ok: true, id });
+}
+
+async function closePending(db: D1Database, duel: Duel, status: "cancelled" | "declined") {
+  await db
+    .prepare(`UPDATE friend_duels SET status = '${status}' WHERE id = ? AND status = 'pending'`)
+    .bind(duel.id)
+    .run();
+  return json({ ok: true });
+}
+
+async function acceptChallenge(db: D1Database, duel: Duel) {
+  // One game at a time: a player already in a duel cannot start another.
+  const other = await db
+    .prepare(
+      "SELECT COUNT(*) AS n FROM friend_duels WHERE status = 'playing' AND id != ?3 AND (challenger_id IN (?1, ?2) OR opponent_id IN (?1, ?2))",
+    )
+    .bind(duel.challenger_id, duel.opponent_id, duel.id)
+    .first<{ n: number }>();
+  if ((other?.n ?? 0) > 0) return json({ error: "busy" }, 409);
+  const { puzzle, solution } = pickPuzzle(duel.difficulty as Parameters<typeof pickPuzzle>[0]);
+  const now = Date.now();
+  const started = await db
+    .prepare(
+      "UPDATE friend_duels SET status = 'playing', puzzle = ?, solution = ?, started_at = ?, challenger_seen_at = ?, opponent_seen_at = ? WHERE id = ? AND status = 'pending'",
+    )
+    .bind(puzzle, solution, now, now, now, duel.id)
+    .run();
+  if (!started.meta.changes) return json({ error: "challenge_closed" }, 409);
+  return json({ ok: true });
+}
+
+/** Accept, decline, cancel or dismiss the duel `id`. */
+async function answerDuel(db: D1Database, me: string, id: string, action: unknown) {
+  const duel = await duelById(id);
+  if (!duel || (duel.challenger_id !== me && duel.opponent_id !== me))
+    return json({ error: "duel_not_found" }, 404);
+
+  if (action === "dismiss") {
+    if (duel.status !== "finished") return json({ error: "not_finished" }, 409);
+    const column =
+      sideOf(duel, me) === "challenger" ? "challenger_dismissed" : "opponent_dismissed";
+    await db.prepare(`UPDATE friend_duels SET ${column} = 1 WHERE id = ?`).bind(duel.id).run();
+    return json({ ok: true });
+  }
+
+  if (duel.status !== "pending" || duel.created_at < Date.now() - CHALLENGE_TTL_MS)
+    return json({ error: "challenge_closed" }, 409);
+
+  if (action === "cancel") {
+    if (duel.challenger_id !== me) return json({ error: "duel_not_found" }, 404);
+    return closePending(db, duel, "cancelled");
+  }
+
+  // Accepting or declining is up to the friend who was challenged.
+  if (duel.opponent_id !== me) return json({ error: "duel_not_found" }, 404);
+  if (action === "decline") return closePending(db, duel, "declined");
+  return acceptChallenge(db, duel);
+}
+
+type DuelRecord = Record<string, string | number | null>;
+type Columns = { solved: string; progress: string; mistakes: string; lastMistake: string };
+
+/** Progress counts only cells the server confirmed one by one. */
+async function confirmCell(db: D1Database, duel: Duel, index: number, columns: Columns) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const latest = (await duelById(duel.id)) as unknown as DuelRecord | null;
+    if (latest?.status !== "playing") return;
+    const known = String(latest[columns.solved]).padEnd(81, "0");
+    if (known[index] === "1") return;
+    const solved = `${known.slice(0, index)}1${known.slice(index + 1)}`;
+    const written = await db
+      .prepare(
+        `UPDATE friend_duels SET ${columns.solved} = ?, ${columns.progress} = ? WHERE id = ? AND status = 'playing' AND ${columns.solved} = ?`,
+      )
+      .bind(solved, solved.split("1").length - 1, duel.id, latest[columns.solved])
+      .run();
+    if (written.meta.changes) return;
+  }
+}
+
+// The browser never has the solution: it sends each digit and learns whether it is right.
+async function checkDigit(db: D1Database, duel: Duel, rival: string, columns: Columns, body: Body) {
+  const { index, number, mistakeId } = body;
+  if (!isCellIndex(index) || !isDigit(number) || !isEntryId(mistakeId))
+    return json({ error: "invalid_entry" }, 400);
+  if (duel.puzzle[index] !== "0") return json({ error: "invalid_entry" }, 422);
+  if (duel.solution[index] === String(number)) {
+    await confirmCell(db, duel, index, columns);
+    return json({
+      correct: true,
+      mistakes: Number((duel as unknown as DuelRecord)[columns.mistakes]),
+    });
+  }
+  const { mistakes: mistakesColumn, lastMistake: lastMistakeColumn } = columns;
+  const key = mistakeKey(mistakeId, index, number);
+  await db
+    .prepare(
+      `UPDATE friend_duels SET ${mistakesColumn} = ${mistakesColumn} + 1, ${lastMistakeColumn} = ?1,
+             status = CASE WHEN ${mistakesColumn} >= ${MAX_MISTAKES - 1} THEN 'finished' ELSE status END,
+             winner_id = CASE WHEN ${mistakesColumn} >= ${MAX_MISTAKES - 1} THEN ?2 ELSE winner_id END,
+             finish_reason = CASE WHEN ${mistakesColumn} >= ${MAX_MISTAKES - 1} THEN 'three_mistakes' ELSE finish_reason END,
+             finished_at = CASE WHEN ${mistakesColumn} >= ${MAX_MISTAKES - 1} THEN ?3 ELSE finished_at END
+           WHERE id = ?4 AND status = 'playing' AND ${mistakesColumn} < ${MAX_MISTAKES}
+             AND (${lastMistakeColumn} IS NULL OR ${lastMistakeColumn} != ?1)`,
+    )
+    .bind(key, rival, Date.now(), duel.id)
+    .run();
+  const latest = (await duelById(duel.id)) as unknown as DuelRecord;
+  return json({ correct: false, mistakes: Number(latest[mistakesColumn]) });
+}
+
+async function completeDuel(
+  db: D1Database,
+  duel: Duel,
+  me: string,
+  columns: Columns,
+  grid: unknown,
+) {
+  if (!matchesSolution(duel.solution, grid)) return json({ error: "invalid_grid" }, 422);
+  if (Date.now() - (duel.started_at ?? 0) < MIN_COMPLETE_SECONDS * 1000)
+    return json({ error: "too_fast" }, 422);
+  await db
+    .prepare(
+      `UPDATE friend_duels SET status = 'finished', winner_id = ?, finish_reason = 'completed', finished_at = ?, ${columns.progress} = ? WHERE id = ? AND status = 'playing' AND ${columns.mistakes} < ${MAX_MISTAKES}`,
+    )
+    .bind(me, Date.now(), totalToFill(duel), duel.id)
+    .run();
+  return json(await state(me));
+}
+
+/** A move in the duel this player is in. */
+async function playMove(db: D1Database, me: string, body: Body) {
+  const duel = await playingFor(me);
+  if (!duel) return json({ error: "duel_not_found" }, 404);
+  const side = sideOf(duel, me);
+  const rival = otherId(duel, me);
+  const columns: Columns = {
+    solved: `${side}_solved`,
+    progress: `${side}_progress`,
+    mistakes: `${side}_mistakes`,
+    lastMistake: `${side}_last_mistake`,
+  };
+  if (body.action === "check") return checkDigit(db, duel, rival, columns, body);
+  if (body.action === "complete") return completeDuel(db, duel, me, columns, body.grid);
+  if (body.action === "forfeit") {
+    await finish(duel.id, rival, "forfeit");
+    return json(await state(me));
+  }
+  return json({ error: "invalid_action" }, 400);
+}
+
 export async function POST(request: Request) {
   const user = await getSiteUser(request);
   if (!user) return json({ error: "authentication_required" }, 401);
@@ -262,166 +437,13 @@ export async function POST(request: Request) {
   const me = user.userId;
 
   try {
-    if (body.action === "challenge") {
-      if (typeof body.friendId !== "string" || body.friendId === me)
-        return json({ error: "invalid_friend" }, 400);
-      if (!isSoloDifficulty(body.difficulty)) return json({ error: "invalid_difficulty" }, 400);
-      const friendship = await db
-        .prepare("SELECT 1 AS ok FROM friendships WHERE pair_key = ? AND status = 'accepted'")
-        .bind(friendPairKey(me, body.friendId))
-        .first();
-      if (!friendship) return json({ error: "not_friends" }, 403);
-      await db
-        .prepare(
-          "UPDATE friend_duels SET status = 'expired' WHERE status = 'pending' AND created_at < ?",
-        )
-        .bind(Date.now() - CHALLENGE_TTL_MS)
-        .run();
-      if (await busy(me, body.friendId)) return json({ error: "busy" }, 409);
-      const id = crypto.randomUUID();
-      await db
-        .prepare(
-          "INSERT INTO friend_duels (id, challenger_id, opponent_id, difficulty, created_at) VALUES (?, ?, ?, ?, ?)",
-        )
-        .bind(id, me, body.friendId, body.difficulty, Date.now())
-        .run();
-      return json({ ok: true, id });
-    }
-
+    if (body.action === "challenge") return await challenge(db, me, body);
     if (
       typeof body.id === "string" &&
       ["accept", "decline", "cancel", "dismiss"].includes(String(body.action))
-    ) {
-      const duel = await duelById(body.id);
-      if (!duel || (duel.challenger_id !== me && duel.opponent_id !== me))
-        return json({ error: "duel_not_found" }, 404);
-
-      if (body.action === "dismiss") {
-        if (duel.status !== "finished") return json({ error: "not_finished" }, 409);
-        const column =
-          sideOf(duel, me) === "challenger" ? "challenger_dismissed" : "opponent_dismissed";
-        await db.prepare(`UPDATE friend_duels SET ${column} = 1 WHERE id = ?`).bind(duel.id).run();
-        return json({ ok: true });
-      }
-
-      if (duel.status !== "pending" || duel.created_at < Date.now() - CHALLENGE_TTL_MS)
-        return json({ error: "challenge_closed" }, 409);
-
-      if (body.action === "cancel") {
-        if (duel.challenger_id !== me) return json({ error: "duel_not_found" }, 404);
-        await db
-          .prepare(
-            "UPDATE friend_duels SET status = 'cancelled' WHERE id = ? AND status = 'pending'",
-          )
-          .bind(duel.id)
-          .run();
-        return json({ ok: true });
-      }
-
-      // Accepting or declining is up to the friend who was challenged.
-      if (duel.opponent_id !== me) return json({ error: "duel_not_found" }, 404);
-      if (body.action === "decline") {
-        await db
-          .prepare(
-            "UPDATE friend_duels SET status = 'declined' WHERE id = ? AND status = 'pending'",
-          )
-          .bind(duel.id)
-          .run();
-        return json({ ok: true });
-      }
-      // One game at a time: a player already in a duel cannot start another.
-      const other = await db
-        .prepare(
-          "SELECT COUNT(*) AS n FROM friend_duels WHERE status = 'playing' AND id != ?3 AND (challenger_id IN (?1, ?2) OR opponent_id IN (?1, ?2))",
-        )
-        .bind(duel.challenger_id, duel.opponent_id, duel.id)
-        .first<{ n: number }>();
-      if ((other?.n ?? 0) > 0) return json({ error: "busy" }, 409);
-      const { puzzle, solution } = pickPuzzle(duel.difficulty as Parameters<typeof pickPuzzle>[0]);
-      const now = Date.now();
-      const started = await db
-        .prepare(
-          "UPDATE friend_duels SET status = 'playing', puzzle = ?, solution = ?, started_at = ?, challenger_seen_at = ?, opponent_seen_at = ? WHERE id = ? AND status = 'pending'",
-        )
-        .bind(puzzle, solution, now, now, now, duel.id)
-        .run();
-      if (!started.meta.changes) return json({ error: "challenge_closed" }, 409);
-      return json({ ok: true });
-    }
-
-    // Everything below is a move in the duel this player is in.
-    const duel = await playingFor(me);
-    if (!duel) return json({ error: "duel_not_found" }, 404);
-    const side = sideOf(duel, me);
-    const rival = otherId(duel, me);
-    const solvedColumn = `${side}_solved`;
-    const progressColumn = `${side}_progress`;
-    const mistakesColumn = `${side}_mistakes`;
-    const lastMistakeColumn = `${side}_last_mistake`;
-    const current = duel as unknown as Record<string, string | number | null>;
-
-    // The browser never has the solution: it sends each digit and learns whether it is right.
-    if (body.action === "check") {
-      const { index, number, mistakeId } = body;
-      if (!isCellIndex(index) || !isDigit(number) || !isEntryId(mistakeId))
-        return json({ error: "invalid_entry" }, 400);
-      if (duel.puzzle[index] !== "0") return json({ error: "invalid_entry" }, 422);
-      if (duel.solution[index] === String(number)) {
-        // Progress counts only cells the server confirmed one by one.
-        for (let attempt = 0; attempt < 3; attempt++) {
-          const latest = (await duelById(duel.id)) as unknown as Record<
-            string,
-            string | number | null
-          > | null;
-          if (!latest || latest.status !== "playing") break;
-          const known = String(latest[solvedColumn]).padEnd(81, "0");
-          if (known[index] === "1") break;
-          const solved = `${known.slice(0, index)}1${known.slice(index + 1)}`;
-          const written = await db
-            .prepare(
-              `UPDATE friend_duels SET ${solvedColumn} = ?, ${progressColumn} = ? WHERE id = ? AND status = 'playing' AND ${solvedColumn} = ?`,
-            )
-            .bind(solved, solved.split("1").length - 1, duel.id, latest[solvedColumn])
-            .run();
-          if (written.meta.changes) break;
-        }
-        return json({ correct: true, mistakes: Number(current[mistakesColumn]) });
-      }
-      const key = mistakeKey(mistakeId, index, number);
-      await db
-        .prepare(
-          `UPDATE friend_duels SET ${mistakesColumn} = ${mistakesColumn} + 1, ${lastMistakeColumn} = ?1,
-             status = CASE WHEN ${mistakesColumn} >= ${MAX_MISTAKES - 1} THEN 'finished' ELSE status END,
-             winner_id = CASE WHEN ${mistakesColumn} >= ${MAX_MISTAKES - 1} THEN ?2 ELSE winner_id END,
-             finish_reason = CASE WHEN ${mistakesColumn} >= ${MAX_MISTAKES - 1} THEN 'three_mistakes' ELSE finish_reason END,
-             finished_at = CASE WHEN ${mistakesColumn} >= ${MAX_MISTAKES - 1} THEN ?3 ELSE finished_at END
-           WHERE id = ?4 AND status = 'playing' AND ${mistakesColumn} < ${MAX_MISTAKES}
-             AND (${lastMistakeColumn} IS NULL OR ${lastMistakeColumn} != ?1)`,
-        )
-        .bind(key, rival, Date.now(), duel.id)
-        .run();
-      const latest = (await duelById(duel.id)) as unknown as Record<string, string | number | null>;
-      return json({ correct: false, mistakes: Number(latest[mistakesColumn]) });
-    }
-
-    if (body.action === "complete") {
-      if (!matchesSolution(duel.solution, body.grid)) return json({ error: "invalid_grid" }, 422);
-      if (Date.now() - (duel.started_at ?? 0) < MIN_COMPLETE_SECONDS * 1000)
-        return json({ error: "too_fast" }, 422);
-      await db
-        .prepare(
-          `UPDATE friend_duels SET status = 'finished', winner_id = ?, finish_reason = 'completed', finished_at = ?, ${progressColumn} = ? WHERE id = ? AND status = 'playing' AND ${mistakesColumn} < ${MAX_MISTAKES}`,
-        )
-        .bind(me, Date.now(), totalToFill(duel), duel.id)
-        .run();
-      return json(await state(me));
-    }
-
-    if (body.action === "forfeit") {
-      await finish(duel.id, rival, "forfeit");
-      return json(await state(me));
-    }
-    return json({ error: "invalid_action" }, 400);
+    )
+      return await answerDuel(db, me, body.id, body.action);
+    return await playMove(db, me, body);
   } catch {
     return json({ error: "duels_unavailable" }, 503);
   }

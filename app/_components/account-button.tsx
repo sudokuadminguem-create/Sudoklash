@@ -12,6 +12,112 @@ import "../profile-menu.css";
 
 type Notice = { id: string; playerId: string; name: string; kind: "friend" | "duel" };
 
+type FriendsResponse = {
+  relationships: {
+    id: string;
+    otherUserId: string;
+    username: string;
+    status: string;
+    addressee_id: string;
+  }[];
+};
+type DuelsResponse = { incoming: { id: string; from: { id: string; username: string } }[] };
+
+/** Pending friend requests addressed to the player, then incoming duel invitations. */
+async function fetchNotices(userId: string): Promise<Notice[]> {
+  const headers = await authHeaders();
+  const responses = await Promise.all([
+    fetch("/api/friends", { headers, cache: "no-store" }),
+    fetch("/api/duels", { headers, cache: "no-store" }),
+  ]);
+  if (responses.some((response) => !response.ok)) throw new Error("notifications");
+  const [friends, duels] = (await Promise.all(responses.map((response) => response.json()))) as [
+    FriendsResponse,
+    DuelsResponse,
+  ];
+  return [
+    ...friends.relationships
+      .filter((row) => row.status === "pending" && row.addressee_id === userId)
+      .map((row) => ({
+        id: row.id,
+        playerId: row.otherUserId,
+        name: row.username,
+        kind: "friend" as const,
+      })),
+    ...duels.incoming.map((row) => ({
+      id: row.id,
+      playerId: row.from.id,
+      name: row.from.username,
+      kind: "duel" as const,
+    })),
+  ];
+}
+
+function noticeLabel(kind: Notice["kind"], en: boolean) {
+  if (kind === "friend") return en ? "Friend request · View" : "Demande d’ami · Voir";
+  return en ? "Duel invitation · View" : "Invitation au duel · Voir";
+}
+
+function NoticeList({
+  en,
+  loading,
+  error,
+  notices,
+  appearances,
+  onSelect,
+}: Readonly<{
+  en: boolean;
+  loading: boolean;
+  error: boolean;
+  notices: Notice[];
+  appearances: ReturnType<typeof usePlayerAppearances>;
+  onSelect: (notice: Notice) => void;
+}>) {
+  if (loading)
+    return (
+      <p>
+        <output>{en ? "Loading…" : "Chargement…"}</output>
+      </p>
+    );
+  if (error)
+    return (
+      <p>
+        <output>
+          {en
+            ? "Notifications temporarily unavailable."
+            : "Notifications momentanément indisponibles."}
+        </output>
+      </p>
+    );
+  if (!notices.length)
+    return <p>{en ? "No pending invitations." : "Aucune invitation en attente."}</p>;
+  return (
+    <ul className="profile-notices">
+      {notices.map((notice) => (
+        <li key={`${notice.kind}:${notice.id}`}>
+          <button onClick={() => onSelect(notice)}>
+            <PlayerAvatar
+              avatarId={appearances[notice.playerId]?.avatarId}
+              frameId={appearances[notice.playerId]?.frameId}
+              image={appearances[notice.playerId]?.image}
+              size="small"
+            />
+            <span>
+              <b>{notice.name}</b>
+              <small>{noticeLabel(notice.kind, en)}</small>
+            </span>
+            {notice.kind === "friend" ? (
+              <UserPlus aria-hidden="true" />
+            ) : (
+              <Swords aria-hidden="true" />
+            )}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function AccountButton({
   account,
   onOpen,
@@ -45,43 +151,9 @@ export function AccountButton({
     const load = async () => {
       if (document.hidden) return;
       try {
-        const headers = await authHeaders();
-        const responses = await Promise.all([
-          fetch("/api/friends", { headers, cache: "no-store" }),
-          fetch("/api/duels", { headers, cache: "no-store" }),
-        ]);
-        if (responses.some((response) => !response.ok)) throw new Error("notifications");
-        const [friends, duels] = (await Promise.all(
-          responses.map((response) => response.json()),
-        )) as [
-          {
-            relationships: {
-              id: string;
-              otherUserId: string;
-              username: string;
-              status: string;
-              addressee_id: string;
-            }[];
-          },
-          { incoming: { id: string; from: { id: string; username: string } }[] },
-        ];
+        const next = await fetchNotices(userId);
         if (live) {
-          setNotices([
-            ...friends.relationships
-              .filter((row) => row.status === "pending" && row.addressee_id === userId)
-              .map((row) => ({
-                id: row.id,
-                playerId: row.otherUserId,
-                name: row.username,
-                kind: "friend" as const,
-              })),
-            ...duels.incoming.map((row) => ({
-              id: row.id,
-              playerId: row.from.id,
-              name: row.from.username,
-              kind: "duel" as const,
-            })),
-          ]);
+          setNotices(next);
           setError(false);
         }
       } catch {
@@ -166,49 +238,14 @@ export function AccountButton({
           <Bell aria-hidden="true" />
           <h2>Notifications</h2>
         </div>
-        {loading ? (
-          <p role="status">{en ? "Loading…" : "Chargement…"}</p>
-        ) : error ? (
-          <p role="status">
-            {en
-              ? "Notifications temporarily unavailable."
-              : "Notifications momentanément indisponibles."}
-          </p>
-        ) : !notices.length ? (
-          <p>{en ? "No pending invitations." : "Aucune invitation en attente."}</p>
-        ) : (
-          <ul className="profile-notices">
-            {notices.map((notice) => (
-              <li key={`${notice.kind}:${notice.id}`}>
-                <button onClick={() => navigate(notice.kind === "friend" ? onFriends : onDuels)}>
-                  <PlayerAvatar
-                    avatarId={appearances[notice.playerId]?.avatarId}
-                    frameId={appearances[notice.playerId]?.frameId}
-                    image={appearances[notice.playerId]?.image}
-                    size="small"
-                  />
-                  <span>
-                    <b>{notice.name}</b>
-                    <small>
-                      {notice.kind === "friend"
-                        ? en
-                          ? "Friend request · View"
-                          : "Demande d’ami · Voir"
-                        : en
-                          ? "Duel invitation · View"
-                          : "Invitation au duel · Voir"}
-                    </small>
-                  </span>
-                  {notice.kind === "friend" ? (
-                    <UserPlus aria-hidden="true" />
-                  ) : (
-                    <Swords aria-hidden="true" />
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <NoticeList
+          en={en}
+          loading={loading}
+          error={error}
+          notices={notices}
+          appearances={appearances}
+          onSelect={(notice) => navigate(notice.kind === "friend" ? onFriends : onDuels)}
+        />
         <div className="profile-menu-actions">
           <button onClick={() => navigate(onAccount)}>
             <UserRound aria-hidden="true" />

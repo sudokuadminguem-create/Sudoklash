@@ -62,69 +62,164 @@ export async function GET(request: Request) {
   return snapshot(env.DB, new URL(request.url).searchParams.get("id") ?? "", user.userId);
 }
 
+type Body = Record<string, unknown>;
+/** A room action; a null result answers with the refreshed room. */
+type RoomAction = (
+  db: D1Database,
+  room: Room,
+  userId: string,
+  b: Body,
+) => Response | null | Promise<Response | null>;
+
+const impossible = () => fail("Action impossible pour cette partie.", 409);
+const racing = (room: Room) => Boolean(room.started_at && !room.winner_id);
+const isInteger = (value: unknown): value is number =>
+  typeof value === "number" && Number.isInteger(value);
+
+const validSettings = (variant: unknown, difficulty: unknown, maxPlayers: unknown) =>
+  isInteger(maxPlayers) &&
+  maxPlayers >= 2 &&
+  maxPlayers <= 8 &&
+  (variant === "classic" ? isSoloDifficulty(difficulty) : isVariantId(variant));
+
+async function createRoom(db: D1Database, userId: string, b: Body) {
+  const { difficulty, variant, maxPlayers } = b;
+  if (!validSettings(variant, difficulty, maxPlayers)) return fail("Réglages invalides.");
+  const id = crypto.randomUUID(),
+    code = id.slice(0, 6).toUpperCase();
+  const variantId = isVariantId(variant) ? variant : null;
+  const game = variantId
+    ? pickVariantGame(variantId)
+    : pickPuzzle(difficulty as Parameters<typeof pickPuzzle>[0]);
+  const digits = (value: string | readonly number[]) =>
+    typeof value === "string" ? value : value.join("");
+  await db.batch([
+    db
+      .prepare(
+        "INSERT INTO private_rooms (id,code,host_id,difficulty,variant,puzzle,solution,cages,max_players,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+      )
+      .bind(
+        id,
+        code,
+        userId,
+        variantId ? variantInfo[variantId].label : difficulty,
+        variant,
+        digits(game.puzzle),
+        digits(game.solution),
+        JSON.stringify("cages" in game ? game.cages : []),
+        maxPlayers,
+        Date.now(),
+      ),
+    db.prepare("INSERT INTO private_room_players (room_id,user_id) VALUES (?,?)").bind(id, userId),
+  ]);
+  return snapshot(db, id, userId);
+}
+
+async function joinRoom(db: D1Database, userId: string, code: unknown) {
+  if (typeof code !== "string" || !/^[A-F0-9]{6}$/.test(code)) return fail("Code invalide.");
+  const room = await db
+    .prepare("SELECT id FROM private_rooms WHERE code=? AND created_at>?")
+    .bind(code, expiry())
+    .first<{ id: string }>();
+  if (!room) return fail("Salon introuvable ou expiré.", 404);
+  await db
+    .prepare(
+      "INSERT OR IGNORE INTO private_room_players (room_id,user_id) SELECT id,? FROM private_rooms WHERE id=? AND started_at IS NULL AND (SELECT COUNT(*) FROM private_room_players WHERE room_id=private_rooms.id)<max_players",
+    )
+    .bind(userId, room.id)
+    .run();
+  const result = await snapshot(db, room.id, userId);
+  return result.status === 404
+    ? fail("Ce salon est complet ou la course a déjà commencé.", 409)
+    : result;
+}
+
+const setReady: RoomAction = async (db, room, userId, b) => {
+  if (typeof b.ready !== "boolean") return impossible();
+  await db
+    .prepare(
+      "UPDATE private_room_players SET is_ready=? WHERE room_id=? AND user_id=? AND EXISTS (SELECT 1 FROM private_rooms WHERE id=? AND started_at IS NULL)",
+    )
+    .bind(Number(b.ready), room.id, userId, room.id)
+    .run();
+  return null;
+};
+
+const startRace: RoomAction = async (db, room, userId) => {
+  if (room.host_id !== userId) return fail("Seul l’hôte peut lancer la course.", 403);
+  const result = await db
+    .prepare(
+      "UPDATE private_rooms SET started_at=? WHERE id=? AND started_at IS NULL AND (SELECT COUNT(*) FROM private_room_players WHERE room_id=?)>=2 AND NOT EXISTS (SELECT 1 FROM private_room_players WHERE room_id=? AND is_ready=0)",
+    )
+    .bind(Date.now(), room.id, room.id, room.id)
+    .run();
+  if (!result.meta.changes)
+    return fail("Il faut au moins deux joueurs et tout le monde doit être prêt.", 409);
+  return null;
+};
+
+const checkDigit: RoomAction = (_db, room, _userId, b) => {
+  const { index, number } = b;
+  if (
+    !racing(room) ||
+    !isInteger(index) ||
+    room.puzzle[index] !== "0" ||
+    !isInteger(number) ||
+    number < 1 ||
+    number > 9
+  )
+    return impossible();
+  return json({ correct: Number(room.solution[index]) === number });
+};
+
+const recordProgress: RoomAction = async (db, room, userId, b) => {
+  const { grid } = b;
+  if (!racing(room) || !Array.isArray(grid) || grid.length !== room.solution.length)
+    return impossible();
+  const progress = grid.filter(
+    (digit, index) => room.puzzle[index] === "0" && digit === Number(room.solution[index]),
+  ).length;
+  await db
+    .prepare(
+      "UPDATE private_room_players SET progress=MAX(progress,?) WHERE room_id=? AND user_id=?",
+    )
+    .bind(progress, room.id, userId)
+    .run();
+  return json({ ok: true });
+};
+
+const completeRace: RoomAction = async (db, room, userId, b) => {
+  if (!racing(room) || b.grid !== room.solution) return impossible();
+  await db.batch([
+    db
+      .prepare("UPDATE private_rooms SET winner_id=? WHERE id=? AND winner_id IS NULL")
+      .bind(userId, room.id),
+    db
+      .prepare(
+        "UPDATE private_room_players SET progress=? WHERE room_id=? AND user_id=? AND EXISTS (SELECT 1 FROM private_rooms WHERE id=? AND winner_id=?)",
+      )
+      .bind(room.puzzle.split("0").length - 1, room.id, userId, room.id, userId),
+  ]);
+  return null;
+};
+
+const roomActions: Record<string, RoomAction> = {
+  ready: setReady,
+  start: startRace,
+  check: checkDigit,
+  progress: recordProgress,
+  complete: completeRace,
+};
+
 export async function POST(request: Request) {
   const user = await getSiteUser(request);
   if (!user) return fail("Connecte-toi pour jouer.", 401);
   const db = env.DB;
   if (!db) return fail("Salons indisponibles.", 503);
-  const b = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const b = (await request.json().catch(() => null)) as Body | null;
   if (!b) return fail("Demande invalide.");
-  if (b.action === "create") {
-    const { difficulty, variant, maxPlayers } = b;
-    if (
-      typeof maxPlayers !== "number" ||
-      !Number.isInteger(maxPlayers) ||
-      maxPlayers < 2 ||
-      maxPlayers > 8 ||
-      !(variant === "classic" ? isSoloDifficulty(difficulty) : isVariantId(variant))
-    )
-      return fail("Réglages invalides.");
-    const id = crypto.randomUUID(),
-      code = id.slice(0, 6).toUpperCase();
-    const game = isVariantId(variant)
-      ? pickVariantGame(variant)
-      : pickPuzzle(difficulty as Parameters<typeof pickPuzzle>[0]);
-    await db.batch([
-      db
-        .prepare(
-          "INSERT INTO private_rooms (id,code,host_id,difficulty,variant,puzzle,solution,cages,max_players,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        )
-        .bind(
-          id,
-          code,
-          user.userId,
-          isVariantId(variant) ? variantInfo[variant].label : difficulty,
-          variant,
-          typeof game.puzzle === "string" ? game.puzzle : game.puzzle.join(""),
-          typeof game.solution === "string" ? game.solution : game.solution.join(""),
-          JSON.stringify("cages" in game ? game.cages : []),
-          maxPlayers,
-          Date.now(),
-        ),
-      db
-        .prepare("INSERT INTO private_room_players (room_id,user_id) VALUES (?,?)")
-        .bind(id, user.userId),
-    ]);
-    return snapshot(db, id, user.userId);
-  }
-  if (b.action === "join") {
-    if (typeof b.code !== "string" || !/^[A-F0-9]{6}$/.test(b.code)) return fail("Code invalide.");
-    const room = await db
-      .prepare("SELECT id FROM private_rooms WHERE code=? AND created_at>?")
-      .bind(b.code, expiry())
-      .first<{ id: string }>();
-    if (!room) return fail("Salon introuvable ou expiré.", 404);
-    await db
-      .prepare(
-        "INSERT OR IGNORE INTO private_room_players (room_id,user_id) SELECT id,? FROM private_rooms WHERE id=? AND started_at IS NULL AND (SELECT COUNT(*) FROM private_room_players WHERE room_id=private_rooms.id)<max_players",
-      )
-      .bind(user.userId, room.id)
-      .run();
-    const result = await snapshot(db, room.id, user.userId);
-    return result.status === 404
-      ? fail("Ce salon est complet ou la course a déjà commencé.", 409)
-      : result;
-  }
+  if (b.action === "create") return createRoom(db, user.userId, b);
+  if (b.action === "join") return joinRoom(db, user.userId, b.code);
   if (typeof b.id !== "string") return fail("Salon invalide.");
   const id = b.id;
   const room = await db
@@ -134,69 +229,10 @@ export async function POST(request: Request) {
     .bind(id, user.userId, expiry())
     .first<Room>();
   if (!room) return fail("Salon introuvable ou expiré.", 404);
-  if (b.action === "ready" && typeof b.ready === "boolean") {
-    await db
-      .prepare(
-        "UPDATE private_room_players SET is_ready=? WHERE room_id=? AND user_id=? AND EXISTS (SELECT 1 FROM private_rooms WHERE id=? AND started_at IS NULL)",
-      )
-      .bind(Number(b.ready), id, user.userId, id)
-      .run();
-  } else if (b.action === "start") {
-    if (room.host_id !== user.userId) return fail("Seul l’hôte peut lancer la course.", 403);
-    const result = await db
-      .prepare(
-        "UPDATE private_rooms SET started_at=? WHERE id=? AND started_at IS NULL AND (SELECT COUNT(*) FROM private_room_players WHERE room_id=?)>=2 AND NOT EXISTS (SELECT 1 FROM private_room_players WHERE room_id=? AND is_ready=0)",
-      )
-      .bind(Date.now(), id, id, id)
-      .run();
-    if (!result.meta.changes)
-      return fail("Il faut au moins deux joueurs et tout le monde doit être prêt.", 409);
-  } else if (
-    b.action === "check" &&
-    room.started_at &&
-    !room.winner_id &&
-    typeof b.index === "number" &&
-    Number.isInteger(b.index) &&
-    room.puzzle[b.index] === "0" &&
-    typeof b.number === "number" &&
-    Number.isInteger(b.number) &&
-    b.number >= 1 &&
-    b.number <= 9
-  ) {
-    return json({ correct: Number(room.solution[b.index]) === b.number });
-  } else if (
-    b.action === "progress" &&
-    room.started_at &&
-    !room.winner_id &&
-    Array.isArray(b.grid) &&
-    b.grid.length === room.solution.length
-  ) {
-    const progress = b.grid.filter(
-      (digit, index) => room.puzzle[index] === "0" && digit === Number(room.solution[index]),
-    ).length;
-    await db
-      .prepare(
-        "UPDATE private_room_players SET progress=MAX(progress,?) WHERE room_id=? AND user_id=?",
-      )
-      .bind(progress, id, user.userId)
-      .run();
-    return json({ ok: true });
-  } else if (
-    b.action === "complete" &&
-    room.started_at &&
-    !room.winner_id &&
-    b.grid === room.solution
-  ) {
-    await db.batch([
-      db
-        .prepare("UPDATE private_rooms SET winner_id=? WHERE id=? AND winner_id IS NULL")
-        .bind(user.userId, id),
-      db
-        .prepare(
-          "UPDATE private_room_players SET progress=? WHERE room_id=? AND user_id=? AND EXISTS (SELECT 1 FROM private_rooms WHERE id=? AND winner_id=?)",
-        )
-        .bind(room.puzzle.split("0").length - 1, id, user.userId, id, user.userId),
-    ]);
-  } else return fail("Action impossible pour cette partie.", 409);
-  return snapshot(db, id, user.userId);
+  const action =
+    typeof b.action === "string" && Object.hasOwn(roomActions, b.action)
+      ? roomActions[b.action]
+      : null;
+  if (!action) return impossible();
+  return (await action(db, room, user.userId, b)) ?? snapshot(db, id, user.userId);
 }

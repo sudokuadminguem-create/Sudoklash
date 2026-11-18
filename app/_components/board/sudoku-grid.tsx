@@ -37,7 +37,7 @@ function cageLayout(geometry: Geometry) {
   const { size, cages } = geometry;
   const owner = new Map<number, number>();
   cages.forEach((cage, k) => cage.cells.forEach((cell) => owner.set(cell, k)));
-  const layout = new Map<number, { edges: string; sum?: number; total: number }>();
+  const layout = new Map<number, CageCell>();
   cages.forEach((cage, k) => {
     const first = Math.min(...cage.cells);
     for (const cell of cage.cells) {
@@ -54,6 +54,62 @@ function cageLayout(geometry: Geometry) {
     }
   });
   return layout;
+}
+
+type Translate = ReturnType<typeof useI18n>["t"];
+type CageCell = { edges: string; sum?: number; total: number };
+type CellState = {
+  i: number;
+  props: SudokuGridProps;
+  wrong: boolean;
+  locked: boolean;
+  diagonal: boolean;
+  cage: CageCell | undefined;
+};
+
+function contentLabel(t: Translate, v: number, { i, props, wrong, locked }: CellState) {
+  if (v) return t("cell.value", { n: v }) + (locked ? t("cell.locked") : "");
+  if (wrong) return t("cell.wrongEmpty");
+  const notes = props.notes[i];
+  return t("cell.empty") + (notes?.length ? t("cell.notes", { list: notes.join(", ") }) : "");
+}
+
+/** What a screen reader says about a cell: where it is, what it holds, which zones it is in. */
+function cellLabel(t: Translate, state: CellState & { row: number; col: number; v: number }) {
+  const { row, col, v, i, props, diagonal, cage } = state;
+  return (
+    t("cell.base", { row: row + 1, col: col + 1 }) +
+    (props.puzzle[i] ? t("cell.given") : "") +
+    contentLabel(t, v, state) +
+    (diagonal ? t("cell.diagonal") : "") +
+    (cage ? t("cell.cage", { total: cage.total }) : "")
+  );
+}
+
+function hintClass({ i, props }: CellState) {
+  if (props.hintTarget === i) return "hint-target";
+  if (props.patternCells.has(i)) return "hint-pattern";
+  return props.hintCells.has(i) ? "hint-unit" : "";
+}
+
+const cageEdgeClass = (edge: string) => `cage-${edge}`;
+const cageEdgeClasses = (edges: string) => [...edges].map(cageEdgeClass).join(" ");
+
+function cellClass(state: CellState & { sameValue: boolean; failed: boolean }) {
+  const { i, props, sameValue, wrong, locked, failed, diagonal, cage } = state;
+  const cageClass = cage ? `cage ${cageEdgeClasses(cage.edges)}` : "";
+  return `${props.puzzle[i] ? "given" : "entered"} ${props.selected === i ? "sel" : ""} ${props.isRelated(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${locked ? "confirmed" : ""} ${failed ? "unverified" : ""} ${diagonal ? "diag" : ""} ${cageClass} ${hintClass(state)}`;
+}
+
+function CellNotes({ notes, digits }: Readonly<{ notes: number[] | undefined; digits: number[] }>) {
+  if (!notes?.length) return "";
+  return (
+    <span className="cell-notes">
+      {digits.map((n) => (
+        <i key={n}>{notes.includes(n) ? n : ""}</i>
+      ))}
+    </span>
+  );
 }
 
 /** The grid: givens, entered digits, notes and the state of each cell. */
@@ -114,34 +170,33 @@ export function SudokuGrid(props: SudokuGridProps) {
                 aria-selected={selected === i}
                 aria-readonly={!!puzzle[i] || locked}
                 aria-invalid={wrong || undefined}
-                aria-label={
-                  t("cell.base", { row: row + 1, col: col + 1 }) +
-                  (puzzle[i] ? t("cell.given") : "") +
-                  (v
-                    ? t("cell.value", { n: v }) + (locked ? t("cell.locked") : "")
-                    : wrong
-                      ? t("cell.wrongEmpty")
-                      : t("cell.empty") +
-                        (notes[i]?.length ? t("cell.notes", { list: notes[i].join(", ") }) : "")) +
-                  (diagonals.has(i) ? t("cell.diagonal") : "") +
-                  (cage ? t("cell.cage", { total: cage.total }) : "")
-                }
+                aria-label={cellLabel(t, {
+                  row,
+                  col,
+                  i,
+                  v,
+                  wrong,
+                  locked,
+                  props,
+                  diagonal: diagonals.has(i),
+                  cage,
+                })}
                 disabled={props.lost}
                 onClick={() => props.onSelect(i)}
-                className={`${puzzle[i] ? "given" : "entered"} ${selected === i ? "sel" : ""} ${props.isRelated(i) ? "line" : ""} ${sameValue ? "same" : ""} ${wrong ? "wrong" : ""} ${locked ? "confirmed" : ""} ${failed ? "unverified" : ""} ${diagonals.has(i) ? "diag" : ""} ${cage ? `cage ${[...cage.edges].map((e) => `cage-${e}`).join(" ")}` : ""} ${props.hintTarget === i ? "hint-target" : props.patternCells.has(i) ? "hint-pattern" : props.hintCells.has(i) ? "hint-unit" : ""}`}
+                className={cellClass({
+                  i,
+                  props,
+                  sameValue,
+                  wrong,
+                  locked,
+                  failed,
+                  diagonal: diagonals.has(i),
+                  cage,
+                })}
                 style={props.won ? ({ "--wave": row + col } as CSSProperties) : undefined}
               >
                 {cage?.sum !== undefined && <span className="cage-sum">{cage.sum}</span>}
-                {v ||
-                  (notes[i]?.length ? (
-                    <span className="cell-notes">
-                      {noteDigits.map((n) => (
-                        <i key={n}>{notes[i].includes(n) ? n : ""}</i>
-                      ))}
-                    </span>
-                  ) : (
-                    ""
-                  ))}
+                {v || <CellNotes notes={notes[i]} digits={noteDigits} />}
               </button>
             );
           })}

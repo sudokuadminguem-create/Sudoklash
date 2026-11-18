@@ -32,12 +32,8 @@ import { AccountOverview } from "./_components/account-overview";
 import { AuthDialog } from "./_components/auth-dialog";
 import { Leaderboard } from "./_components/leaderboard";
 import { SupportPodium } from "./_components/support";
-import { TournamentBanner, Tournaments, useTournaments } from "./_components/tournaments";
-import { ModePanel } from "./_components/mode-panel";
-import { PlayerAvatar } from "./_components/player-cosmetics";
-import { RankedGame } from "./_components/ranked-game";
-import { RankedMatch } from "./_components/ranked-match";
-import { FriendDuel } from "./_components/friend-duel";
+import { TournamentBanner, useTournaments } from "./_components/tournaments";
+import { GuestDailyInvite, HomeAccountButton, PlayModeContent } from "./_components/home-play";
 import { RealFriends } from "./_components/real-friends";
 import { useDuelInvites } from "./lib/use-duel-invites";
 import { PwaStatus } from "./_components/pwa-status";
@@ -95,7 +91,10 @@ function HomeContent() {
   const onlineCount = useLivePresence();
   const tournamentFeed = useTournaments();
   const [tournamentId, setTournamentId] = useState<string | null>(null);
-  const openTournament = (id?:string) => { setTournamentId(id ?? null); setMode("tournaments"); };
+  const openTournament = (id?: string) => {
+    setTournamentId(id ?? null);
+    setMode("tournaments");
+  };
   const fr = locale === "fr";
   const [view, setView] = useState<View>("jouer"),
     [mode, setMode] = useState("solo"),
@@ -116,7 +115,13 @@ function HomeContent() {
     [recoveryStatus, setRecoveryStatus] = useState<"checking" | "ready" | "expired">("checking");
   useEffect(() => {
     const query = new URLSearchParams(location.search);
-    if (query.has("premium_session") || query.has("premium_cancelled") || query.has("support_session") || query.has("support_cancelled")) setView("boutique");
+    if (
+      query.has("premium_session") ||
+      query.has("premium_cancelled") ||
+      query.has("support_session") ||
+      query.has("support_cancelled")
+    )
+      setView("boutique");
   }, []);
   const account = useAccount();
   const cosmetics = useCosmetics(account);
@@ -293,7 +298,12 @@ function HomeContent() {
               </div>
               <div className="header-actions">
                 {account.user && !account.loading && (
-                  <WalletBalances coins={cosmetics.state?.coins} gems={cosmetics.state?.gems} locale={locale} openShop={() => setView("boutique")} />
+                  <WalletBalances
+                    coins={cosmetics.state?.coins}
+                    gems={cosmetics.state?.gems}
+                    locale={locale}
+                    openShop={() => setView("boutique")}
+                  />
                 )}
                 <AccountButton
                   key={account.user?.id ?? "guest"}
@@ -328,55 +338,22 @@ function HomeContent() {
                       <h2>{t("home.title")}</h2>
                       <p>{t("home.lead")}</p>
                     </div>
-                    <button
-                      className="rank-card beta-account home-account-button"
+                    <HomeAccountButton
+                      account={account}
+                      cosmetics={cosmetics}
                       onClick={() => (account.user ? setView("compte") : setAuthOpen(true))}
-                      aria-label={
-                        account.user ? t("home.accountSignedIn") : t("home.accountSignedOut")
-                      }
-                    >
-                      <PlayerAvatar
-                        avatarId={cosmetics.state?.avatarId}
-                        image={cosmetics.state?.customAvatar}
-                        frameId={cosmetics.state?.frameId}
-                        size="large"
-                        fallback={account.user ? undefined : "?"}
-                      />
-                      <span className="home-account-text">
-                        <small>
-                          {t("home.myAccount")} ·{" "}
-                          {account.user
-                            ? t("home.level", { level: cosmetics.state?.level ?? 1 })
-                            : t("home.notConnected")}
-                        </small>
-                        <b>{account.profile?.username || t("home.chooseAvatar")}</b>
-                        <span>
-                          {account.user ? t("home.viewProfile") : t("home.signInToCustomize")}
-                        </span>
-                      </span>
-                    </button>
+                    />
                   </section>
-                  {!account.loading && !account.user && mode !== "daily" && (
-                    <aside className="panel daily-invite" aria-label={fr ? "Découvrir le défi du jour" : "Discover the daily challenge"}>
-                      <div>
-                        <h3>{fr ? "À toi de jouer : le défi du jour" : "Try today’s challenge"}</h3>
-                        <p>{fr ? "Crée un compte gratuit pour jouer la grille du jour et comparer ton temps." : "Create a free account to play today’s puzzle and compare your time."}</p>
-                      </div>
-                      <button type="button" className="primary" onClick={() => setMode("daily")}>
-                        {fr ? "Voir la grille du jour" : "See today’s puzzle"}
-                      </button>
-                    </aside>
-                  )}
-                  {!account.loading && !account.user && mode === "daily" && (
-                    <aside className="panel daily-invite">
-                      <div>
-                        <h3>{fr ? "Débloque le défi du jour" : "Unlock the daily challenge"}</h3>
-                        <p>{fr ? "Un compte gratuit suffit pour jouer et enregistrer ton score." : "Create a free account to play and save your score."}</p>
-                      </div>
-                      <button type="button" className="primary" onClick={() => { setStartSignup(true); setAuthOpen(true); }}>
-                        {fr ? "Créer un compte gratuit" : "Create a free account"}
-                      </button>
-                    </aside>
+                  {!account.loading && !account.user && (
+                    <GuestDailyInvite
+                      fr={fr}
+                      daily={mode === "daily"}
+                      onDiscover={() => setMode("daily")}
+                      onSignup={() => {
+                        setStartSignup(true);
+                        setAuthOpen(true);
+                      }}
+                    />
                   )}
                   <SupportPodium />
                   <TournamentBanner feed={tournamentFeed} onOpen={openTournament} />
@@ -384,45 +361,38 @@ function HomeContent() {
                     {modeTabs.map(([id, label, I]) => (
                       <button
                         key={id}
-                        onClick={() => id === "tournaments" ? openTournament() : setMode(id)}
+                        onClick={() => (id === "tournaments" ? openTournament() : setMode(id))}
                         aria-pressed={mode === id}
                         className={mode === id ? "active" : ""}
                       >
                         <I />
-                        {id === "classée" ? <span className="ranked-tab-copy">{t(label)}<span className="ranked-online">{onlineCount === null ? "—" : new Intl.NumberFormat(locale).format(onlineCount)} {fr ? "en ligne" : "online"}</span></span> : t(label)}
+                        {id === "classée" ? (
+                          <span className="ranked-tab-copy">
+                            {t(label)}
+                            <span className="ranked-online">
+                              {onlineCount === null
+                                ? "—"
+                                : new Intl.NumberFormat(locale).format(onlineCount)}{" "}
+                              {fr ? "en ligne" : "online"}
+                            </span>
+                          </span>
+                        ) : (
+                          t(label)
+                        )}
                         {id === "duel" && duelInvites > 0 && <small>{duelInvites}</small>}
                       </button>
                     ))}
                   </div>
-                  {mode === "tournaments" ? (
-                    <Tournaments key={account.user?.id ?? "guest"} feed={tournamentFeed} id={tournamentId} onOpen={openTournament} userId={account.user?.id} coins={cosmetics.state?.coins} openAuth={() => setAuthOpen(true)} walletRefresh={() => void cosmetics.refresh()} />
-                  ) : mode === "classée" ? (
-                    <RankedMatch
-                      account={account}
-                      cosmetics={cosmetics}
-                      openAuth={() => setAuthOpen(true)}
-                      renderGame={(match, refresh) => (
-                        <RankedGame match={match} refresh={refresh} account={account} />
-                      )}
-                    />
-                  ) : mode === "duel" ? (
-                    <FriendDuel
-                      account={account}
-                      openAuth={() => setAuthOpen(true)}
-                      notify={notify}
-                      target={duelTarget}
-                      onTargetUsed={() => setDuelTarget(null)}
-                    />
-                  ) : (
-                    <ModePanel
-                      key={mode === "daily" ? account.user?.id ?? "daily-guest" : "other-modes"}
-                      mode={mode}
-                      notify={notify}
-                      account={account}
-                      cosmetics={cosmetics}
-                      openAuth={() => setAuthOpen(true)}
-                    />
-                  )}
+                  <PlayModeContent
+                    mode={mode}
+                    account={account}
+                    cosmetics={cosmetics}
+                    notify={notify}
+                    openAuth={() => setAuthOpen(true)}
+                    tournaments={{ feed: tournamentFeed, id: tournamentId, onOpen: openTournament }}
+                    duelTarget={duelTarget}
+                    onDuelTargetUsed={() => setDuelTarget(null)}
+                  />
                 </>
               )}
               {view === "compte" && (
@@ -476,7 +446,14 @@ function HomeContent() {
             <div className="toast" role="status" aria-live="polite">
               <Check />
               {toast}
-              <button type="button" className="toast-close" aria-label={fr ? "Fermer la notification" : "Dismiss notification"} onClick={() => setToast("")}><X aria-hidden="true" /></button>
+              <button
+                type="button"
+                className="toast-close"
+                aria-label={fr ? "Fermer la notification" : "Dismiss notification"}
+                onClick={() => setToast("")}
+              >
+                <X aria-hidden="true" />
+              </button>
             </div>
           )}
           {authOpen && (
@@ -491,7 +468,10 @@ function HomeContent() {
                 setAuthOpen(false);
                 notify("Mot de passe mis à jour");
               }}
-              onClose={() => { setStartSignup(false); setAuthOpen(false); }}
+              onClose={() => {
+                setStartSignup(false);
+                setAuthOpen(false);
+              }}
             />
           )}
         </main>

@@ -81,6 +81,42 @@ type VictoryProps = {
   onNewGame?: () => void;
 };
 
+/** XP line of a solo victory: the reward, the save in progress, or why there is none. */
+function SoloExperience({
+  experience,
+  experienceTotal,
+  onConnect,
+}: Readonly<Pick<VictoryProps, "experience" | "experienceTotal" | "onConnect">>) {
+  const { t } = useI18n();
+  if (typeof experience === "number")
+    return (
+      <>
+        <span className="solo-xp-burst" aria-hidden="true">
+          ✦
+        </span>
+        <strong key={experience}>+{experience} XP</strong>
+        <small>{t("victory.xpNote")}</small>
+        {experienceTotal !== null && (
+          <ExperienceProgress gained={experience} totalXp={experienceTotal} />
+        )}
+      </>
+    );
+  if (experience === "saving") return <small>{t("victory.saving")}</small>;
+  if (experience === "guest")
+    return (
+      <>
+        <small>{t("victory.guest")}</small>
+        {onConnect && (
+          <button className="solo-xp-connect" onClick={onConnect}>
+            {t("victory.signIn")}
+          </button>
+        )}
+      </>
+    );
+  if (experience === "error") return <small>{t("victory.notSaved")}</small>;
+  return null;
+}
+
 /** Victory screen: the game in numbers, the XP earned and the buttons to share or replay. */
 export function VictoryPanel(props: VictoryProps) {
   const { experience, soloExperience, onNewGame } = props;
@@ -126,31 +162,11 @@ export function VictoryPanel(props: VictoryProps) {
       )}
       {soloExperience && (
         <div className="solo-xp" role="status" aria-live="polite">
-          {typeof experience === "number" ? (
-            <>
-              <span className="solo-xp-burst" aria-hidden="true">
-                ✦
-              </span>
-              <strong key={experience}>+{experience} XP</strong>
-              <small>{t("victory.xpNote")}</small>
-              {props.experienceTotal !== null && (
-                <ExperienceProgress gained={experience} totalXp={props.experienceTotal} />
-              )}
-            </>
-          ) : experience === "saving" ? (
-            <small>{t("victory.saving")}</small>
-          ) : experience === "guest" ? (
-            <>
-              <small>{t("victory.guest")}</small>
-              {props.onConnect && (
-                <button className="solo-xp-connect" onClick={props.onConnect}>
-                  {t("victory.signIn")}
-                </button>
-              )}
-            </>
-          ) : experience === "error" ? (
-            <small>{t("victory.notSaved")}</small>
-          ) : null}
+          <SoloExperience
+            experience={experience}
+            experienceTotal={props.experienceTotal}
+            onConnect={props.onConnect}
+          />
         </div>
       )}
       <div className="victory-actions">

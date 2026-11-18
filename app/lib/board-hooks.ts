@@ -22,6 +22,20 @@ export type BoardShortcuts = {
   move?: (key: string) => boolean;
 };
 
+function handleMoveKey(e: KeyboardEvent, shortcuts: BoardShortcuts) {
+  if (!isMoveKey(e.key) || e.ctrlKey || e.metaKey || e.altKey) return;
+  const target = e.target instanceof Element ? e.target : null;
+  const inGrid = !target || target === document.body || !!target.closest(".sudoku");
+  if (inGrid && shortcuts.move?.(e.key)) e.preventDefault();
+}
+
+function handleHistoryKey(e: KeyboardEvent, shortcuts: BoardShortcuts) {
+  if (!e.ctrlKey && !e.metaKey) return;
+  const key = e.key.toLowerCase();
+  if (key === "z" && !e.shiftKey) shortcuts.undo();
+  if ((key === "z" && e.shiftKey) || key === "y") shortcuts.redo?.();
+}
+
 /**
  * Keyboard play: 1-9 place a digit, Backspace erases, N toggles notes, Ctrl/⌘+Z undoes,
  * Ctrl/⌘+Shift+Z or Ctrl/⌘+Y redoes. The arrows, Home, End and Page keys move the selection while
@@ -34,16 +48,8 @@ export function useBoardShortcuts(shortcuts: BoardShortcuts) {
       if (e.key >= "1" && e.key <= "9") shortcuts.digit(Number(e.key));
       if (e.key === "Backspace" || e.key === "Delete") shortcuts.erase();
       if (e.key.toLowerCase() === "n") shortcuts.toggleNotes();
-      if (isMoveKey(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const target = e.target instanceof Element ? e.target : null;
-        const inGrid = !target || target === document.body || !!target.closest(".sudoku");
-        if (inGrid && shortcuts.move?.(e.key)) e.preventDefault();
-      }
-      if (e.ctrlKey || e.metaKey) {
-        const key = e.key.toLowerCase();
-        if (key === "z" && !e.shiftKey) shortcuts.undo();
-        if ((key === "z" && e.shiftKey) || key === "y") shortcuts.redo?.();
-      }
+      handleMoveKey(e, shortcuts);
+      handleHistoryKey(e, shortcuts);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

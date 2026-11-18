@@ -10,6 +10,12 @@ import { PlayerAvatar } from "./player-cosmetics";
 type Award = Achievement & { unlocked: boolean };
 type Payload = { achievements: Award[]; newlyUnlocked: string[] };
 
+/** Appends the awards of `fresh` that are not already waiting in `queue`. */
+function enqueueNew(queue: Award[], fresh: Award[]) {
+  const waiting = new Set(queue.map((item) => item.id));
+  return [...queue, ...fresh.filter((a) => !waiting.has(a.id))];
+}
+
 export function ChallengeAnnouncer({
   account,
   cosmetics,
@@ -53,12 +59,7 @@ export function ChallengeAnnouncer({
           stored ? !known.includes(a.id) : payload.newlyUnlocked?.includes(a.id),
         );
         localStorage.setItem(key, JSON.stringify(unlocked.map((a) => a.id)));
-        if (fresh.length) {
-          setQueue((previous) => [
-            ...previous,
-            ...fresh.filter((a) => !previous.some((item) => item.id === a.id)),
-          ]);
-        }
+        if (fresh.length) setQueue((previous) => enqueueNew(previous, fresh));
       } catch {
         /* try again on the next check */
       } finally {

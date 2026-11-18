@@ -20,6 +20,85 @@ type ChallengeData = {
   mistakes: number;
 };
 
+function challengeTitle(title: string, isDaily: boolean, difficulty: Difficulty) {
+  return isDaily ? `${title} · ${difficulty} — Défi quotidien` : `${title} — Défi hebdomadaire`;
+}
+
+function FinishedChallenge({
+  data,
+  earnedXp,
+  remaining,
+  isDaily,
+}: Readonly<{
+  data: ChallengeData;
+  earnedXp: number | null;
+  remaining: number;
+  isDaily: boolean;
+}>) {
+  if (data.status === "completed")
+    return (
+      <div className="panel weekly-state weekly-complete" style={{ position: "relative" }}>
+        <VictoryEffect won={earnedXp !== null} />
+        <Trophy />
+        <span className="eyebrow">GRILLE TERMINÉE</span>
+        <h2>Votre temps : {formatDuration(data.elapsedSeconds || 0)}</h2>
+        <p>Votre tentative est enregistrée. Cette grille ne peut plus être rejouée.</p>
+        {earnedXp !== null && (
+          <ExperienceProgress gained={isDaily ? 100 : 250} totalXp={earnedXp} />
+        )}
+        <div className="next-week">
+          <span>Prochaine grille dans</span>
+          <b>{formatDuration(remaining)}</b>
+        </div>
+      </div>
+    );
+  return (
+    <div className="panel weekly-state weekly-failed">
+      <X />
+      <span className="eyebrow">TENTATIVE TERMINÉE</span>
+      <h2>Trois erreurs : grille perdue</h2>
+      <p>Cette grille ne peut plus être terminée ni rejouée.</p>
+      <div className="next-week">
+        <span>Nouvelle grille dans</span>
+        <b>{formatDuration(remaining)}</b>
+      </div>
+    </div>
+  );
+}
+
+function ChallengeRules({
+  frequency,
+  isDaily,
+  remaining,
+}: Readonly<{
+  frequency: string;
+  isDaily: boolean;
+  remaining: number;
+}>) {
+  return (
+    <aside className="card rightcol weekly-rules">
+      <span className="eyebrow">RÈGLES DU DÉFI</span>
+      <h3>
+        Une chance par {frequency}
+        {isDaily ? " et par difficulté" : ""}
+      </h3>
+      <p>
+        La grille apparaît au clic sur « Je suis prêt ». Le chronomètre continue même si vous fermez
+        la page.
+      </p>
+      <p>Trois erreurs mettent fin à la tentative.</p>
+      <div className="next-week compact">
+        <span>Nouvelle grille dans</span>
+        <b>{formatDuration(remaining)}</b>
+      </div>
+      <span className="fair">
+        <ShieldCheck />
+        Départ et résultat vérifiés
+      </span>
+    </aside>
+  );
+}
+
 export function TimedChallenge({
   kind,
   openAuth,
@@ -211,35 +290,9 @@ export function TimedChallenge({
         {error && <p>{error}</p>}
       </div>
     );
-  if (data.status === "completed")
+  if (data.status === "completed" || data.status === "failed")
     return (
-      <div className="panel weekly-state weekly-complete" style={{ position: "relative" }}>
-        <VictoryEffect won={earnedXp !== null} />
-        <Trophy />
-        <span className="eyebrow">GRILLE TERMINÉE</span>
-        <h2>Votre temps : {formatDuration(data.elapsedSeconds || 0)}</h2>
-        <p>Votre tentative est enregistrée. Cette grille ne peut plus être rejouée.</p>
-        {earnedXp !== null && (
-          <ExperienceProgress gained={isDaily ? 100 : 250} totalXp={earnedXp} />
-        )}
-        <div className="next-week">
-          <span>Prochaine grille dans</span>
-          <b>{formatDuration(remaining)}</b>
-        </div>
-      </div>
-    );
-  if (data.status === "failed")
-    return (
-      <div className="panel weekly-state weekly-failed">
-        <X />
-        <span className="eyebrow">TENTATIVE TERMINÉE</span>
-        <h2>Trois erreurs : grille perdue</h2>
-        <p>Cette grille ne peut plus être terminée ni rejouée.</p>
-        <div className="next-week">
-          <span>Nouvelle grille dans</span>
-          <b>{formatDuration(remaining)}</b>
-        </div>
-      </div>
+      <FinishedChallenge data={data} earnedXp={earnedXp} remaining={remaining} isDaily={isDaily} />
     );
   const initialSeconds =
     data.startedAt && now
@@ -254,7 +307,7 @@ export function TimedChallenge({
           puzzle={data.puzzle}
           judge={judge}
           competitive
-          title={`${data.title}${isDaily ? ` · ${difficulty}` : ""} — Défi ${isDaily ? "quotidien" : "hebdomadaire"}`}
+          title={challengeTitle(data.title, isDaily, difficulty)}
           active={data.status === "in_progress"}
           initialSeconds={initialSeconds}
           initialMistakes={data.mistakes}
@@ -278,26 +331,7 @@ export function TimedChallenge({
           </div>
         )}
       </div>
-      <aside className="card rightcol weekly-rules">
-        <span className="eyebrow">RÈGLES DU DÉFI</span>
-        <h3>
-          Une chance par {frequency}
-          {isDaily ? " et par difficulté" : ""}
-        </h3>
-        <p>
-          La grille apparaît au clic sur « Je suis prêt ». Le chronomètre continue même si vous
-          fermez la page.
-        </p>
-        <p>Trois erreurs mettent fin à la tentative.</p>
-        <div className="next-week compact">
-          <span>Nouvelle grille dans</span>
-          <b>{formatDuration(remaining)}</b>
-        </div>
-        <span className="fair">
-          <ShieldCheck />
-          Départ et résultat vérifiés
-        </span>
-      </aside>
+      <ChallengeRules frequency={frequency} isDaily={isDaily} remaining={remaining} />
     </div>
   );
 }

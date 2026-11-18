@@ -78,6 +78,23 @@ type SudokuBoardProps = {
   previousBest?: number | null;
 };
 
+/** Hints of a game: one in a race, none in a challenge, three otherwise. */
+function defaultHintLimit(race: boolean, competitive: boolean) {
+  if (race) return 1;
+  return competitive ? 0 : 3;
+}
+
+function eyebrowKey(hintsAllowed: number | undefined, race: boolean, competitive: boolean) {
+  if (race) return hintsAllowed === 0 ? "eyebrow.ranked" : "eyebrow.private";
+  return competitive ? "eyebrow.challenge" : "eyebrow.normal";
+}
+
+// A hint is over once its digit is on the board, or the game is.
+function hintStillShown(shownHint: ShownHint | null, cells: readonly number[], over: boolean) {
+  if (!shownHint || over || cells[shownHint.index] === shownHint.number) return null;
+  return shownHint;
+}
+
 export function SudokuBoard({
   puzzle,
   judge,
@@ -184,7 +201,7 @@ export function SudokuBoard({
     verdictsRef.current = next;
     setVerdicts(next);
   };
-  const hintLimit = hintsAllowed ?? (race ? 1 : competitive ? 0 : 3);
+  const hintLimit = hintsAllowed ?? defaultHintLimit(!!race, competitive);
   useEffect(() => {
     if (!storageKey) return;
     const saved = Number(window.localStorage.getItem(storageKey));
@@ -441,11 +458,7 @@ export function SudokuBoard({
     selectedValue = selected === null ? 0 : cells[selected];
   const related = (i: number) =>
     settings.highlightUnits && selected !== null && areRelated(geometry, i, selected);
-  // A hint is over once its digit is on the board, or the game is.
-  const hint =
-    shownHint && cells[shownHint.index] !== shownHint.number && !done && mistakes < 3
-      ? shownHint
-      : null;
+  const hint = hintStillShown(shownHint, cells, done || mistakes >= 3);
   const hintCells = hint ? hintUnitCells(hint.index, hint.step?.unit?.cells) : new Set<number>();
   const patternCells = new Set(hint?.step?.pattern?.cells ?? []);
   const requestHint = async () => {
@@ -484,16 +497,7 @@ export function SudokuBoard({
   const record = personalRecord(previousBest, seconds, t);
   const lost = mistakes >= MAX_MISTAKES;
   const eyebrow = `${
-    modeLabel ??
-    t(
-      hintsAllowed === 0 && race
-        ? "eyebrow.ranked"
-        : race
-          ? "eyebrow.private"
-          : competitive
-            ? "eyebrow.challenge"
-            : "eyebrow.normal",
-    )
+    modeLabel ?? t(eyebrowKey(hintsAllowed, !!race, competitive))
   } · ${levelName(t, difficulty).toUpperCase()}`;
   return (
     <div

@@ -206,8 +206,20 @@ const epic: Entry[] = [
   ["Neuf heures neuf", "Terminer une grille solo à 09 h 09, heure de Paris", "soloAt909", 1, "◷"],
   ["9:09", "Terminer une grille solo en 9 min 09 s", "soloTime909", 1, "ϟ"],
   ["Neuf vies", "Terminer 9 grilles maître", "master", 9, "✺"],
-  ["Dernière seconde", "Terminer une grille solo entre 23 h 59 et minuit, heure de Paris", "soloAt2359", 1, "◴"],
-  ["Nouveau jour", "Terminer une grille solo entre minuit et 00 h 01, heure de Paris", "soloAt0000", 1, "☼"],
+  [
+    "Dernière seconde",
+    "Terminer une grille solo entre 23 h 59 et minuit, heure de Paris",
+    "soloAt2359",
+    1,
+    "◴",
+  ],
+  [
+    "Nouveau jour",
+    "Terminer une grille solo entre minuit et 00 h 01, heure de Paris",
+    "soloAt0000",
+    1,
+    "☼",
+  ],
   ["Neuvième cercle", "Terminer 81 grilles solo", "solo", 81, "◎"],
   ["Rituel neuf", "Réussir 9 quotidiennes consécutives", "dailyStreak", 9, "✳"],
   ["Esprit clair", "Terminer 25 grilles expertes", "expert", 25, "◈"],
@@ -220,8 +232,20 @@ const epic: Entry[] = [
   ["Rivalité", "Gagner 75 duels classés", "wins", 75, "⚔"],
   ["Résilience", "Jouer 250 duels classés", "ranked", 250, "⬡"],
   ["Ascension", "Gagner 25 duels classés sans erreur", "rankedCleanWins", 25, "▲"],
-  ["Double défi", "Réussir la quotidienne et l’hebdomadaire le même jour", "doubleChallengeDays", 1, "☯"],
-  ["Semaine totale", "Réussir les 7 quotidiennes et l’hebdomadaire d’une même semaine", "perfectWeeks", 1, "✷"],
+  [
+    "Double défi",
+    "Réussir la quotidienne et l’hebdomadaire le même jour",
+    "doubleChallengeDays",
+    1,
+    "☯",
+  ],
+  [
+    "Semaine totale",
+    "Réussir les 7 quotidiennes et l’hebdomadaire d’une même semaine",
+    "perfectWeeks",
+    1,
+    "✷",
+  ],
   ["Déclic", "Terminer une hebdomadaire en moins de 30 min", "weeklyFast30", 1, "✦"],
   ["Sept jours", "Terminer une grille solo pendant 7 jours consécutifs", "soloStreak", 7, "◷"],
   ["Caméléon", "Terminer 10 grilles maître sans erreur", "masterClean", 10, "❖"],
@@ -286,28 +310,66 @@ const majestic: Entry[] = [
   ["Ascendant", "Atteindre le niveau 25", "level", 25, "✶"],
 ];
 export const achievementFrames = [
-  { id: "challenge-mini-playground", name: "Petit génie", requirement: "Réussir 1 grille Mini 6×6 · Cadre Récréation", metric: "mini" as const, target: 1, rarity: "simple" as const, color: "#ff8aca", accent: "#63dcff", symbol: "🧸" },
+  {
+    id: "challenge-mini-playground",
+    name: "Petit génie",
+    requirement: "Réussir 1 grille Mini 6×6 · Cadre Récréation",
+    metric: "mini" as const,
+    target: 1,
+    rarity: "simple" as const,
+    color: "#ff8aca",
+    accent: "#63dcff",
+    symbol: "🧸",
+  },
   ...make(visible, "simple", "v"),
   ...make(epic, "epic", "e"),
   ...make(legendary, "legendary", "l"),
   ...make(majestic, "majestic", "m"),
-  { id: "challenge-l-026", name: "Ascension divine", requirement: "Super méga défi : réussir 1 grille Killer", metric: "killer" as const, target: 1, rarity: "legendary" as const, color: "#ffe9a3", accent: "#b87d26", symbol: "☀" },
+  {
+    id: "challenge-l-026",
+    name: "Ascension divine",
+    requirement: "Super méga défi : réussir 1 grille Killer",
+    metric: "killer" as const,
+    target: 1,
+    rarity: "legendary" as const,
+    color: "#ffe9a3",
+    accent: "#b87d26",
+    symbol: "☀",
+  },
 ];
 export type AchievementProgress = Record<Metric, number>;
-export function earnedAchievements(progress: AchievementProgress, alreadyEarned:Iterable<string>=[]) {
-  const earned=new Set(alreadyEarned);
-  let changed=true;
-  while(changed){
-    changed=false;
-    const visible=achievementFrames.filter(a=>a.rarity==="simple"&&earned.has(a.id)).length;
-    const epic=achievementFrames.filter(a=>a.rarity==="epic"&&earned.has(a.id)).length;
-    for(const a of achievementFrames){
-      if(earned.has(a.id))continue;
-      // The two original collection finales count their original 150 frames.
-      const originalCount=[...earned].filter(id=>!id.startsWith("challenge-m-")&&id!=="challenge-l-026"&&id!=="challenge-mini-playground").length;
-      const count=a.metric==="frames"?visible:a.metric==="epicFrames"?epic:a.metric==="otherFrames"?originalCount:progress[a.metric];
-      if(count>=a.target){earned.add(a.id);changed=true}
+type AchievementFrame = (typeof achievementFrames)[number];
+const countEarned = (earned: Set<string>, rarity: AchievementFrame["rarity"]) =>
+  achievementFrames.filter((a) => a.rarity === rarity && earned.has(a.id)).length;
+// The two original collection finales count their original 150 frames.
+const isOriginalFrame = (id: string) =>
+  !id.startsWith("challenge-m-") && id !== "challenge-l-026" && id !== "challenge-mini-playground";
+function metricCount(
+  metric: Metric,
+  progress: AchievementProgress,
+  earned: Set<string>,
+  collected: { visible: number; epic: number },
+) {
+  if (metric === "frames") return collected.visible;
+  if (metric === "epicFrames") return collected.epic;
+  if (metric === "otherFrames") return [...earned].filter(isOriginalFrame).length;
+  return progress[metric];
+}
+export function earnedAchievements(
+  progress: AchievementProgress,
+  alreadyEarned: Iterable<string> = [],
+) {
+  const earned = new Set(alreadyEarned);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const collected = { visible: countEarned(earned, "simple"), epic: countEarned(earned, "epic") };
+    for (const a of achievementFrames) {
+      if (earned.has(a.id) || metricCount(a.metric, progress, earned, collected) < a.target)
+        continue;
+      earned.add(a.id);
+      changed = true;
     }
   }
-  return achievementFrames.filter(a=>earned.has(a.id));
+  return achievementFrames.filter((a) => earned.has(a.id));
 }

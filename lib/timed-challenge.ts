@@ -28,6 +28,15 @@ type TimedChallenge = {
   periodColumn: "day_id" | "week_id";
 };
 
+type PostContext = {
+  db: D1Database;
+  userId: string;
+  periodId: string;
+  nextAt: string;
+  config: ChallengeConfig;
+  now: number;
+};
+
 type PostBody = {
   difficulty?: unknown;
   action?: string;
@@ -139,6 +148,62 @@ export function timedChallengeRoute({ kind, table, periodColumn }: TimedChalleng
     });
   }
 
+  // The browser never has the solution: it sends each digit and learns whether it is right.
+  async function checkEntry({ db, userId, periodId, nextAt, config }: PostContext, body: PostBody) {
+    const attempt = await currentAttempt(userId, periodId);
+    if (!attempt) return Response.json({ error: "not_started" }, { status: 409 });
+    if (attempt.completed_at || attempt.mistakes >= MAX_MISTAKES)
+      return Response.json({ correct: false, ...payload(attempt, nextAt, config) });
+
+    const { index, number, mistakeId } = body;
+    if (!isCellIndex(index) || !isDigit(number) || !isEntryId(mistakeId))
+      return Response.json({ error: "invalid_entry" }, { status: 400 });
+    const puzzle = attempt.puzzle ?? config.puzzle;
+    const solution = solvePuzzle(puzzle);
+    if (puzzle[index] !== "0" || !solution)
+      return Response.json({ error: "invalid_entry" }, { status: 422 });
+    if (solution[index] === number)
+      return Response.json({ correct: true, ...payload(attempt, nextAt, config) });
+
+    const key = mistakeKey(mistakeId, index, number);
+    await db
+      .prepare(
+        `UPDATE ${table} SET mistakes = mistakes + 1, last_mistake_id = ? WHERE user_id = ? AND ${periodColumn} = ? AND completed_at IS NULL AND mistakes < 3 AND (last_mistake_id IS NULL OR last_mistake_id != ?)`,
+      )
+      .bind(key, userId, periodId, key)
+      .run();
+    const updated = await currentAttempt(userId, periodId);
+    return Response.json({ correct: false, ...payload(updated, nextAt, config) });
+  }
+
+  async function completeAttempt(
+    { db, userId, periodId, nextAt, config, now }: PostContext,
+    body: PostBody,
+    respond: () => Promise<Response>,
+  ) {
+    const attempt = await currentAttempt(userId, periodId);
+    if (!attempt) return Response.json({ error: "not_started" }, { status: 409 });
+    if (attempt.completed_at || attempt.mistakes >= MAX_MISTAKES)
+      return Response.json(payload(attempt, nextAt, config));
+
+    const grid = Array.isArray(body.grid) ? body.grid : [];
+    const solution = solvePuzzle(attempt.puzzle ?? config.puzzle);
+    const valid =
+      solution && grid.length === 81 && grid.every((value, index) => value === solution[index]);
+    if (!valid) return Response.json({ error: "invalid_solution" }, { status: 422 });
+
+    const elapsed = Math.floor((now - attempt.started_at) / 1000);
+    if (elapsed < MIN_COMPLETE_SECONDS)
+      return Response.json({ error: "too_fast" }, { status: 422 });
+    await db
+      .prepare(
+        `UPDATE ${table} SET completed_at = ?, elapsed_seconds = ? WHERE user_id = ? AND ${periodColumn} = ? AND completed_at IS NULL AND mistakes < 3`,
+      )
+      .bind(now, elapsed, userId, periodId)
+      .run();
+    return respond();
+  }
+
   async function POST(request: Request) {
     const user = await getSiteUser(request);
     if (!user) return Response.json({ error: "authentication_required" }, { status: 401 });
@@ -167,57 +232,9 @@ export function timedChallengeRoute({ kind, table, periodColumn }: TimedChalleng
       return respond();
     }
 
-    // The browser never has the solution: it sends each digit and learns whether it is right.
-    if (body?.action === "check") {
-      const attempt = await currentAttempt(user.userId, periodId);
-      if (!attempt) return Response.json({ error: "not_started" }, { status: 409 });
-      if (attempt.completed_at || attempt.mistakes >= MAX_MISTAKES)
-        return Response.json({ correct: false, ...payload(attempt, nextAt, config) });
-
-      const { index, number, mistakeId } = body;
-      if (!isCellIndex(index) || !isDigit(number) || !isEntryId(mistakeId))
-        return Response.json({ error: "invalid_entry" }, { status: 400 });
-      const puzzle = attempt.puzzle ?? config.puzzle;
-      const solution = solvePuzzle(puzzle);
-      if (puzzle[index] !== "0" || !solution)
-        return Response.json({ error: "invalid_entry" }, { status: 422 });
-      if (solution[index] === number)
-        return Response.json({ correct: true, ...payload(attempt, nextAt, config) });
-
-      const key = mistakeKey(mistakeId, index, number);
-      await db
-        .prepare(
-          `UPDATE ${table} SET mistakes = mistakes + 1, last_mistake_id = ? WHERE user_id = ? AND ${periodColumn} = ? AND completed_at IS NULL AND mistakes < 3 AND (last_mistake_id IS NULL OR last_mistake_id != ?)`,
-        )
-        .bind(key, user.userId, periodId, key)
-        .run();
-      const updated = await currentAttempt(user.userId, periodId);
-      return Response.json({ correct: false, ...payload(updated, nextAt, config) });
-    }
-
-    if (body?.action === "complete") {
-      const attempt = await currentAttempt(user.userId, periodId);
-      if (!attempt) return Response.json({ error: "not_started" }, { status: 409 });
-      if (attempt.completed_at || attempt.mistakes >= MAX_MISTAKES)
-        return Response.json(payload(attempt, nextAt, config));
-
-      const grid = Array.isArray(body.grid) ? body.grid : [];
-      const solution = solvePuzzle(attempt.puzzle ?? config.puzzle);
-      const valid =
-        solution && grid.length === 81 && grid.every((value, index) => value === solution[index]);
-      if (!valid) return Response.json({ error: "invalid_solution" }, { status: 422 });
-
-      const elapsed = Math.floor((now - attempt.started_at) / 1000);
-      if (elapsed < MIN_COMPLETE_SECONDS)
-        return Response.json({ error: "too_fast" }, { status: 422 });
-      await db
-        .prepare(
-          `UPDATE ${table} SET completed_at = ?, elapsed_seconds = ? WHERE user_id = ? AND ${periodColumn} = ? AND completed_at IS NULL AND mistakes < 3`,
-        )
-        .bind(now, elapsed, user.userId, periodId)
-        .run();
-      return respond();
-    }
+    const context: PostContext = { db, userId: user.userId, periodId, nextAt, config, now };
+    if (body?.action === "check") return checkEntry(context, body);
+    if (body?.action === "complete") return completeAttempt(context, body, respond);
 
     return Response.json({ error: "invalid_action" }, { status: 400 });
   }

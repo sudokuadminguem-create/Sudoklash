@@ -97,7 +97,9 @@ export function RankedMatch({
     void cosmetics.refresh().then((updated) => {
       if (live && updated) setReward({ matchId, totalXp: updated.xp });
     });
-    return () => { live = false; };
+    return () => {
+      live = false;
+    };
   }, [state?.status, state?.id, cosmetics.refresh]);
   const submit = async (action: "join" | "cancel") => {
     setBusy(true);
@@ -122,76 +124,126 @@ export function RankedMatch({
       </div>
     );
   if (state?.status === "playing") return renderGame(state, refresh);
-  if (state?.status === "finished") {
-    const won = state.winnerId === account.user.id,
-      change = state.pointsChange;
+  if (state?.status === "finished")
     return (
-      <div className="panel ranked-lobby ranked-finished">
-        {won ? <Trophy /> : <X />}
-        <span className="eyebrow">RÉSUMÉ DE PARTIE CLASSÉE</span>
-        <h2>{won ? "Victoire !" : "Défaite"}</h2>
-        <p>
-          Contre {state.opponentName} · Grille {state.difficulty}
-          {state.finishReason === "three_mistakes" ? " · Fin après trois erreurs" : ""}
-          {state.finishReason === "forfeit"
-            ? won
-              ? " · Ton adversaire a abandonné"
-              : " · Partie abandonnée"
-            : ""}
-        </p>
-        <div className="ranked-summary">
-          <div>
-            <span>Temps de la partie</span>
-            <strong>{formatClock(state.durationSeconds ?? 0)}</strong>
-          </div>
-          <div>
-            <span>Vos cases correctes</span>
-            <strong>
-              {state.myFilled ?? 0} / {state.totalToFill ?? 0}
-            </strong>
-          </div>
-          <div>
-            <span>Cases de {state.opponentName}</span>
-            <strong>
-              {state.opponentFilled ?? 0} / {state.totalToFill ?? 0}
-            </strong>
-          </div>
-          <div>
-            <span>Écart de cases</span>
-            <strong>{state.difference ?? 0}</strong>
-          </div>
+      <RankedSummary
+        state={state}
+        won={state.winnerId === account.user.id}
+        reward={reward}
+        busy={busy}
+        error={error}
+        onJoin={() => submit("join")}
+      />
+    );
+  return (
+    <RankedLobby state={state} busy={busy} error={error} submit={(action) => void submit(action)} />
+  );
+}
+
+function FormError({ error }: Readonly<{ error: string }>) {
+  if (!error) return null;
+  return (
+    <p role="alert" className="form-error">
+      {error}
+    </p>
+  );
+}
+
+function finishLabel(reason: string | null | undefined, won: boolean) {
+  if (reason === "three_mistakes") return " · Fin après trois erreurs";
+  if (reason !== "forfeit") return "";
+  return won ? " · Ton adversaire a abandonné" : " · Partie abandonnée";
+}
+
+function RankedSummary({
+  state,
+  won,
+  reward,
+  busy,
+  error,
+  onJoin,
+}: Readonly<{
+  state: RankedState;
+  won: boolean;
+  reward: { matchId: string; totalXp: number } | null;
+  busy: boolean;
+  error: string;
+  onJoin: () => void;
+}>) {
+  const change = state.pointsChange;
+  return (
+    <div className="panel ranked-lobby ranked-finished">
+      {won ? <Trophy /> : <X />}
+      <span className="eyebrow">RÉSUMÉ DE PARTIE CLASSÉE</span>
+      <h2>{won ? "Victoire !" : "Défaite"}</h2>
+      <p>
+        Contre {state.opponentName} · Grille {state.difficulty}
+        {finishLabel(state.finishReason, won)}
+      </p>
+      <div className="ranked-summary">
+        <div>
+          <span>Temps de la partie</span>
+          <strong>{formatClock(state.durationSeconds ?? 0)}</strong>
         </div>
-        <div className={`ranked-points ${won ? "gain" : "loss"}`}>
-          <span>
-            {state.rank?.label ?? "Bronze 1"} · {state.points ?? 0} points
-          </span>
+        <div>
+          <span>Vos cases correctes</span>
           <strong>
-            {change == null ? "Calcul des points…" : `${change > 0 ? "+" : ""}${change} points`}
+            {state.myFilled ?? 0} / {state.totalToFill ?? 0}
           </strong>
         </div>
-        {reward && reward.matchId === state.id && <ExperienceProgress gained={won ? 120 : 40} totalXp={reward.totalXp} />}
-        <button className="primary" disabled={busy} onClick={() => submit("join")}>
-          {busy ? "Recherche…" : "Trouver un autre match"}
-        </button>
-        {error && (
-          <p role="alert" className="form-error">
-            {error}
-          </p>
-        )}
+        <div>
+          <span>Cases de {state.opponentName}</span>
+          <strong>
+            {state.opponentFilled ?? 0} / {state.totalToFill ?? 0}
+          </strong>
+        </div>
+        <div>
+          <span>Écart de cases</span>
+          <strong>{state.difference ?? 0}</strong>
+        </div>
       </div>
-    );
-  }
+      <div className={`ranked-points ${won ? "gain" : "loss"}`}>
+        <span>
+          {state.rank?.label ?? "Bronze 1"} · {state.points ?? 0} points
+        </span>
+        <strong>
+          {change == null ? "Calcul des points…" : `${change > 0 ? "+" : ""}${change} points`}
+        </strong>
+      </div>
+      {reward && reward.matchId === state.id && (
+        <ExperienceProgress gained={won ? 120 : 40} totalXp={reward.totalXp} />
+      )}
+      <button className="primary" disabled={busy} onClick={onJoin}>
+        {busy ? "Recherche…" : "Trouver un autre match"}
+      </button>
+      <FormError error={error} />
+    </div>
+  );
+}
+
+function RankedLobby({
+  state,
+  busy,
+  error,
+  submit,
+}: Readonly<{
+  state: RankedState | null;
+  busy: boolean;
+  error: string;
+  submit: (action: "join" | "cancel") => void;
+}>) {
+  const waiting = state?.status === "waiting";
   return (
     <div className="panel ranked-lobby">
       <Search />
       <span className="eyebrow">PARTIE CLASSÉE · {state?.rank?.label ?? "Bronze 1"}</span>
-      <h2>{state?.status === "waiting" ? "Recherche d’un adversaire…" : "Trouver un match"}</h2>
+      <h2>{waiting ? "Recherche d’un adversaire…" : "Trouver un match"}</h2>
       <p>
-        {state?.status === "waiting"
+        {waiting
           ? "Tu es dans la file d’attente. La partie commencera automatiquement dès qu’un autre joueur de ton niveau sera trouvé."
           : `Grille ${state?.rank?.difficulty ?? "Facile"} · ${state?.points ?? 0} points classés. Lance la recherche pour affronter un joueur disponible.`}
       </p>
-      {state?.status === "waiting" ? (
+      {waiting ? (
         <>
           <div className="ranked-search" role="status">
             <span className="ranked-spinner" />
@@ -206,11 +258,7 @@ export function RankedMatch({
           {busy ? "Recherche…" : "Trouver un match"}
         </button>
       )}
-      {error && (
-        <p role="alert" className="form-error">
-          {error}
-        </p>
-      )}
+      <FormError error={error} />
     </div>
   );
 }

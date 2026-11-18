@@ -36,15 +36,19 @@ type NextCell =
   | { kind: "dead_end" }
   | { kind: "branch"; position: number; options: number[] };
 
+function candidatesAt(grid: readonly number[], index: number): number[] {
+  const candidates = [];
+  for (let value = 1; value <= 9; value++) if (canPlace(grid, index, value)) candidates.push(value);
+  return candidates;
+}
+
 // Picks the empty cell with the fewest candidates, stopping early on a forced cell.
 function nextCell(grid: readonly number[]): NextCell {
   let position = -1,
     options: number[] = [];
   for (let index = 0; index < 81; index++) {
     if (grid[index]) continue;
-    const candidates = [];
-    for (let value = 1; value <= 9; value++)
-      if (canPlace(grid, index, value)) candidates.push(value);
+    const candidates = candidatesAt(grid, index);
     if (!candidates.length) return { kind: "dead_end" };
     if (position < 0 || candidates.length < options.length) {
       position = index;
