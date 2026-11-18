@@ -36,15 +36,26 @@ it("announces every newly completed challenge once, including classic awards", a
       <ChallengeAnnouncer account={account} cosmetics={cosmetics} onDiscover={discover} />,
     ));
     expect(container.querySelector("[role=dialog]")?.textContent).toContain("DÉFI CLASSIQUE ACCOMPLI");
+    const click = async (label: string) => {
+      const button = Array.from(container.querySelectorAll("button")).find(
+        (item) => item.textContent?.trim() === label || item.getAttribute("aria-label") === label,
+      );
+      expect(button).toBeDefined();
+      await act(async () => button!.click());
+    };
+    expect(container.querySelector("[data-frame=classic]")).toBeNull();
+    await click("Aperçu");
     expect(container.querySelector("[data-frame=classic]")).not.toBeNull();
-    await act(async () => (container.querySelector("button") as HTMLButtonElement).click());
+    expect(discover).not.toHaveBeenCalled();
+    await click("Fermer la récompense");
     expect(container.querySelector("[role=dialog]")?.textContent).toContain("DÉFI ÉPIQUE ACCOMPLI");
+    await click("Aperçu");
     expect(container.querySelector("[data-frame=epic]")).not.toBeNull();
-    await act(async () => (container.querySelector("button") as HTMLButtonElement).click());
+    await click("Fermer la récompense");
     expect(container.querySelector("[role=dialog]")).toBeNull();
     await act(async () => window.dispatchEvent(new Event("sudoklash:progress")));
     expect(container.querySelector("[role=dialog]")).toBeNull();
-    expect(discover).toHaveBeenCalledTimes(2);
+    expect(discover).not.toHaveBeenCalled();
   } finally {
     act(() => root.unmount());
     container.remove();

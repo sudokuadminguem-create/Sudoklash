@@ -20,7 +20,8 @@ export const challengeDefaults: Record<ChallengeKind, { title: string; puzzle: s
 const bankDifficulty: Record<ChallengeKind, Difficulty> = { daily: "Facile", weekly: "Difficile" };
 
 async function storedChallenge(kind: ChallengeKind) {
-  return env.DB!.prepare("SELECT title, puzzle FROM challenge_settings WHERE challenge_type = ?")
+  return env
+    .DB!.prepare("SELECT title, puzzle FROM challenge_settings WHERE challenge_type = ?")
     .bind(kind)
     .first<{ title: string; puzzle: string }>();
 }
@@ -33,9 +34,19 @@ export async function getChallengeConfig(kind: ChallengeKind) {
  * Grid of a period: the admin's grid when one is set, otherwise a new bank puzzle for each
  * period. Either way it is shuffled by symmetry for the period.
  */
-export async function getPeriodChallenge(kind: ChallengeKind, periodId: string) {
-  const stored = await storedChallenge(kind);
+export async function getPeriodChallenge(
+  kind: ChallengeKind,
+  periodId: string,
+  difficulty?: Difficulty,
+) {
+  const stored =
+    kind === "daily" && difficulty && difficulty !== "Facile" ? null : await storedChallenge(kind);
   const title = stored?.title ?? challengeDefaults[kind].title;
-  const base = stored?.puzzle ?? puzzleForPeriod(bankDifficulty[kind], `${kind}:${periodId}`);
+  const base =
+    stored?.puzzle ??
+    puzzleForPeriod(
+      difficulty ?? bankDifficulty[kind],
+      `${kind}:${periodId}${difficulty && difficulty !== bankDifficulty[kind] ? `:${difficulty}` : ""}`,
+    );
   return { title, puzzle: periodPuzzle(base, kind, periodId) };
 }

@@ -1,0 +1,50 @@
+# Publication d'une version : pousser une étiquette git vX.Y.Z publie l'image sur Docker Hub
+# avec les étiquettes X.Y.Z, X.Y, X (à partir de 1.0.0) et latest.
+#
+#   git tag v1.2.3 && git push origin v1.2.3
+name: Publication de version
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions: {}
+
+# Deux versions publiées en même temps se disputeraient l'étiquette latest.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Numéro de version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Lecture et contrôle de l'étiquette
+        id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error title=Étiquette invalide::« $TAG » n'est pas de la forme vX.Y.Z."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  image:
+    needs: version
+    permissions:
+      contents: read
+    uses: ./.github/workflows/docker-image.yml
+    with:
+      push: true
+      version: ${{ needs.version.outputs.version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+      COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
