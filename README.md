@@ -68,8 +68,7 @@ export default async function Home() {
   const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
   const fullName =
     encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
+    requestHeaders.get("oai-authenticated-user-full-name-encoding") === "percent-encoded-utf-8"
       ? decodeURIComponent(encodedFullName)
       : null;
 
@@ -152,11 +151,11 @@ faille critique ou haute corrigeable (exceptions justifiées dans `.trivyignore.
 vérifie qu'elle démarre durcie et répond à `/api/health`. Elle publie ensuite sur
 `docker.io/gambijul/sudoklash`, avec SBOM, attestation de provenance et signature cosign :
 
-| Déclencheur            | Étiquettes publiées                         |
-| ---------------------- | ------------------------------------------- |
-| demande de fusion      | aucune (construction et analyse seulement)  |
-| push sur `main`        | `edge`, `sha-<commit>`                      |
-| étiquette git `vX.Y.Z` | `X.Y.Z`, `X.Y`, `X` (dès 1.0.0), `latest`   |
+| Déclencheur            | Étiquettes publiées                        |
+| ---------------------- | ------------------------------------------ |
+| demande de fusion      | aucune (construction et analyse seulement) |
+| push sur `main`        | `edge`, `sha-<commit>`                     |
+| étiquette git `vX.Y.Z` | `X.Y.Z`, `X.Y`, `X` (dès 1.0.0), `latest`  |
 
 Pour utiliser l'image publiée plutôt que la construire, remplacez `build:` par
 `image: docker.io/gambijul/sudoklash:latest` dans `docker-compose.yml`, et vérifiez sa
