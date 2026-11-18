@@ -385,6 +385,16 @@ export function SudokuBoard({
   // Digits restored from a save whose check never came back: ask again, with the same ids
   // so a mistake the server already counted is not counted twice.
   const resumedRef = useRef(false);
+  // One-handed mode on a phone: bring the board to the top of the screen when the game opens,
+  // so the dock, which cannot rise above its card, sits under the thumb instead of covering
+  // the grid while banners above the game push it down.
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (settings.oneHanded === "off") return;
+    if (!window.matchMedia?.("(max-width: 720px)").matches) return;
+    cardRef.current?.scrollIntoView?.({ block: "start" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (resumedRef.current || !resume) return;
     resumedRef.current = true;
@@ -483,6 +493,7 @@ export function SudokuBoard({
   } · ${levelName(t, difficulty).toUpperCase()}`;
   return (
     <div
+      ref={cardRef}
       className={`game-card ${!active ? "weekly-gated" : ""} ${lost ? "lost" : ""} ${done ? "solved" : ""} ${settings.largeDigits ? "large-digits" : ""}`}
     >
       <VictoryEffect won={done} />
