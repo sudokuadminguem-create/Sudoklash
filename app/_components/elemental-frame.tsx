@@ -67,15 +67,24 @@ const classicMotifs = [
   "M-9 8 L-5 -7 L0 -3 L5 -7 L9 8 L0 4 Z", // crown
 ] as const;
 
+// Radius of each point of the five crown silhouettes, so the outline gets its teeth.
+const crownRadii: ((i: number) => number)[] = [
+  (i) => (i % 3 === 0 ? 43 : 39),
+  () => 41,
+  (i) => (i % 2 ? 38 : 44),
+  (i) => (i % 3 === 0 ? 44 : 39),
+  (i) => {
+    if (i % 4 === 0) return 45;
+    return i % 2 ? 38 : 41;
+  },
+];
+
 function crownPath(variant: number) {
   const points = [24, 8, 32, 12, 20][variant];
+  const radiusAt = crownRadii[variant] ?? crownRadii[4];
   return Array.from({ length: points }, (_, i) => {
     const angle = (2 * Math.PI * i) / points - Math.PI / 2;
-    const radius = variant === 0 ? (i % 3 === 0 ? 43 : 39)
-      : variant === 1 ? 41
-      : variant === 2 ? (i % 2 ? 38 : 44)
-      : variant === 3 ? (i % 3 === 0 ? 44 : 39)
-      : (i % 4 === 0 ? 45 : i % 2 ? 38 : 41);
+    const radius = radiusAt(i);
     return `${i ? "L" : "M"}${(radius * Math.cos(angle)).toFixed(2)} ${(radius * Math.sin(angle)).toFixed(2)}`;
   }).join(" ") + " Z";
 }

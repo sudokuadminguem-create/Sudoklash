@@ -90,6 +90,81 @@ export default function Home() {
   );
 }
 
+function HomeAccountButton({
+  account,
+  cosmetics,
+  onClick,
+}: {
+  account: ReturnType<typeof useAccount>;
+  cosmetics: ReturnType<typeof useCosmetics>;
+  onClick: () => void;
+}) {
+  const { t } = useI18n();
+  const signedIn = !!account.user;
+  return (
+    <button
+      className="rank-card beta-account home-account-button"
+      onClick={onClick}
+      aria-label={signedIn ? t("home.accountSignedIn") : t("home.accountSignedOut")}
+    >
+      <PlayerAvatar
+        avatarId={cosmetics.state?.avatarId}
+        image={cosmetics.state?.customAvatar}
+        frameId={cosmetics.state?.frameId}
+        size="large"
+        fallback={signedIn ? undefined : "?"}
+      />
+      <span className="home-account-text">
+        <small>
+          {t("home.myAccount")} ·{" "}
+          {signedIn
+            ? t("home.level", { level: cosmetics.state?.level ?? 1 })
+            : t("home.notConnected")}
+        </small>
+        <b>{account.profile?.username || t("home.chooseAvatar")}</b>
+        <span>{signedIn ? t("home.viewProfile") : t("home.signInToCustomize")}</span>
+      </span>
+    </button>
+  );
+}
+
+/** Invites a guest to the daily challenge, or to sign up once they are looking at it. */
+function GuestDailyInvite({
+  fr,
+  daily,
+  onDiscover,
+  onSignup,
+}: {
+  fr: boolean;
+  daily: boolean;
+  onDiscover: () => void;
+  onSignup: () => void;
+}) {
+  if (daily)
+    return (
+      <aside className="panel daily-invite">
+        <div>
+          <h3>{fr ? "Débloque le défi du jour" : "Unlock the daily challenge"}</h3>
+          <p>{fr ? "Un compte gratuit suffit pour jouer et enregistrer ton score." : "Create a free account to play and save your score."}</p>
+        </div>
+        <button type="button" className="primary" onClick={onSignup}>
+          {fr ? "Créer un compte gratuit" : "Create a free account"}
+        </button>
+      </aside>
+    );
+  return (
+    <aside className="panel daily-invite" aria-label={fr ? "Découvrir le défi du jour" : "Discover the daily challenge"}>
+      <div>
+        <h3>{fr ? "À toi de jouer : le défi du jour" : "Try today’s challenge"}</h3>
+        <p>{fr ? "Crée un compte gratuit pour jouer la grille du jour et comparer ton temps." : "Create a free account to play today’s puzzle and compare your time."}</p>
+      </div>
+      <button type="button" className="primary" onClick={onDiscover}>
+        {fr ? "Voir la grille du jour" : "See today’s puzzle"}
+      </button>
+    </aside>
+  );
+}
+
 function HomeContent() {
   const { t, locale } = useI18n();
   const onlineCount = useLivePresence();
@@ -328,55 +403,22 @@ function HomeContent() {
                       <h2>{t("home.title")}</h2>
                       <p>{t("home.lead")}</p>
                     </div>
-                    <button
-                      className="rank-card beta-account home-account-button"
+                    <HomeAccountButton
+                      account={account}
+                      cosmetics={cosmetics}
                       onClick={() => (account.user ? setView("compte") : setAuthOpen(true))}
-                      aria-label={
-                        account.user ? t("home.accountSignedIn") : t("home.accountSignedOut")
-                      }
-                    >
-                      <PlayerAvatar
-                        avatarId={cosmetics.state?.avatarId}
-                        image={cosmetics.state?.customAvatar}
-                        frameId={cosmetics.state?.frameId}
-                        size="large"
-                        fallback={account.user ? undefined : "?"}
-                      />
-                      <span className="home-account-text">
-                        <small>
-                          {t("home.myAccount")} ·{" "}
-                          {account.user
-                            ? t("home.level", { level: cosmetics.state?.level ?? 1 })
-                            : t("home.notConnected")}
-                        </small>
-                        <b>{account.profile?.username || t("home.chooseAvatar")}</b>
-                        <span>
-                          {account.user ? t("home.viewProfile") : t("home.signInToCustomize")}
-                        </span>
-                      </span>
-                    </button>
+                    />
                   </section>
-                  {!account.loading && !account.user && mode !== "daily" && (
-                    <aside className="panel daily-invite" aria-label={fr ? "Découvrir le défi du jour" : "Discover the daily challenge"}>
-                      <div>
-                        <h3>{fr ? "À toi de jouer : le défi du jour" : "Try today’s challenge"}</h3>
-                        <p>{fr ? "Crée un compte gratuit pour jouer la grille du jour et comparer ton temps." : "Create a free account to play today’s puzzle and compare your time."}</p>
-                      </div>
-                      <button type="button" className="primary" onClick={() => setMode("daily")}>
-                        {fr ? "Voir la grille du jour" : "See today’s puzzle"}
-                      </button>
-                    </aside>
-                  )}
-                  {!account.loading && !account.user && mode === "daily" && (
-                    <aside className="panel daily-invite">
-                      <div>
-                        <h3>{fr ? "Débloque le défi du jour" : "Unlock the daily challenge"}</h3>
-                        <p>{fr ? "Un compte gratuit suffit pour jouer et enregistrer ton score." : "Create a free account to play and save your score."}</p>
-                      </div>
-                      <button type="button" className="primary" onClick={() => { setStartSignup(true); setAuthOpen(true); }}>
-                        {fr ? "Créer un compte gratuit" : "Create a free account"}
-                      </button>
-                    </aside>
+                  {!account.loading && !account.user && (
+                    <GuestDailyInvite
+                      fr={fr}
+                      daily={mode === "daily"}
+                      onDiscover={() => setMode("daily")}
+                      onSignup={() => {
+                        setStartSignup(true);
+                        setAuthOpen(true);
+                      }}
+                    />
                   )}
                   <SupportPodium />
                   <TournamentBanner feed={tournamentFeed} onOpen={openTournament} />

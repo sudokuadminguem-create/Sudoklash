@@ -17,52 +17,35 @@ import {
   shopFrames,
 } from "@/lib/cosmetics";
 
-export function PlayerAvatar({
-  avatarId = "nova",
-  frameId = "starter",
-  size = "normal",
-  fallback,
-  image,
-}: {
-  avatarId?: string;
-  frameId?: string;
-  size?: "normal" | "large" | "small";
-  fallback?: string;
-  image?: string | null;
-}) {
-  const custom = avatarId === "custom" && !!image && fallback === undefined;
-  const avatar = avatars.find((a) => a.id === avatarId) ?? avatars[0],
-    frame = levelFrames.find((f) => f.id === frameId) ?? levelFrames[0],
-    rankFrame = rankedFrames.find((f) => `rank-${f.id}` === frameId),
-    achievement = challengeFrameStyle(frameId);
+type FrameStyle = ReturnType<typeof challengeFrameStyle>;
+
+const rarityClasses: Record<string, string> = {
+  epic: " epic-frame",
+  legendary: " legendary-frame",
+  majestic: " majestic-frame",
+};
+
+function avatarClass(size: string, frameId: string, ranked: boolean, achievement: FrameStyle) {
+  return `player-avatar ${size}${ranked ? " ranked-avatar" : ""}${achievement ? " achievement-frame" : ""}${(achievement && rarityClasses[achievement.rarity]) ?? ""}${frameId === "none" ? " frameless-avatar" : ""}`;
+}
+
+/** How the frame is named to screen readers. */
+function frameLabel(
+  frameId: string,
+  rankFrame: { name: string } | undefined,
+  achievement: FrameStyle,
+  levelFrameName: string,
+) {
+  if (frameId === "none") return "sans cadre";
+  if (rankFrame) return `cadre ${rankFrame.name}`;
+  if (achievement?.element) return `cadre ${elementLabels[achievement.element]}`;
+  if (frameId === "challenge-mini-playground") return "cadre Récréation";
+  return achievement ? "cadre de défi" : `cadre ${levelFrameName}`;
+}
+
+function FrameDecorations({ frameId, achievement }: { frameId: string; achievement: FrameStyle }) {
   return (
-    <span
-      className={`player-avatar ${size}${rankFrame ? " ranked-avatar" : ""}${achievement ? " achievement-frame" : ""}${achievement?.rarity === "epic" ? " epic-frame" : ""}${achievement?.rarity === "legendary" ? " legendary-frame" : ""}${achievement?.rarity === "majestic" ? " majestic-frame" : ""}${frameId === "none" ? " frameless-avatar" : ""}`}
-      data-premium={frameId.startsWith("premium-") ? frameId : undefined}
-      data-rank={rankFrame?.id}
-      data-playground={frameId === "challenge-mini-playground" ? "true" : undefined}
-      data-divine={frameId === "challenge-l-026" ? "true" : undefined}
-      data-frame-pattern={achievement?.pattern}
-      style={
-        {
-          "--avatar-one": avatar.colors[0],
-          "--avatar-two": avatar.colors[1],
-          "--frame-color": rankFrame?.color ?? achievement?.color ?? frame.color,
-          "--frame-accent": rankFrame?.accent ?? achievement?.accent ?? frame.color,
-          "--frame-highlight": achievement?.highlight ?? "#ffffff",
-          "--rank-symbol": `"${rankFrame?.symbol ?? achievement?.symbol ?? ""}"`,
-        } as React.CSSProperties
-      }
-      role="img"
-      aria-label={`Avatar ${custom ? "personnalisé" : avatar.name}, ${frameId === "none" ? "sans cadre" : rankFrame ? `cadre ${rankFrame.name}` : achievement?.element ? `cadre ${elementLabels[achievement.element]}` : frameId === "challenge-mini-playground" ? "cadre Récréation" : achievement ? "cadre de défi" : `cadre ${frame.name}`}`}
-    >
-      {custom ? (
-        <span className="avatar-image">
-          <img src={image!} alt="" />
-        </span>
-      ) : (
-        <span>{fallback ?? avatar.symbol}</span>
-      )}
+    <>
       {achievement && frameId !== "challenge-mini-playground" && (
         <ElementalFrame
           element={achievement.element}
@@ -90,6 +73,57 @@ export function PlayerAvatar({
           />
         </svg>
       )}
+    </>
+  );
+}
+
+export function PlayerAvatar({
+  avatarId = "nova",
+  frameId = "starter",
+  size = "normal",
+  fallback,
+  image,
+}: {
+  avatarId?: string;
+  frameId?: string;
+  size?: "normal" | "large" | "small";
+  fallback?: string;
+  image?: string | null;
+}) {
+  const custom = avatarId === "custom" && !!image && fallback === undefined;
+  const avatar = avatars.find((a) => a.id === avatarId) ?? avatars[0],
+    frame = levelFrames.find((f) => f.id === frameId) ?? levelFrames[0],
+    rankFrame = rankedFrames.find((f) => `rank-${f.id}` === frameId),
+    achievement = challengeFrameStyle(frameId);
+  return (
+    <span
+      className={avatarClass(size, frameId, !!rankFrame, achievement)}
+      data-premium={frameId.startsWith("premium-") ? frameId : undefined}
+      data-rank={rankFrame?.id}
+      data-playground={frameId === "challenge-mini-playground" ? "true" : undefined}
+      data-divine={frameId === "challenge-l-026" ? "true" : undefined}
+      data-frame-pattern={achievement?.pattern}
+      style={
+        {
+          "--avatar-one": avatar.colors[0],
+          "--avatar-two": avatar.colors[1],
+          "--frame-color": rankFrame?.color ?? achievement?.color ?? frame.color,
+          "--frame-accent": rankFrame?.accent ?? achievement?.accent ?? frame.color,
+          "--frame-highlight": achievement?.highlight ?? "#ffffff",
+          "--rank-symbol": `"${rankFrame?.symbol ?? achievement?.symbol ?? ""}"`,
+        } as React.CSSProperties
+      }
+      role="img"
+      aria-label={`Avatar ${custom ? "personnalisé" : avatar.name}, ${frameLabel(frameId, rankFrame, achievement, frame.name)}`}
+    >
+      {custom ? (
+        <span className="avatar-image">
+          <img src={image!} alt="" />
+        </span>
+      ) : (
+        <span>{fallback ?? avatar.symbol}</span>
+      )}
+      <FrameDecorations frameId={frameId} achievement={achievement} />
     </span>
   );
 }

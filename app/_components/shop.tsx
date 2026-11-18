@@ -52,6 +52,208 @@ const actions: Record<Kind, { buy: CosmeticAction; equip: CosmeticAction }> = {
   avatar: { buy: "buy_avatar", equip: "equip_avatar" },
   frame: { buy: "buy_frame", equip: "equip_frame" },
 };
+type CosmeticsData = NonNullable<Cosmetics["state"]>;
+const ownedIds: Record<Kind, (data: CosmeticsData) => readonly string[]> = {
+  theme: (data) => data.ownedThemes,
+  avatar: (data) => data.ownedAvatars,
+  frame: (data) => data.unlockedFrames,
+};
+const equippedId: Record<Kind, (data: CosmeticsData) => string | undefined> = {
+  theme: (data) => data.themeId,
+  avatar: (data) => data.avatarId,
+  frame: (data) => data.frameSelection,
+};
+const categoryLabels: Record<Kind | "all", string> = {
+  all: "Tout",
+  frame: "Cadres",
+  theme: "Fonds de grille",
+  avatar: "Avatars",
+};
+
+function purchaseError(e: unknown) {
+  return e instanceof Error && (e.message === "not_enough_coins" || e.message === "not_enough_gems")
+    ? "Solde insuffisant. Aucun achat effectué."
+    : "Achat indisponible. Vérifie ton inventaire avant de réessayer.";
+}
+
+function ProductArt({ product: p, data }: { product: Product; data: Cosmetics["state"] }) {
+  return (
+    <div
+      className={`store-preview store-preview-${p.kind}`}
+      style={
+        p.colors
+          ? {
+              background: `radial-gradient(circle at 20% 20%,${p.colors[0]}66,transparent 65%),linear-gradient(135deg,#081021,${p.colors[1]}55)`,
+            }
+          : undefined
+      }
+    >
+      {p.kind === "theme" ? (
+        <div className="store-mini-grid" aria-hidden="true">
+          {Array.from({ length: 81 }, (_, i) => (
+            <span key={i}>{i % 4 === 0 ? ((i * 7) % 9) + 1 : ""}</span>
+          ))}
+        </div>
+      ) : (
+        <PlayerAvatar
+          avatarId={p.kind === "avatar" ? p.id : (data?.avatarId ?? "nova")}
+          image={p.kind === "frame" ? data?.customAvatar : undefined}
+          frameId={p.kind === "frame" ? p.id : "none"}
+          size="large"
+        />
+      )}
+    </div>
+  );
+}
+
+function CurrencyPicker({
+  currency,
+  setCurrency,
+}: {
+  currency: "coins" | "gems";
+  setCurrency: (currency: "coins" | "gems") => void;
+}) {
+  return (
+    <>
+      <div className="store-categories" aria-label="Monnaie pour les articles">
+        <button
+          aria-pressed={currency === "coins"}
+          className={currency === "coins" ? "active" : ""}
+          onClick={() => setCurrency("coins")}
+        >
+          Payer en Sudokoins
+        </button>
+        <button
+          aria-pressed={currency === "gems"}
+          className={currency === "gems" ? "active" : ""}
+          onClick={() => setCurrency("gems")}
+        >
+          Payer en Sudogemmes
+        </button>
+      </div>
+      <details className="store-help">
+        <summary>Comment gagner des Sudokoins ?</summary>
+        <p>
+          300 à la création du compte · 20 par grille solo terminée · 60 par défi quotidien · 150
+          par défi hebdomadaire · 70 par victoire classée. Les parties hors ligne ne rapportent pas
+          de monnaie. Tous les achats sont cosmétiques.
+        </p>
+      </details>
+    </>
+  );
+}
+
+function StoreAccountMessage({
+  signedIn,
+  hasData,
+  cosmetics,
+  openAuth,
+}: {
+  signedIn: boolean;
+  hasData: boolean;
+  cosmetics: Cosmetics;
+  openAuth: () => void;
+}) {
+  if (!signedIn)
+    return (
+      <div className="store-message">
+        <p>
+          Explore la boutique. Connecte-toi pour acheter et conserver tes articles sur ton compte.
+        </p>
+        <button className="primary" onClick={openAuth}>
+          Se connecter
+        </button>
+      </div>
+    );
+  if (hasData) return null;
+  return (
+    <div className="store-message" role="status">
+      <p>
+        {cosmetics.loading
+          ? "Chargement de ton solde…"
+          : "Ton solde est indisponible pour le moment."}
+      </p>
+      <button onClick={() => void cosmetics.refresh()} disabled={cosmetics.loading}>
+        Réessayer
+      </button>
+    </div>
+  );
+}
+
+function previewActionLabel(busy: boolean, equipped: boolean, owned: boolean, signedIn: boolean) {
+  if (busy) return "En cours…";
+  if (equipped) return "Équipé";
+  if (owned) return "Équiper";
+  return signedIn ? "Acheter" : "Se connecter";
+}
+
+function PreviewDetails({
+  product,
+  titleId,
+  art,
+  owned,
+  equipped,
+  price,
+  balance,
+  currencyLabel,
+  busy,
+  signedIn,
+  hasData,
+  onClose,
+  onAction,
+}: {
+  product: Product;
+  titleId: string;
+  art: React.ReactNode;
+  owned: boolean;
+  equipped: boolean;
+  price: number;
+  balance: number;
+  currencyLabel: string;
+  busy: boolean;
+  signedIn: boolean;
+  hasData: boolean;
+  onClose: () => void;
+  onAction: () => void;
+}) {
+  const unaffordable = hasData && !owned && price > balance;
+  let status = `${price.toLocaleString("fr-FR")} ${currencyLabel}`;
+  if (owned) status = equipped ? "Équipé" : "Possédé";
+  return (
+    <div className="store-dialog-inner">
+      <button
+        type="button"
+        className="store-dialog-close"
+        aria-label="Fermer l’aperçu"
+        autoFocus
+        onClick={onClose}
+      >
+        <X aria-hidden="true" />
+      </button>
+      {art}
+      <span className="eyebrow">{labels[product.kind]}</span>
+      <h2 id={titleId} className={product.kind === "theme" ? "store-grid-name" : undefined}>
+        {product.name}
+      </h2>
+      <p>{product.description}</p>
+      <div className="store-price">{status}</div>
+      <button
+        type="button"
+        className="primary"
+        disabled={busy || equipped || (signedIn && (!hasData || (!owned && price > balance)))}
+        onClick={onAction}
+      >
+        {previewActionLabel(busy, equipped, owned, signedIn)}
+      </button>
+      {unaffordable && (
+        <p>
+          Il te manque {(price - balance).toLocaleString("fr-FR")} {currencyLabel}.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function Shop({
   notify,
   cosmetics,
@@ -85,21 +287,8 @@ export function Shop({
   const cost = (p: Product) => (currency === "coins" ? p.price : premiumPrice(p.price));
   const data = cosmetics.state;
   const balance = currency === "coins" ? (data?.coins ?? 0) : (data?.gems ?? 0);
-  const owned = (p: Product) =>
-    !!data &&
-    (p.kind === "theme"
-      ? data.ownedThemes
-      : p.kind === "avatar"
-        ? data.ownedAvatars
-        : data.unlockedFrames
-    ).includes(p.id);
-  const equipped = (p: Product) =>
-    !!data &&
-    (p.kind === "theme"
-      ? data.themeId
-      : p.kind === "avatar"
-        ? data.avatarId
-        : data.frameSelection) === p.id;
+  const owned = (p: Product) => !!data && ownedIds[p.kind](data).includes(p.id);
+  const equipped = (p: Product) => !!data && equippedId[p.kind](data) === p.id;
   const products = catalog.filter(
     (p) => (category === "all" || p.kind === category) && (!ownedOnly || owned(p)),
   );
@@ -121,42 +310,12 @@ export function Shop({
       await cosmetics.action(actions[p.kind].buy, p.id, currency);
       notify(`${p.name} acheté ! Retrouve-le dans « Mes articles » et équipe-le quand tu veux.`);
     } catch (e) {
-      notify(
-        e instanceof Error && (e.message === "not_enough_coins" || e.message === "not_enough_gems")
-          ? "Solde insuffisant. Aucun achat effectué."
-          : "Achat indisponible. Vérifie ton inventaire avant de réessayer.",
-      );
+      notify(purchaseError(e));
     } finally {
       setBusy("");
     }
   };
-  const productArt = (p: Product) => (
-    <div
-      className={`store-preview store-preview-${p.kind}`}
-      style={
-        p.colors
-          ? {
-              background: `radial-gradient(circle at 20% 20%,${p.colors[0]}66,transparent 65%),linear-gradient(135deg,#081021,${p.colors[1]}55)`,
-            }
-          : undefined
-      }
-    >
-      {p.kind === "theme" ? (
-        <div className="store-mini-grid" aria-hidden="true">
-          {Array.from({ length: 81 }, (_, i) => (
-            <span key={i}>{i % 4 === 0 ? ((i * 7) % 9) + 1 : ""}</span>
-          ))}
-        </div>
-      ) : (
-        <PlayerAvatar
-          avatarId={p.kind === "avatar" ? p.id : (data?.avatarId ?? "nova")}
-          image={p.kind === "frame" ? data?.customAvatar : undefined}
-          frameId={p.kind === "frame" ? p.id : "none"}
-          size="large"
-        />
-      )}
-    </div>
-  );
+  const productArt = (p: Product) => <ProductArt product={p} data={data} />;
   return (
     <div className="shop-catalog">
       <header className="store-header">
@@ -215,34 +374,7 @@ export function Shop({
       )}
       {(shelf === "catalog" || shelf === "owned") && (
         <>
-          {!ownedOnly && (
-            <div className="store-categories" aria-label="Monnaie pour les articles">
-              <button
-                aria-pressed={currency === "coins"}
-                className={currency === "coins" ? "active" : ""}
-                onClick={() => setCurrency("coins")}
-              >
-                Payer en Sudokoins
-              </button>
-              <button
-                aria-pressed={currency === "gems"}
-                className={currency === "gems" ? "active" : ""}
-                onClick={() => setCurrency("gems")}
-              >
-                Payer en Sudogemmes
-              </button>
-            </div>
-          )}
-          {!ownedOnly && (
-            <details className="store-help">
-              <summary>Comment gagner des Sudokoins ?</summary>
-              <p>
-                300 à la création du compte · 20 par grille solo terminée · 60 par défi quotidien ·
-                150 par défi hebdomadaire · 70 par victoire classée. Les parties hors ligne ne
-                rapportent pas de monnaie. Tous les achats sont cosmétiques.
-              </p>
-            </details>
-          )}
+          {!ownedOnly && <CurrencyPicker currency={currency} setCurrency={setCurrency} />}
           <div className="store-filters">
             <div className="store-categories" aria-label="Catégories de boutique">
               {(["all", "frame", "theme", "avatar"] as const).map((c) => (
@@ -252,40 +384,17 @@ export function Shop({
                   className={category === c ? "active" : ""}
                   onClick={() => setCategory(c)}
                 >
-                  {c === "all"
-                    ? "Tout"
-                    : c === "frame"
-                      ? "Cadres"
-                      : c === "theme"
-                        ? "Fonds de grille"
-                        : "Avatars"}
+                  {categoryLabels[c]}
                 </button>
               ))}
             </div>
           </div>
-          {!account.user && (
-            <div className="store-message">
-              <p>
-                Explore la boutique. Connecte-toi pour acheter et conserver tes articles sur ton
-                compte.
-              </p>
-              <button className="primary" onClick={openAuth}>
-                Se connecter
-              </button>
-            </div>
-          )}
-          {account.user && !data && (
-            <div className="store-message" role="status">
-              <p>
-                {cosmetics.loading
-                  ? "Chargement de ton solde…"
-                  : "Ton solde est indisponible pour le moment."}
-              </p>
-              <button onClick={() => void cosmetics.refresh()} disabled={cosmetics.loading}>
-                Réessayer
-              </button>
-            </div>
-          )}
+          <StoreAccountMessage
+            signedIn={!!account.user}
+            hasData={!!data}
+            cosmetics={cosmetics}
+            openAuth={openAuth}
+          />
           <p className="store-count">
             {products.length} article{products.length > 1 ? "s" : ""}
             {ownedOnly ? " possédé" + (products.length > 1 ? "s" : "") : ""}
@@ -355,64 +464,32 @@ export function Shop({
         }}
       >
         {preview && (
-          <div className="store-dialog-inner">
-            <button
-              type="button"
-              className="store-dialog-close"
-              aria-label="Fermer l’aperçu"
-              autoFocus
-              onClick={() => setPreview(null)}
-            >
-              <X aria-hidden="true" />
-            </button>
-            {productArt(preview)}
-            <span className="eyebrow">{labels[preview.kind]}</span>
-            <h2 id={previewTitle} className={preview.kind === "theme" ? "store-grid-name" : undefined}>{preview.name}</h2>
-            <p>{preview.description}</p>
-            <div className="store-price">
-              {owned(preview)
-                ? equipped(preview)
-                  ? "Équipé"
-                  : "Possédé"
-                : `${cost(preview).toLocaleString("fr-FR")} ${currencyLabel}`}
-            </div>
-            <button
-              type="button"
-              className="primary"
-              disabled={
-                !!busy ||
-                equipped(preview) ||
-                (!!account.user && (!data || (!owned(preview) && cost(preview) > balance)))
+          <PreviewDetails
+            product={preview}
+            titleId={previewTitle}
+            art={productArt(preview)}
+            owned={owned(preview)}
+            equipped={equipped(preview)}
+            price={cost(preview)}
+            balance={balance}
+            currencyLabel={currencyLabel}
+            busy={!!busy}
+            signedIn={!!account.user}
+            hasData={!!data}
+            onClose={() => setPreview(null)}
+            onAction={() => {
+              if (!account.user) {
+                setPreview(null);
+                openAuth();
+                return;
               }
-              onClick={() => {
-                if (!account.user) {
-                  setPreview(null);
-                  openAuth();
-                  return;
-                }
-                if (owned(preview)) void equip(preview);
-                else {
-                  setPurchase(preview);
-                  setPreview(null);
-                }
-              }}
-            >
-              {busy
-                ? "En cours…"
-                : equipped(preview)
-                  ? "Équipé"
-                  : owned(preview)
-                    ? "Équiper"
-                    : !account.user
-                      ? "Se connecter"
-                      : "Acheter"}
-            </button>
-            {data && !owned(preview) && cost(preview) > balance && (
-              <p>
-                Il te manque {(cost(preview) - balance).toLocaleString("fr-FR")} {currencyLabel}.
-              </p>
-            )}
-          </div>
+              if (owned(preview)) void equip(preview);
+              else {
+                setPurchase(preview);
+                setPreview(null);
+              }
+            }}
+          />
         )}
       </dialog>
       {purchase && data && (

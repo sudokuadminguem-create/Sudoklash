@@ -245,6 +245,145 @@ function TournamentGame({
   );
 }
 
+function TournamentSummary({
+  current,
+  now,
+  busy,
+  onJoin,
+}: {
+  current: Detail;
+  now: number;
+  busy: boolean;
+  onJoin: () => void;
+}) {
+  const status = current.tournament.phase;
+  return (
+    <section className="panel tournament-card">
+      <span className="eyebrow">{phaseLabel[current.tournament.phase]}</span>
+      <h3>{current.tournament.difficulty}</h3>
+      <p>
+        {current.tournament.size}/{tournamentCapacity} joueurs · {current.tournament.pot} Sudokoins
+        en jeu
+      </p>
+      {status === "open" && (
+        <p>
+          Départ dans <strong>{remaining(current.tournament.starts_at, now)}</strong> · minimum{" "}
+          {tournamentMinimum} joueurs · 30 min pour terminer
+        </p>
+      )}
+      {status === "playing" && (
+        <p>
+          Fin dans <strong>{remaining(current.tournament.ends_at, now)}</strong>
+        </p>
+      )}
+      {status === "open" &&
+        (current.entry ? (
+          <p>Tu es inscrit. La grille s’ouvrira ici au départ.</p>
+        ) : (
+          <button
+            className="primary"
+            disabled={busy || current.tournament.size >= tournamentCapacity}
+            onClick={onJoin}
+          >
+            Rejoindre · {entryFee} Sudokoins
+          </button>
+        ))}
+      {status === "playing" && !current.entry && <p>Les inscriptions sont fermées.</p>}
+      {status === "cancelled" && (
+        <p>
+          Pas assez de participants ou aucune grille validée.{" "}
+          {current.entry
+            ? `Mise remboursée : ${current.entry.payout} Sudokoins.`
+            : "Les mises ont été remboursées."}
+        </p>
+      )}
+      {status === "finished" && current.entry && (
+        <p>
+          Ton gain : <strong>{current.entry.payout} Sudokoins</strong>.
+        </p>
+      )}
+      {current.entry?.finished && status === "playing" && (
+        <p>Grille validée ! Les gains seront distribués à la clôture.</p>
+      )}
+      {(current.entry?.mistakes ?? 0) >= 3 && <p>Tentative terminée : trois erreurs.</p>}
+      {status === "open" && (
+        <details>
+          <summary>Gains estimés par place</summary>
+          <p>
+            Estimation avec les inscriptions actuelles. Les gains définitifs dépendent du nombre de
+            grilles validées.
+          </p>
+          <ol>
+            {current.estimates.map((amount, i) => (
+              <li key={i}>{amount} Sudokoins</li>
+            ))}
+          </ol>
+        </details>
+      )}
+    </section>
+  );
+}
+
+function TournamentRanking({ current }: { current: Detail }) {
+  const status = current.tournament.phase;
+  return (
+    <section className="panel tournament-card">
+      <h3>Classement</h3>
+      {current.ranking.length ? (
+        <ol className="tournament-ranking">
+          {current.ranking.map((row) => (
+            <li key={row.place}>
+              <b>
+                {row.place}. {row.name}
+                {row.self ? " (toi)" : ""}
+              </b>
+              <span>
+                {row.seconds.toLocaleString("fr-FR", { maximumFractionDigits: 3 })} s ·{" "}
+                {row.mistakes} erreur{row.mistakes === 1 ? "" : "s"}
+                {status === "finished" ? ` · ${row.payout} Sudokoins` : ""}
+              </span>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p>Aucun résultat validé.</p>
+      )}
+    </section>
+  );
+}
+
+function TournamentList({
+  feed,
+  onOpen,
+}: {
+  feed: ReturnType<typeof useTournaments>;
+  onOpen: (id?: string) => void;
+}) {
+  if (feed.error) return <button onClick={feed.refresh}>Réessayer de charger les tournois</button>;
+  if (!feed.list) return <p>Chargement…</p>;
+  if (!feed.list.length) return <p>Pas de tournois en cours</p>;
+  return (
+    <ul className="tournament-list">
+      {feed.list.map((t) => (
+        <li key={t.id}>
+          <div>
+            <b>
+              {t.difficulty} · {phaseLabel[t.phase]}
+            </b>
+            <p>
+              {t.phase === "open" ? `Départ dans ${remaining(t.starts_at, feed.now)} · ` : ""}
+              {t.size}/{tournamentCapacity} joueurs · {t.pot} Sudokoins
+            </p>
+          </div>
+          <button className="tournament-link" onClick={() => onOpen(t.id)}>
+            Voir le tournoi
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function Tournaments({
   feed,
   id,
@@ -362,69 +501,12 @@ export function Tournaments({
             <p role="status">{error ? "Tournoi indisponible." : "Chargement du tournoi…"}</p>
           ) : (
             <>
-              <section className="panel tournament-card">
-                <span className="eyebrow">{phaseLabel[current.tournament.phase]}</span>
-                <h3>{current.tournament.difficulty}</h3>
-                <p>
-                  {current.tournament.size}/{tournamentCapacity} joueurs · {current.tournament.pot}{" "}
-                  Sudokoins en jeu
-                </p>
-                {status === "open" && (
-                  <p>
-                    Départ dans <strong>{remaining(current.tournament.starts_at, feed.now)}</strong>{" "}
-                    · minimum {tournamentMinimum} joueurs · 30 min pour terminer
-                  </p>
-                )}
-                {status === "playing" && (
-                  <p>
-                    Fin dans <strong>{remaining(current.tournament.ends_at, feed.now)}</strong>
-                  </p>
-                )}
-                {status === "open" &&
-                  (current.entry ? (
-                    <p>Tu es inscrit. La grille s’ouvrira ici au départ.</p>
-                  ) : (
-                    <button
-                      className="primary"
-                      disabled={busy || current.tournament.size >= tournamentCapacity}
-                      onClick={() => confirm("join")}
-                    >
-                      Rejoindre · {entryFee} Sudokoins
-                    </button>
-                  ))}
-                {status === "playing" && !current.entry && <p>Les inscriptions sont fermées.</p>}
-                {status === "cancelled" && (
-                  <p>
-                    Pas assez de participants ou aucune grille validée.{" "}
-                    {current.entry
-                      ? `Mise remboursée : ${current.entry.payout} Sudokoins.`
-                      : "Les mises ont été remboursées."}
-                  </p>
-                )}
-                {status === "finished" && current.entry && (
-                  <p>
-                    Ton gain : <strong>{current.entry.payout} Sudokoins</strong>.
-                  </p>
-                )}
-                {current.entry?.finished && status === "playing" && (
-                  <p>Grille validée ! Les gains seront distribués à la clôture.</p>
-                )}
-                {(current.entry?.mistakes ?? 0) >= 3 && <p>Tentative terminée : trois erreurs.</p>}
-                {status === "open" && (
-                  <details>
-                    <summary>Gains estimés par place</summary>
-                    <p>
-                      Estimation avec les inscriptions actuelles. Les gains définitifs dépendent du
-                      nombre de grilles validées.
-                    </p>
-                    <ol>
-                      {current.estimates.map((amount, i) => (
-                        <li key={i}>{amount} Sudokoins</li>
-                      ))}
-                    </ol>
-                  </details>
-                )}
-              </section>
+              <TournamentSummary
+                current={current}
+                now={feed.now}
+                busy={busy}
+                onJoin={() => confirm("join")}
+              />
               {current.puzzle && userId && (
                 <TournamentGame
                   key={`${userId}:${id}`}
@@ -434,28 +516,7 @@ export function Tournaments({
                 />
               )}
               {status !== "open" && status !== "cancelled" && (
-                <section className="panel tournament-card">
-                  <h3>Classement</h3>
-                  {current.ranking.length ? (
-                    <ol className="tournament-ranking">
-                      {current.ranking.map((row) => (
-                        <li key={row.place}>
-                          <b>
-                            {row.place}. {row.name}
-                            {row.self ? " (toi)" : ""}
-                          </b>
-                          <span>
-                            {row.seconds.toLocaleString("fr-FR", { maximumFractionDigits: 3 })} s ·{" "}
-                            {row.mistakes} erreur{row.mistakes === 1 ? "" : "s"}
-                            {status === "finished" ? ` · ${row.payout} Sudokoins` : ""}
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-                  ) : (
-                    <p>Aucun résultat validé.</p>
-                  )}
-                </section>
+                <TournamentRanking current={current} />
               )}
             </>
           )}
@@ -502,34 +563,7 @@ export function Tournaments({
           </section>
           <section className="panel tournament-card">
             <h3>Tournois et résultats récents</h3>
-            {feed.error ? (
-              <button onClick={feed.refresh}>Réessayer de charger les tournois</button>
-            ) : !feed.list ? (
-              <p>Chargement…</p>
-            ) : !feed.list.length ? (
-              <p>Pas de tournois en cours</p>
-            ) : (
-              <ul className="tournament-list">
-                {feed.list.map((t) => (
-                  <li key={t.id}>
-                    <div>
-                      <b>
-                        {t.difficulty} · {phaseLabel[t.phase]}
-                      </b>
-                      <p>
-                        {t.phase === "open"
-                          ? `Départ dans ${remaining(t.starts_at, feed.now)} · `
-                          : ""}
-                        {t.size}/{tournamentCapacity} joueurs · {t.pot} Sudokoins
-                      </p>
-                    </div>
-                    <button className="tournament-link" onClick={() => onOpen(t.id)}>
-                      Voir le tournoi
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <TournamentList feed={feed} onOpen={onOpen} />
           </section>
         </>
       )}
