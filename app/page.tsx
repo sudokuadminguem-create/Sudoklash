@@ -24,6 +24,7 @@ import "./hint-techniques.css";
 import "./mobile.css";
 import "./i18n.css";
 import "./pwa.css";
+import { WalletBalances } from "./_components/wallet-balances";
 import { AccountButton } from "./_components/account-button";
 import { AchievementBoard } from "./_components/achievement-board";
 import { ChallengeAnnouncer } from "./_components/challenge-announcer";
@@ -288,6 +289,9 @@ function HomeContent() {
                 <h1>{title}</h1>
               </div>
               <div className="header-actions">
+                {account.user && !account.loading && (
+                  <WalletBalances coins={cosmetics.state?.coins} gems={cosmetics.state?.gems} locale={locale} openShop={() => setView("boutique")} />
+                )}
                 <AccountButton
                   key={account.user?.id ?? "guest"}
                   account={account}
