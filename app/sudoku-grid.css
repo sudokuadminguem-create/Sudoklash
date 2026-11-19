@@ -46,12 +46,10 @@
 }
 
 .sudoku button.given {
+  --given-tint: color-mix(in srgb, #121e34, var(--grid-one, #0077ff) 16%);
   color: #eef5ff;
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, #121e34, var(--grid-one, #0077ff) 16%),
-    #121e34
-  );
+  background-color: #121e34;
+  background-image: linear-gradient(145deg, var(--given-tint), #121e34);
 }
 .sudoku button.entered:not(.same):not(.sel):not(.line) {
   background: color-mix(in srgb, var(--grid-two, #00e5c7) 9%, #0e182b);

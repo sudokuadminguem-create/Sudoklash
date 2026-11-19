@@ -2,10 +2,8 @@ import type { Entry } from "@/app/lib/judge";
 import { isSoloDifficulty } from "@/lib/difficulties";
 import { sizeOfCells, variantByLabel, type Cage, type VariantId } from "@/lib/variants";
 
-/** A classic difficulty (see lib/difficulties.ts), or the label of a variant (see lib/variants.ts). */
-export type SoloLevel = string;
-
-export const isSoloLevel = (value: unknown): value is SoloLevel =>
+/** Whether this is a solo level: a classic difficulty, or the label of a variant (lib/variants.ts). */
+export const isSoloLevel = (value: unknown): value is string =>
   isSoloDifficulty(value) || variantByLabel(value) !== undefined;
 
 /** A solo grid as the server handed it out. Guests get the solution to check locally. */
@@ -31,7 +29,7 @@ export type BoardSnapshot = {
 };
 
 /** A solo game in progress, kept in the browser until it is won, lost or replaced. */
-export type SoloSave = { difficulty: SoloLevel; game: StartedGame; board: BoardSnapshot };
+export type SoloSave = { difficulty: string; game: StartedGame; board: BoardSnapshot };
 
 // The server keeps one open game per player, so one save per player is enough.
 const keyFor = (userId: string | null | undefined) => `sudoklash:solo-save:${userId ?? "guest"}`;
