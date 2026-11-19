@@ -25,6 +25,10 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm run lint
       - run: pnpm test:coverage
+      # Checking every grid of the variant bank means solving it: ten times slower under coverage
+      # instrumentation, and it checks data, not code (coverage is the same without it). So it
+      # runs here on its own, without coverage.
+      - run: pnpm test:banks
       - name: Show coverage in the job summary
         if: always()
         run: node scripts/coverage-summary.mjs >> "$GITHUB_STEP_SUMMARY"

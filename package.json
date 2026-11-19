@@ -19,7 +19,8 @@
     "check": "pnpm run typecheck && pnpm run lint && pnpm run test",
     "db:generate": "drizzle-kit generate",
     "puzzles:generate": "tsx scripts/generate-puzzle-bank.ts",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --exclude 'tests/variant-bank-*.test.ts'",
+    "test:banks": "vitest run tests/variant-bank-",
     "test:e2e": "playwright test",
     "variants:generate": "tsx scripts/generate-variant-bank.ts"
   },

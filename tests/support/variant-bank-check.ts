@@ -14,10 +14,11 @@ const toGrid = (text: string) => text.split("").map(Number);
 /**
  * Checks one share of a variant's bank: every grid follows the rules and has a single solution.
  *
- * Checking a grid means solving it, which is slow (Killer above all, and more so under coverage
- * instrumentation). Vitest runs files in parallel but the tests of one file one after the other,
- * so the bank is split across several test files (`part` of `parts`) to use every core. Batches
- * keep each test short; the whole bank is still checked.
+ * Checking a grid means solving it, which is slow (Killer above all). Vitest runs files in
+ * parallel but the tests of one file one after the other, so the bank is split across several
+ * test files (`part` of `parts`) to use every core. These files are left out of the coverage run
+ * (`pnpm test:coverage`), where the solver is ten times slower: CI runs them on their own with
+ * `pnpm test:banks`. Batches keep each test short; the whole bank is still checked.
  */
 export function checkVariantBank(id: VariantId, part = 1, parts = 1) {
   const BATCH = 10;
