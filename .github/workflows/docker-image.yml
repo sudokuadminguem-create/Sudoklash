@@ -189,11 +189,23 @@ jobs:
 
       # cosign 3 signe au format « bundle » Sigstore, rangé comme référent OCI de l'image :
       # la vérification doit chercher ce format, sinon elle ne trouve aucune signature.
+      # Docker Hub indexe les référents OCI en différé : une signature tout juste publiée
+      # peut mettre quelques secondes à apparaître, d'où les nouveaux essais.
       - name: Vérification de la signature
         if: inputs.push
         env:
           DIGEST: ${{ steps.publish.outputs.digest }}
-        run: cosign verify --key cosign.pub --new-bundle-format --insecure-ignore-tlog=true "${IMAGE}@${DIGEST}" > /dev/null
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if cosign verify --key cosign.pub --new-bundle-format --insecure-ignore-tlog=true \
+                 "${IMAGE}@${DIGEST}" > /dev/null; then
+              exit 0
+            fi
+            echo "Signature pas encore visible (essai $i sur 6), nouvel essai dans 10 s…"
+            sleep 10
+          done
+          echo "::error title=Vérification échouée::Aucune signature valide trouvée pour ${IMAGE}@${DIGEST}."
+          exit 1
 
       - name: Résumé de la publication
         if: inputs.push
