@@ -1,16 +1,29 @@
 version: 2
+# Titres et messages de commit au format Conventional Commits, comme l'exige le workflow
+# pr-title.yml (ex. « fix(deps): bump react from 19.2.0 to 19.3.0 »).
 updates:
   # Base image of the Dockerfile (pinned by digest).
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: build
+      include: scope
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    commit-message:
+      # Dépendances livrées en production : fix(deps) ; outils de développement : chore(deps-dev).
+      prefix: fix
+      prefix-development: chore
+      include: scope
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    commit-message:
+      prefix: ci
+      include: scope
