@@ -96,7 +96,8 @@ button {
 }
 .side nav button:hover,
 .side nav button.active {
-  background: linear-gradient(90deg, #3178ff2b, transparent);
+  /* #0f1f40 is #3178ff2b laid over the sidebar: the same tint, with a contrast that can be checked. */
+  background: linear-gradient(90deg, #0f1f40, transparent);
   color: #fff;
 }
 .side nav button.active:before {

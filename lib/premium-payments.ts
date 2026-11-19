@@ -14,7 +14,7 @@ export const paymentsEnabled = () => {
     !!env.DB &&
     !!c.key?.startsWith("sk_live_") &&
     !!c.webhook?.startsWith("whsec_") &&
-    /^https:\/\//.test(c.origin)
+    c.origin.startsWith("https://")
   );
 };
 type Session = {

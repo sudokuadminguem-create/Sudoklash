@@ -75,7 +75,7 @@ describe("useDuelInvites", () => {
     const before = vi.mocked(fetch).mock.calls.length;
     visibility = "hidden";
     await tick(5000);
-    expect(vi.mocked(fetch).mock.calls.length).toBe(before);
+    expect(vi.mocked(fetch).mock.calls).toHaveLength(before);
     visibility = "visible";
     await tick(1000);
     expect(vi.mocked(fetch).mock.calls.length).toBeGreaterThan(before);
@@ -92,7 +92,7 @@ describe("useDuelInvites", () => {
     await act(async () => root.unmount());
     const calls = vi.mocked(fetch).mock.calls.length;
     await tick(5000);
-    expect(vi.mocked(fetch).mock.calls.length).toBe(calls);
+    expect(vi.mocked(fetch).mock.calls).toHaveLength(calls);
     root = createRoot(container); // for afterEach
   });
 });

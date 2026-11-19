@@ -1,5 +1,13 @@
 "use client";
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   applyDisplay,
   defaultSettings,
@@ -60,7 +68,8 @@ export function SettingsProvider({ children }: Readonly<{ children: ReactNode }>
       return next;
     });
   }, []);
-  return <Context.Provider value={{ settings, update }}>{children}</Context.Provider>;
+  const value = useMemo(() => ({ settings, update }), [settings, update]);
+  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
 /** Current settings; the defaults outside a SettingsProvider. */

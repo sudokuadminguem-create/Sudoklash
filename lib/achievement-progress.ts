@@ -88,7 +88,15 @@ export async function achievementProgress(
   const weeklyIds=new Set(weekly.map(r=>r.id));
   const weekFor=(date:string)=>{const d=new Date(date+"T00:00:00Z"),weekday=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-weekday);return d.toISOString().slice(0,10)};
   const daysByWeek=new Map<string,Set<string>>();
-  for(const row of daily){const week=weekFor(row.id);if(!daysByWeek.has(week))daysByWeek.set(week,new Set());daysByWeek.get(week)!.add(row.id)}
+  for (const row of daily) {
+    const week = weekFor(row.id);
+    let days = daysByWeek.get(week);
+    if (!days) {
+      days = new Set();
+      daysByWeek.set(week, days);
+    }
+    days.add(row.id);
+  }
   const soloPerDay=new Map<string,number>();
   for(const date of soloDates)soloPerDay.set(date,(soloPerDay.get(date)??0)+1);
   const ownMistakes=(r:MatchRow)=>r.player1_id===userId?r.player1_mistakes:r.player2_mistakes;

@@ -118,7 +118,8 @@ export function TimedChallenge({
     [now, setNow] = useState(0),
     [pendingGrid, setPendingGrid] = useState<number[] | null>(null),
     [earnedXp, setEarnedXp] = useState<number | null>(null);
-  const endpoint = `/api/${kind}${kind === "daily" ? `?difficulty=${encodeURIComponent(difficulty)}` : ""}`;
+  const query = kind === "daily" ? `?difficulty=${encodeURIComponent(difficulty)}` : "";
+  const endpoint = `/api/${kind}${query}`;
   const refreshInFlight = useRef(false),
     retryAt = useRef(0);
   const isDaily = kind === "daily",

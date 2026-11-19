@@ -1,4 +1,3 @@
-import { env } from "cloudflare:workers";
 import { getSiteUser } from "@/app/supabase-auth";
 import { premiumPacks, supportPacks } from "@/lib/premium";
 import { paymentsEnabled, paymentConfig, creditSession } from "@/lib/premium-payments";

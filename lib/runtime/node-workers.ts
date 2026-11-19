@@ -17,7 +17,8 @@ function openDatabase() {
 
 export const env = {
   get DB() {
-    return (database ??= openDatabase());
+    database ??= openDatabase();
+    return database;
   },
   // No platform proxy strips `oai-authenticated-*` headers here, so anyone could forge them.
   PLATFORM_AUTH_HEADERS: "untrusted",

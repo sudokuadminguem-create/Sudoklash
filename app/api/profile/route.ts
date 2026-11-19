@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   if (!user) return Response.json({ error: "authentication_required" }, { status: 401 });
   const body = (await request.json().catch(() => null)) as { username?: unknown } | null;
   const username = typeof body?.username === "string" ? body.username.trim() : "";
-  if (!/^[A-Za-z0-9_]{3,20}$/.test(username))
+  if (!/^\w{3,20}$/.test(username))
     return Response.json({ error: "invalid_username" }, { status: 400 });
   try {
     await env.DB!.prepare(

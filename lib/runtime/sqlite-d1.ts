@@ -14,9 +14,9 @@ function settle<T>(work: () => T): Promise<T> {
 
 class Statement {
   constructor(
-    private db: DatabaseSync,
-    private sql: string,
-    private params: SQLInputValue[] = [],
+    private readonly db: DatabaseSync,
+    private readonly sql: string,
+    private readonly params: SQLInputValue[] = [],
   ) {}
 
   bind(...params: unknown[]) {

@@ -14,7 +14,6 @@ import { soloDifficulties } from "@/lib/difficulties";
 import { variantIds, variantInfo } from "@/lib/variants";
 import { soloXpFor } from "@/lib/cosmetics";
 import { PrivateLobby } from "./private-lobby";
-import { RoomGame } from "./room-game";
 import { SoloGame } from "./solo-game";
 import { NearChallenges } from "./near-challenges";
 import { DailyChallenges } from "./daily-challenges";
@@ -181,9 +180,6 @@ export function ModePanel({
       account={account}
       notify={notify}
       openAuth={openAuth}
-      onRace={(room, players) => (
-        <RoomGame key={room.id} room={room} players={players} account={account} notify={notify} />
-      )}
     />
   );
 }

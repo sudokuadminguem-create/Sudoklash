@@ -49,15 +49,11 @@ export async function deletePlayerData(db: D1Database, userId: string) {
     db
       .prepare("DELETE FROM friendships WHERE requester_id=? OR addressee_id=?")
       .bind(userId, userId),
-  );
-  statements.push(
     db
       .prepare(
         "UPDATE ranked_matches SET player1_id=CASE WHEN player1_id=?1 THEN ?2 ELSE player1_id END, player2_id=CASE WHEN player2_id=?1 THEN ?2 ELSE player2_id END, winner_id=CASE WHEN winner_id=?1 THEN ?2 ELSE winner_id END, status=CASE WHEN status='playing' THEN 'cancelled' ELSE status END WHERE player1_id=?1 OR player2_id=?1",
       )
       .bind(userId, anonymous),
-  );
-  statements.push(
     db
       .prepare(
         "UPDATE friend_duels SET challenger_id=CASE WHEN challenger_id=?1 THEN ?2 ELSE challenger_id END, opponent_id=CASE WHEN opponent_id=?1 THEN ?2 ELSE opponent_id END, winner_id=CASE WHEN winner_id=?1 THEN ?2 ELSE winner_id END, status=CASE WHEN status IN ('playing','pending') THEN 'cancelled' ELSE status END WHERE challenger_id=?1 OR opponent_id=?1",

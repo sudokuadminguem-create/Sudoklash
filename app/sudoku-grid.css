@@ -49,7 +49,7 @@
   color: #eef5ff;
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--grid-one, #0077ff) 16%, #121e34),
+    color-mix(in srgb, #121e34, var(--grid-one, #0077ff) 16%),
     #121e34
   );
 }
@@ -1072,7 +1072,8 @@ button {
   padding: 14px;
   border: 1px solid #49e8d48c;
   border-radius: 18px;
-  background: radial-gradient(circle at 50% 10%, #29d8c83b, transparent 75%), #102b37;
+  /* #16535a is #29d8c83b laid over #102b37: the same glow, with a contrast that can be checked. */
+  background: radial-gradient(circle at 50% 10%, #16535a, transparent 75%), #102b37;
   color: #d8fff6;
   box-shadow:
     0 12px 34px #061c2c99,
@@ -3364,6 +3365,7 @@ button {
   backdrop-filter: blur(9px);
 }
 .challenge-reveal > div {
+  position: relative;
   display: grid;
   justify-items: center;
   gap: 14px;
@@ -3757,7 +3759,6 @@ button {
 
 .ranked-tab-copy { display:grid; gap:2px; line-height:1.2; }
 .ranked-online { font-size:.72rem; color:inherit; font-weight:600; white-space:nowrap; }
-.challenge-reveal > div { position:relative; }
 .challenge-reveal .challenge-close { position:absolute; inset:8px 8px auto auto; width:40px; min-width:40px; height:40px; padding:8px; display:grid; place-items:center; margin:0; }
 .challenge-frame-preview { display:grid; place-items:center; gap:10px; padding:16px 12px 0; }
 .challenge-frame-preview .player-avatar.large { width:84px; height:84px; }

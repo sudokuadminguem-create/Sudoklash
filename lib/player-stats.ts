@@ -40,7 +40,7 @@ export function streakOf(timestamps: readonly number[], now: number): Streak {
     best = Math.max(best, run);
   }
   const today = dayKey(now);
-  const gap = daysBetween(days[days.length - 1], today);
+  const gap = daysBetween(days.at(-1) ?? today, today);
   return { current: gap <= 1 ? run : 0, best, playedToday: gap === 0 };
 }
 

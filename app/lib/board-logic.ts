@@ -154,7 +154,7 @@ export function shareText(
   });
 }
 
-const MOVE_KEYS = [
+const MOVE_KEYS = new Set([
   "ArrowUp",
   "ArrowDown",
   "ArrowLeft",
@@ -163,10 +163,10 @@ const MOVE_KEYS = [
   "End",
   "PageUp",
   "PageDown",
-];
+]);
 
 /** Whether this key moves the selection around the grid. */
-export const isMoveKey = (key: string) => MOVE_KEYS.includes(key);
+export const isMoveKey = (key: string) => MOVE_KEYS.has(key);
 
 /**
  * The cell selected after a navigation key, or null when the key is not one. Arrows stop at the

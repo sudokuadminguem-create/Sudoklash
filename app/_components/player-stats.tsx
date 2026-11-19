@@ -71,7 +71,7 @@ export function ProgressionChart({
   const HEIGHT = Math.round(Math.min(240, Math.max(180, WIDTH * 0.4)));
   const times = results.map((r) => r.elapsed_seconds);
   const ticks = timeTicks(Math.max(...times, 1));
-  const yMax = ticks[ticks.length - 1];
+  const yMax = ticks.at(-1) ?? 1;
   const inner = { w: WIDTH - MARGIN.left - MARGIN.right, h: HEIGHT - MARGIN.top - MARGIN.bottom };
   const x = (i: number) =>
     MARGIN.left + (results.length === 1 ? inner.w / 2 : (i / (results.length - 1)) * inner.w);

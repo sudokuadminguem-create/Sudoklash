@@ -1,9 +1,9 @@
 import type { Entry } from "@/app/lib/judge";
-import { isSoloDifficulty, type Difficulty } from "@/lib/difficulties";
+import { isSoloDifficulty } from "@/lib/difficulties";
 import { sizeOfCells, variantByLabel, type Cage, type VariantId } from "@/lib/variants";
 
-/** A classic difficulty, or the label of a variant (see lib/variants.ts). */
-export type SoloLevel = Difficulty | string;
+/** A classic difficulty (see lib/difficulties.ts), or the label of a variant (see lib/variants.ts). */
+export type SoloLevel = string;
 
 export const isSoloLevel = (value: unknown): value is SoloLevel =>
   isSoloDifficulty(value) || variantByLabel(value) !== undefined;

@@ -1,6 +1,6 @@
 // Pure Sudoku helpers shared by the browser and the Worker. Grids are 81 cells, 0 = empty.
 
-const GRID_PATTERN = /^[0-9]{81}$/;
+const GRID_PATTERN = /^\d{81}$/;
 
 function canPlace(grid: readonly number[], position: number, value: number) {
   const row = Math.floor(position / 9),

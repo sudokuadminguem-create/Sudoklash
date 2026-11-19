@@ -262,11 +262,7 @@ const equipEffect: ActionHandler = async (context) => {
 };
 
 const equipFrame: ActionHandler = async ({ db, userId, current, body }) => {
-  if (
-    body.id !== "rank_auto" &&
-    body.id !== "none" &&
-    !current.unlockedFrames.some((id) => id === body.id)
-  )
+  if (body.id !== "rank_auto" && body.id !== "none" && !current.unlockedFrames.includes(body.id))
     return json({ error: "frame_locked" }, 403);
   await db
     .prepare(insertCosmeticsSQL("frame_id"))
