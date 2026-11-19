@@ -58,8 +58,8 @@ export const authCookieStorage = {
     } catch {
       // Use the existing cookie fallback if browser storage is blocked.
     }
-    const previous = readChunks(scope(key)) ??
-      (key.endsWith("-auth-token") ? readChunks(prefix) : null);
+    const previous =
+      readChunks(scope(key)) ?? (key.endsWith("-auth-token") ? readChunks(prefix) : null);
     if (previous !== null) this.setItem(key, previous);
     return previous;
   },
@@ -89,6 +89,10 @@ export const authCookieStorage = {
     if (typeof document === "undefined") return;
     clearCookies(scopedCookies(scope(key)));
     if (key.endsWith("-auth-token")) clearCookies(legacyCookies());
-    try { window.localStorage.removeItem(key); } catch { /* browser storage blocked */ }
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      /* browser storage blocked */
+    }
   },
 };

@@ -15,14 +15,18 @@ const seed = Number(process.argv[3] ?? 20260926);
 const only = process.argv[4] as Difficulty | undefined;
 if (only && !soloDifficulties.includes(only)) throw new Error(`Unknown difficulty: ${only}`);
 const random = seededRandom(seed);
-const bank = Object.fromEntries(soloDifficulties.map((d) => [
-  d,
-  new Set(only ? puzzleBank[d].filter((p) => d !== only || classifyPuzzle(p.split("").map(Number)) === d) : []),
-])) as Record<
-  Difficulty,
-  Set<string>
->;
-const missing = () => soloDifficulties.filter((d) => (!only || d === only) && bank[d].size < perDifficulty);
+const bank = Object.fromEntries(
+  soloDifficulties.map((d) => [
+    d,
+    new Set(
+      only
+        ? puzzleBank[d].filter((p) => d !== only || classifyPuzzle(p.split("").map(Number)) === d)
+        : [],
+    ),
+  ]),
+) as Record<Difficulty, Set<string>>;
+const missing = () =>
+  soloDifficulties.filter((d) => (!only || d === only) && bank[d].size < perDifficulty);
 
 let attempts = 0;
 while (missing().length) {
