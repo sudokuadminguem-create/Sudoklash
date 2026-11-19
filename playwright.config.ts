@@ -13,9 +13,18 @@ export default defineConfig({
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   // The app follows the browser language: the suite is written against the French interface.
   use: { baseURL, locale: "fr-FR", trace: "retain-on-failure" },
+  // CI runners have 4 cores: Playwright would only use 2 by default.
+  workers: process.env.CI ? 4 : undefined,
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 5"] } },
+    // mobile.spec.ts sets its own phone viewport and touch screen: no need to run it twice.
+    { name: "desktop", use: { ...devices["Desktop Chrome"] }, testIgnore: "mobile.spec.ts" },
+    // On a phone, only the playing paths are replayed: pages, APIs, themes, languages and
+    // accessibility do not depend on the device and are already covered on desktop.
+    {
+      name: "mobile",
+      use: { ...devices["Pixel 5"] },
+      testMatch: ["mobile.spec.ts", "solo.spec.ts", "variants.spec.ts"],
+    },
   ],
   webServer: {
     command: "pnpm dev",

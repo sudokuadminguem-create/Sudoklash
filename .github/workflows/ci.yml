@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+# A new push to a pull request cancels the run still going for the previous commit. On main,
+# every commit keeps its own run: each one publishes its image.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -19,6 +25,10 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm run lint
       - run: pnpm test:coverage
+      # Checking every grid of the variant bank means solving it: ten times slower under coverage
+      # instrumentation, and it checks data, not code (coverage is the same without it). So it
+      # runs here on its own, without coverage.
+      - run: pnpm test:banks
       - name: Show coverage in the job summary
         if: always()
         run: node scripts/coverage-summary.mjs >> "$GITHUB_STEP_SUMMARY"
@@ -64,7 +74,18 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      # The browser is kept between runs for a given Playwright version.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(pnpm exec playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # No --with-deps: the runner already has the libraries Chromium needs (Google Chrome is
+      # installed on it). --with-deps only added Asian fonts and minor updates through apt, and
+      # took up to 5 minutes whenever the Ubuntu mirror was slow. No test compares screenshots.
+      - run: pnpm exec playwright install chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()
