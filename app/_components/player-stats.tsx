@@ -29,10 +29,10 @@ const dateLabel = (timestamp: number) =>
 export function ProgressionChart({
   results,
   difficulty,
-}: {
+}: Readonly<{
   results: SoloResult[];
   difficulty: string;
-}) {
+}>) {
   const [hover, setHover] = useState<number | null>(null);
   const [asTable, setAsTable] = useState(false);
   const titleId = useId();
@@ -198,7 +198,7 @@ export function ProgressionChart({
 }
 
 /** Streak tiles, the table by difficulty and the progression curve of the account page. */
-export function PlayerStats({ stats }: { stats: SoloStats }) {
+export function PlayerStats({ stats }: Readonly<{ stats: SoloStats }>) {
   const played = useMemo(
     () => soloDifficulties.filter((d) => stats.byDifficulty.some((row) => row.difficulty === d)),
     [stats.byDifficulty],

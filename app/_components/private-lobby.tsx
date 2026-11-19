@@ -20,12 +20,12 @@ export function PrivateLobby({
   notify,
   openAuth,
   onRace,
-}: {
+}: Readonly<{
   account: Account;
   notify: (s: string) => void;
   openAuth: () => void;
   onRace: (room: Room, players: RoomPlayer[]) => React.ReactNode;
-}) {
+}>) {
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);

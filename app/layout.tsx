@@ -41,7 +41,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   themeColor: "#070b16",
 };
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     // The display script sets data attributes on <html> before React looks at it.
     <html lang="fr" suppressHydrationWarning>

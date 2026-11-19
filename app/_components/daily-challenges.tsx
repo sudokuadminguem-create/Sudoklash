@@ -19,7 +19,10 @@ type Player = {
   frameId: string;
   image: string | null;
 };
-function DailyRanking({ difficulty, openAuth }: { difficulty: Difficulty; openAuth: () => void }) {
+function DailyRanking({
+  difficulty,
+  openAuth,
+}: Readonly<{ difficulty: Difficulty; openAuth: () => void }>) {
   const [players, setPlayers] = useState<Player[] | null>(null),
     [error, setError] = useState(false),
     [auth, setAuth] = useState(false),
@@ -101,10 +104,10 @@ function DailyRanking({ difficulty, openAuth }: { difficulty: Difficulty; openAu
 export function DailyChallenges({
   openAuth,
   cosmetics,
-}: {
+}: Readonly<{
   openAuth: () => void;
   cosmetics: Cosmetics;
-}) {
+}>) {
   const [difficulty, setDifficulty] = useState<Difficulty>("Facile"),
     [view, setView] = useState<"play" | "ranking">("play");
   const grid = useRef<HTMLDivElement>(null);

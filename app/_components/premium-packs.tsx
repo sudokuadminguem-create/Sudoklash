@@ -8,11 +8,11 @@ export function PremiumPacks({
   signedIn,
   openAuth,
   cosmetics,
-}: {
+}: Readonly<{
   signedIn: boolean;
   openAuth: () => void;
   cosmetics: Cosmetics;
-}) {
+}>) {
   const [available, setAvailable] = useState<boolean | null>(null),
     [busy, setBusy] = useState(""),
     [message, setMessage] = useState("");

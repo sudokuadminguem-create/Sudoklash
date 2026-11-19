@@ -9,13 +9,13 @@ export function RealFriends({
   openAuth,
   onChallenge,
   requestFocus,
-}: {
+}: Readonly<{
   account: Account;
   notify: (s: string) => void;
   openAuth: () => void;
   onChallenge?: (friend: { id: string; username: string }) => void;
   requestFocus?: number;
-}) {
+}>) {
   if (!account.user)
     return (
       <LockedPanel

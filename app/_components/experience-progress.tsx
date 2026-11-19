@@ -2,7 +2,7 @@
 import type { CSSProperties } from "react";
 import { levelProgressForXp } from "@/lib/cosmetics";
 
-export function ExperienceProgress({ gained, totalXp }: { gained: number; totalXp: number }) {
+export function ExperienceProgress({ gained, totalXp }: Readonly<{ gained: number; totalXp: number }>) {
   const before = levelProgressForXp(Math.max(0, totalXp - gained));
   const after = levelProgressForXp(totalXp);
   const previous = before.level === after.level ? before.levelXp / before.nextLevelXp * 100 : 0;

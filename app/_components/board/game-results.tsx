@@ -12,7 +12,7 @@ type FooterProps = {
 };
 
 /** Lives and hints rule, progress and the fairness note. */
-export function GameFooter({ hintLimit, hintsUsed, progress, competitive }: FooterProps) {
+export function GameFooter({ hintLimit, hintsUsed, progress, competitive }: Readonly<FooterProps>) {
   const { t } = useI18n();
   const left = hintLimit - hintsUsed;
   return (
@@ -34,7 +34,9 @@ export function GameFooter({ hintLimit, hintsUsed, progress, competitive }: Foot
 }
 
 /** Notices under the board: a wrong digit, or digits that could not be checked. */
-export function BoardNotices(props: { mistakes: number; unverified: number; onRetry: () => void }) {
+export function BoardNotices(
+  props: Readonly<{ mistakes: number; unverified: number; onRetry: () => void }>,
+) {
   const { mistakes, unverified } = props;
   const { t } = useI18n();
   return (
@@ -55,7 +57,7 @@ export function BoardNotices(props: { mistakes: number; unverified: number; onRe
 }
 
 /** Shown once the three lives are gone. */
-export function LossResult({ onNewGame }: { onNewGame?: () => void }) {
+export function LossResult({ onNewGame }: Readonly<{ onNewGame?: () => void }>) {
   const { t } = useI18n();
   return (
     <div className="loss-result" role="status">
@@ -118,7 +120,7 @@ function SoloExperience({
 }
 
 /** Victory screen: the game in numbers, the XP earned and the buttons to share or replay. */
-export function VictoryPanel(props: VictoryProps) {
+export function VictoryPanel(props: Readonly<VictoryProps>) {
   const { experience, soloExperience, onNewGame } = props;
   const { t } = useI18n();
   const [shared, setShared] = useState(false);

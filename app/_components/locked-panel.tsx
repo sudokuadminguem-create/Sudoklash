@@ -5,11 +5,11 @@ export function LockedPanel({
   title,
   text,
   action,
-}: {
+}: Readonly<{
   title: string;
   text: string;
   action: () => void;
-}) {
+}>) {
   return (
     <div className="panel locked-real">
       <LogIn />

@@ -28,13 +28,13 @@ export function PremiumCollections({
   username,
   openAuth,
   notify,
-}: {
+}: Readonly<{
   cosmetics: Cosmetics;
   signedIn: boolean;
   username: string;
   openAuth: () => void;
   notify: (message: string) => void;
-}) {
+}>) {
   const [busy, setBusy] = useState(""),
     [purchase, setPurchase] = useState<{ id: string; name: string; price: number } | null>(null),
     [preview, setPreview] = useState<{ id: string; key: number } | null>(null);

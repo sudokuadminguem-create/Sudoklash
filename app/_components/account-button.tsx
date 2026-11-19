@@ -126,7 +126,7 @@ export function AccountButton({
   onFriends,
   onDuels,
   onEditPhoto,
-}: {
+}: Readonly<{
   account: Account;
   onOpen: () => void;
   onAccount: () => void;
@@ -134,7 +134,7 @@ export function AccountButton({
   onFriends: () => void;
   onDuels: () => void;
   onEditPhoto: () => void;
-}) {
+}>) {
   const { locale } = useI18n();
   const en = locale === "en";
   const id = useId();

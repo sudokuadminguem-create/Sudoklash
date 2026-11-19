@@ -168,12 +168,12 @@ function CustomAvatarUpload({
   notify,
   busy,
   setBusy,
-}: {
+}: Readonly<{
   cosmetics: Cosmetics;
   notify: (message: string) => void;
   busy: string;
   setBusy: (id: string) => void;
-}) {
+}>) {
   const data = cosmetics.state!,
     selected = data.avatarId === "custom";
   const upload = async (file: File | undefined) => {
@@ -268,10 +268,10 @@ function CustomAvatarUpload({
 export function CosmeticCloset({
   cosmetics,
   notify,
-}: {
+}: Readonly<{
   cosmetics: Cosmetics;
   notify: (message: string) => void;
-}) {
+}>) {
   const data = cosmetics.state,
     [busy, setBusy] = useState("");
   if (cosmetics.loading && !data)
@@ -518,12 +518,12 @@ export function AvatarShop({
   notify,
   openAuth,
   account,
-}: {
+}: Readonly<{
   cosmetics: Cosmetics;
   notify: (message: string) => void;
   openAuth: () => void;
   account: AccountState;
-}) {
+}>) {
   const [busy, setBusy] = useState("");
   if (!account.user)
     return (

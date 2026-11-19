@@ -25,7 +25,7 @@ export function closestChallenges(challenges: Challenge[]) {
     );
 }
 
-export function NearChallenges({ account, cosmetics }: { account: Account; cosmetics: Cosmetics }) {
+export function NearChallenges({ account, cosmetics }: Readonly<{ account: Account; cosmetics: Cosmetics }>) {
   const [items, setItems] = useState<Challenge[]>([]);
   const userId = account.user?.id;
   useEffect(() => {

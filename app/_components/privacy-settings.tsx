@@ -81,11 +81,11 @@ export function PrivacySettings({
   account,
   openAuth,
   notify,
-}: {
+}: Readonly<{
   account: Account;
   openAuth: () => void;
   notify: (message: string) => void;
-}) {
+}>) {
   const { locale } = useI18n();
   const text = words[locale];
   const [data, setData] = useState<Connection | null>(null),

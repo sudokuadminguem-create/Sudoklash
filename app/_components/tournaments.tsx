@@ -120,10 +120,10 @@ export function useTournaments() {
 export function TournamentBanner({
   feed,
   onOpen,
-}: {
+}: Readonly<{
   feed: ReturnType<typeof useTournaments>;
   onOpen: (id?: string) => void;
-}) {
+}>) {
   const active = feed.list?.filter((t) => t.phase === "open" || t.phase === "playing") ?? [];
   const [paused, setPaused] = useState(false);
   const featured = active.find((t) => t.phase === "playing") ?? active[0];
@@ -170,11 +170,11 @@ function TournamentGame({
   detail,
   userId,
   refresh,
-}: {
+}: Readonly<{
   detail: Detail;
   userId: string;
   refresh: () => void;
-}) {
+}>) {
   const id = detail.tournament.id,
     key = `sudoklash:tournament:${userId}:${id}`;
   const [resume] = useState<BoardSnapshot | undefined>(() => {
@@ -394,7 +394,7 @@ export function Tournaments({
   coins,
   openAuth,
   walletRefresh,
-}: {
+}: Readonly<{
   feed: ReturnType<typeof useTournaments>;
   id: string | null;
   onOpen: (id?: string) => void;
@@ -402,7 +402,7 @@ export function Tournaments({
   coins?: number;
   openAuth: () => void;
   walletRefresh: () => void;
-}) {
+}>) {
   const [difficulty, setDifficulty] = useState<Difficulty>("Intermédiaire"),
     [delay, setDelay] = useState(10),
     [confirmation, setConfirmation] = useState<"create" | "join" | null>(null),

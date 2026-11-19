@@ -25,7 +25,7 @@ export {
 type SettingsContext = { settings: Settings; update: (change: Partial<Settings>) => void };
 const Context = createContext<SettingsContext>({ settings: defaultSettings, update: () => {} });
 
-export function SettingsProvider({ children }: { children: ReactNode }) {
+export function SettingsProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [settings, setSettings] = useState(defaultSettings);
   // Until the saved settings are read, the page keeps what the script in <head> gave it.
   const [loaded, setLoaded] = useState(false);

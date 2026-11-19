@@ -28,13 +28,13 @@ export function ModePanel({
   account,
   cosmetics,
   openAuth,
-}: {
+}: Readonly<{
   mode: string;
   notify: (s: string) => void;
   account: Account;
   cosmetics: Cosmetics;
   openAuth: () => void;
-}) {
+}>) {
   const [chosen, setChosen] = useState<SoloLevel | null>(null),
     [resuming, setResuming] = useState<SoloSave | undefined>(),
     [saved, setSaved] = useState<SoloSave | null>(null),

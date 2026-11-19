@@ -47,7 +47,7 @@ export function SoloGame({
   openAuth,
   resume,
   practice = false,
-}: {
+}: Readonly<{
   difficulty: SoloLevel;
   account: Account;
   cosmetics: Cosmetics;
@@ -55,7 +55,7 @@ export function SoloGame({
   /** A saved game to carry on instead of starting a new one. */
   resume?: SoloSave;
   practice?: boolean;
-}) {
+}>) {
   const [game, setGame] = useState<StartedGame | null>(resume?.game ?? null),
     [board, setBoard] = useState<BoardSnapshot | undefined>(resume?.board),
     [error, setError] = useState(false),

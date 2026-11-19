@@ -6,13 +6,13 @@ const EffectContext = createContext("none");
 export function PremiumEffectProvider({
   effectId,
   children,
-}: {
+}: Readonly<{
   effectId: string;
   children: ReactNode;
-}) {
+}>) {
   return <EffectContext.Provider value={effectId}>{children}</EffectContext.Provider>;
 }
-export function VictoryEffect({ won, previewId }: { won: boolean; previewId?: string }) {
+export function VictoryEffect({ won, previewId }: Readonly<{ won: boolean; previewId?: string }>) {
   const equipped = useContext(EffectContext),
     id = previewId ?? equipped;
   const product = parseCollectionItem(id),
