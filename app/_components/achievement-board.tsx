@@ -193,14 +193,13 @@ export function AchievementBoard({
                   {tab !== "frames" && <p>{a.requirement}</p>}
                   {tab === "todo" ? (
                     <>
-                      <div
-                        className="challenge-progress"
-                        role="progressbar"
+                      <progress
+                        className="sr-only"
                         aria-label={`Progression : ${a.name}`}
-                        aria-valuemin={0}
-                        aria-valuemax={a.target}
-                        aria-valuenow={Math.min(a.progress, a.target)}
-                      >
+                        max={a.target}
+                        value={Math.min(a.progress, a.target)}
+                      />
+                      <div className="challenge-progress" aria-hidden="true">
                         <span
                           style={{ width: `${Math.min(100, (100 * a.progress) / a.target)}%` }}
                         />
