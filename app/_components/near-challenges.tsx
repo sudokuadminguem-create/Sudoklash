@@ -9,6 +9,12 @@ import { PlayerAvatar } from "./player-cosmetics";
 type Challenge = Achievement & { progress: number; unlocked: boolean };
 const rarityOrder = { legendary: 3, epic: 2, simple: 1, majestic: 0 };
 
+function rarityLabel(rarity: Challenge["rarity"]) {
+  if (rarity === "legendary") return "LÉGENDAIRE";
+  if (rarity === "epic") return "ÉPIQUE";
+  return "CLASSIQUE";
+}
+
 /** Pick by completion percentage first, then display those three by rarity. */
 export function closestChallenges(challenges: Challenge[]) {
   return challenges
@@ -75,25 +81,19 @@ export function NearChallenges({
               />
               <div className="near-challenge-labels">
                 <span className="challenge-rarity">
-                  {item.rarity === "legendary"
-                    ? "LÉGENDAIRE"
-                    : item.rarity === "epic"
-                      ? "ÉPIQUE"
-                      : "CLASSIQUE"}{" "}
-                  · CADRE À GAGNER
+                  {rarityLabel(item.rarity)} · CADRE À GAGNER
                 </span>
                 <strong>{item.name}</strong>
               </div>
             </div>
             <small title={item.requirement}>{item.requirement}</small>
-            <div
-              className="challenge-progress"
-              role="progressbar"
+            <progress
+              className="sr-only"
               aria-label={`Progression : ${item.name}`}
-              aria-valuemin={0}
-              aria-valuemax={item.target}
-              aria-valuenow={Math.min(item.progress, item.target)}
-            >
+              max={item.target}
+              value={Math.min(item.progress, item.target)}
+            />
+            <div className="challenge-progress" aria-hidden="true">
               <span style={{ width: `${Math.min(100, (item.progress / item.target) * 100)}%` }} />
             </div>
             <b>

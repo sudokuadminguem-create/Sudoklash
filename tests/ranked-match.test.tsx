@@ -58,7 +58,7 @@ describe("RankedMatch summary", () => {
     expect(text).toContain("+24 points");
     expect(text).toContain("Argent 2 · 1240 points");
     expect(container.querySelector(".ranked-points")!.className).toContain("gain");
-    expect(container.querySelector("[role=progressbar]")).not.toBeNull();
+    expect(container.querySelector("progress")).not.toBeNull();
   });
 
   it("explains a loss after three mistakes", async () => {

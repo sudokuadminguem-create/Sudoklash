@@ -11,9 +11,8 @@ export function ExperienceProgress({
   const previous = before.level === after.level ? (before.levelXp / before.nextLevelXp) * 100 : 0;
   const current = (after.levelXp / after.nextLevelXp) * 100;
   return (
-    <div
+    <section
       className="experience-progress"
-      role="group"
       aria-label="Expérience gagnée et progression du niveau"
     >
       <div className="experience-progress-heading">
@@ -22,20 +21,19 @@ export function ExperienceProgress({
         </strong>
         <b>+{gained} XP</b>
       </div>
-      <div
-        className="experience-progress-track"
-        role="progressbar"
+      <progress
+        className="sr-only"
         aria-label={`Progression vers le niveau ${after.level + 1}`}
-        aria-valuemin={0}
-        aria-valuemax={after.nextLevelXp}
-        aria-valuenow={after.levelXp}
-      >
+        max={after.nextLevelXp}
+        value={after.levelXp}
+      />
+      <div className="experience-progress-track" aria-hidden="true">
         <span style={{ "--xp-from": `${previous}%`, "--xp-to": `${current}%` } as CSSProperties} />
       </div>
       <small>
         {after.levelXp.toLocaleString("fr-FR")} / {after.nextLevelXp.toLocaleString("fr-FR")} XP
         vers le niveau {after.level + 1}
       </small>
-    </div>
+    </section>
   );
 }

@@ -34,7 +34,7 @@ describe("VictoryPanel solo experience", () => {
     const xp = view.container.querySelector(".solo-xp")!;
     expect(xp.textContent).toContain("+40 XP");
     expect(xp.textContent).toContain("Expérience ajoutée à ton compte");
-    expect(xp.querySelector("[role=progressbar]")).not.toBeNull();
+    expect(xp.querySelector("progress")).not.toBeNull();
   });
 
   it("says the result is being saved and holds the next grid back", async () => {
