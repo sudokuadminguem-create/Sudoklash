@@ -18,8 +18,20 @@ afterEach(() => {
 });
 
 it("announces every newly completed challenge once, including classic awards", async () => {
-  const first = { id: "classic", name: "Première grille", requirement: "Terminer une grille", rarity: "simple", unlocked: true };
-  const second = { id: "epic", name: "Expert", requirement: "Finir en expert", rarity: "epic", unlocked: true };
+  const first = {
+    id: "classic",
+    name: "Première grille",
+    requirement: "Terminer une grille",
+    rarity: "simple",
+    unlocked: true,
+  };
+  const second = {
+    id: "epic",
+    name: "Expert",
+    requirement: "Finir en expert",
+    rarity: "epic",
+    unlocked: true,
+  };
   const fetchMock = vi.fn().mockResolvedValue({
     ok: true,
     json: async () => ({ achievements: [first, second], newlyUnlocked: [first.id, second.id] }),
@@ -32,9 +44,11 @@ it("announces every newly completed challenge once, including classic awards", a
   const cosmetics = { state: null } as Cosmetics;
   const discover = vi.fn();
   try {
-    await act(async () => root.render(
-      <ChallengeAnnouncer account={account} cosmetics={cosmetics} onDiscover={discover} />,
-    ));
+    await act(async () =>
+      root.render(
+        <ChallengeAnnouncer account={account} cosmetics={cosmetics} onDiscover={discover} />,
+      ),
+    );
     expect(container.querySelector("dialog")?.textContent).toContain("DÉFI CLASSIQUE ACCOMPLI");
     const click = async (label: string) => {
       const button = Array.from(container.querySelectorAll("button")).find(
