@@ -26,6 +26,24 @@ const dateLabel = (timestamp: number) =>
   new Date(timestamp).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 
 /** Times of the latest wins of one difficulty, with the record and a hover readout. */
+function trendText(change: number) {
+  if (Math.abs(change) < 0.03) return "Tes temps récents sont stables.";
+  if (change < 0)
+    return `Tu es ${Math.round(-change * 100)} % plus rapide que sur tes grilles précédentes.`;
+  return `Tes temps récents sont ${Math.round(change * 100)} % plus longs que les précédents.`;
+}
+
+/** Keeps a point label inside the chart near its left and right edges. */
+function labelAnchor(position: number, width: number) {
+  if (position < width * 0.25) return "start";
+  return position > width * 0.75 ? "end" : "middle";
+}
+
+function streakHint(current: number, playedToday: boolean) {
+  if (current === 0) return "Termine une grille aujourd’hui pour lancer une série.";
+  return playedToday ? "Prolongée aujourd’hui." : "Joue aujourd’hui pour la prolonger.";
+}
+
 export function ProgressionChart({
   results,
   difficulty,
@@ -87,15 +105,7 @@ export function ProgressionChart({
           {asTable ? "Voir le graphique" : "Voir le tableau"}
         </button>
       </div>
-      {trend && (
-        <p className="progression-trend">
-          {Math.abs(trend.change) < 0.03
-            ? "Tes temps récents sont stables."
-            : trend.change < 0
-              ? `Tu es ${Math.round(-trend.change * 100)} % plus rapide que sur tes grilles précédentes.`
-              : `Tes temps récents sont ${Math.round(trend.change * 100)} % plus longs que les précédents.`}
-        </p>
-      )}
+      {trend && <p className="progression-trend">{trendText(trend.change)}</p>}
       {asTable ? (
         <table className="progression-table">
           <caption className="sr-only">Temps par grille {difficulty}</caption>
@@ -163,13 +173,7 @@ export function ProgressionChart({
               className="plot-label"
               x={x(bestIndex)}
               y={y(times[bestIndex]) - 10}
-              textAnchor={
-                x(bestIndex) < WIDTH * 0.25
-                  ? "start"
-                  : x(bestIndex) > WIDTH * 0.75
-                    ? "end"
-                    : "middle"
-              }
+              textAnchor={labelAnchor(x(bestIndex), WIDTH)}
             >
               Record {formatClock(times[bestIndex])}
             </text>
@@ -227,13 +231,7 @@ export function PlayerStats({ stats }: Readonly<{ stats: SoloStats }>) {
             <Flame aria-hidden="true" className={streak.current ? "lit" : ""} />
             {streak.current} jour{streak.current > 1 ? "s" : ""}
           </b>
-          <small>
-            {streak.current === 0
-              ? "Termine une grille aujourd’hui pour lancer une série."
-              : streak.playedToday
-                ? "Prolongée aujourd’hui."
-                : "Joue aujourd’hui pour la prolonger."}
-          </small>
+          <small>{streakHint(streak.current, streak.playedToday)}</small>
         </div>
         <div className="streak-tile">
           <span>Meilleure série</span>

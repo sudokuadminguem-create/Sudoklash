@@ -64,13 +64,11 @@ export function dailyAttemptKey(day: string, difficulty: Difficulty) {
 }
 
 function payload(attempt: AttemptRow | null, nextAt: string, config: ChallengeConfig) {
-  const status = attempt?.completed_at
-    ? "completed"
-    : (attempt?.mistakes ?? 0) >= MAX_MISTAKES
-      ? "failed"
-      : attempt
-        ? "in_progress"
-        : "not_started";
+  let status: "completed" | "failed" | "in_progress" | "not_started";
+  if (attempt?.completed_at) status = "completed";
+  else if ((attempt?.mistakes ?? 0) >= MAX_MISTAKES) status = "failed";
+  else if (attempt) status = "in_progress";
+  else status = "not_started";
   return {
     status,
     title: config.title,

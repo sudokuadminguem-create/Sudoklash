@@ -102,61 +102,59 @@ export function AccountOverview({
         </p>
       )}
       <CosmeticCloset cosmetics={cosmetics} notify={notify} />
-      {loading ? (
-        <div className="panel">Chargement des statistiques…</div>
-      ) : error ? (
+      {loading && <div className="panel">Chargement des statistiques…</div>}
+      {!loading && error && (
         <div className="panel">
           Statistiques momentanément indisponibles. Revenez dans quelques instants.
         </div>
-      ) : (
-        stats && (
-          <>
-            <section className="account-stat-grid">
-              <div className="panel">
-                <span>Rang classé</span>
-                <b>{stats.ranked.rank}</b>
-              </div>
-              <div className="panel">
-                <span>Points classés</span>
-                <b>{stats.ranked.points}</b>
-                <small>
-                  {stats.ranked.wins} victoires · {stats.ranked.losses} défaites
-                </small>
-              </div>
-              <div className="panel">
-                <span>Grilles solo terminées</span>
-                <b>{stats.solo.games}</b>
-              </div>
-              <div className="panel">
-                <span>Meilleur temps solo</span>
-                <b>{stats.solo.best == null ? "—" : formatClock(stats.solo.best)}</b>
-              </div>
-              <div className="panel">
-                <span>Défis du jour terminés</span>
-                <b>{stats.daily}</b>
-              </div>
-              <div className="panel">
-                <span>Défis hebdo terminés</span>
-                <b>{stats.weekly}</b>
-              </div>
-            </section>
-            <PlayerStats stats={stats} />
-            <section className="panel account-history">
-              <h3>Dernières grilles solo</h3>
-              {stats.recent.length ? (
-                stats.recent.map((result, index) => (
-                  <div key={`${result.completed_at}-${index}`}>
-                    <span>{result.difficulty}</span>
-                    <b>{formatClock(result.elapsed_seconds)}</b>
-                    <small>{new Date(result.completed_at).toLocaleDateString("fr-FR")}</small>
-                  </div>
-                ))
-              ) : (
-                <p>Aucune grille solo terminée pour le moment.</p>
-              )}
-            </section>
-          </>
-        )
+      )}
+      {!loading && !error && stats && (
+        <>
+          <section className="account-stat-grid">
+            <div className="panel">
+              <span>Rang classé</span>
+              <b>{stats.ranked.rank}</b>
+            </div>
+            <div className="panel">
+              <span>Points classés</span>
+              <b>{stats.ranked.points}</b>
+              <small>
+                {stats.ranked.wins} victoires · {stats.ranked.losses} défaites
+              </small>
+            </div>
+            <div className="panel">
+              <span>Grilles solo terminées</span>
+              <b>{stats.solo.games}</b>
+            </div>
+            <div className="panel">
+              <span>Meilleur temps solo</span>
+              <b>{stats.solo.best == null ? "—" : formatClock(stats.solo.best)}</b>
+            </div>
+            <div className="panel">
+              <span>Défis du jour terminés</span>
+              <b>{stats.daily}</b>
+            </div>
+            <div className="panel">
+              <span>Défis hebdo terminés</span>
+              <b>{stats.weekly}</b>
+            </div>
+          </section>
+          <PlayerStats stats={stats} />
+          <section className="panel account-history">
+            <h3>Dernières grilles solo</h3>
+            {stats.recent.length ? (
+              stats.recent.map((result, index) => (
+                <div key={`${result.completed_at}-${index}`}>
+                  <span>{result.difficulty}</span>
+                  <b>{formatClock(result.elapsed_seconds)}</b>
+                  <small>{new Date(result.completed_at).toLocaleDateString("fr-FR")}</small>
+                </div>
+              ))
+            ) : (
+              <p>Aucune grille solo terminée pour le moment.</p>
+            )}
+          </section>
+        </>
       )}
     </div>
   );

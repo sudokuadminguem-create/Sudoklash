@@ -16,6 +16,17 @@ type Payload = {
   newlyUnlocked: string[];
 };
 type Category = "all" | Achievement["rarity"];
+const rarityTitles: Partial<Record<Achievement["rarity"], string>> = {
+  simple: "THÉMATIQUE",
+  epic: "ÉPIQUE",
+};
+
+function emptyMessage(tab: "todo" | "done" | "frames", category: Category) {
+  if (tab === "todo") return "Tous les défis de cette catégorie sont terminés !";
+  if (category === "epic") return "Aucun cadre épique découvert pour le moment.";
+  if (category === "legendary") return "Aucun cadre légendaire découvert pour le moment.";
+  return "Termine un défi pour gagner ton premier cadre.";
+}
 export function AchievementBoard({
   account,
   cosmetics,
@@ -181,11 +192,7 @@ export function AchievementBoard({
                 />
                 <div className="challenge-detail">
                   <span className="challenge-rarity">
-                    {a.rarity === "simple"
-                      ? "THÉMATIQUE"
-                      : a.rarity === "epic"
-                        ? "ÉPIQUE"
-                        : "LÉGENDAIRE"}
+                    {rarityTitles[a.rarity] ?? "LÉGENDAIRE"}
                     {challengeFrameStyle(a.id)?.element &&
                       ` · ${elementLabels[challengeFrameStyle(a.id)!.element!]}`}
                   </span>
@@ -223,13 +230,7 @@ export function AchievementBoard({
             ))}
           </div>
           {displayed.length === 0 && (
-            <p className="challenge-message">
-              {tab === "todo"
-                ? "Tous les défis de cette catégorie sont terminés !"
-                : category === "epic" || category === "legendary"
-                  ? `Aucun cadre ${category === "epic" ? "épique" : "légendaire"} découvert pour le moment.`
-                  : "Termine un défi pour gagner ton premier cadre."}
-            </p>
+            <p className="challenge-message">{emptyMessage(tab, category)}</p>
           )}
         </>
       )}

@@ -15,6 +15,11 @@ import { LockedPanel } from "./locked-panel";
 import { PlayerAvatar } from "./player-cosmetics";
 import "../private-room.css";
 
+function startLabel(playerCount: number, allReady: boolean) {
+  if (playerCount < 2) return "En attente d’un adversaire";
+  return allReady ? "Lancer la course" : "Tous les joueurs doivent être prêts";
+}
+
 export function PrivateLobby({
   account,
   notify,
@@ -226,11 +231,7 @@ export function PrivateLobby({
           disabled={busy || !allReady}
           onClick={() => void send({ action: "start", id: room.id })}
         >
-          {players.length < 2
-            ? "En attente d’un adversaire"
-            : allReady
-              ? "Lancer la course"
-              : "Tous les joueurs doivent être prêts"}
+          {startLabel(players.length, allReady)}
         </button>
       )}
     </div>

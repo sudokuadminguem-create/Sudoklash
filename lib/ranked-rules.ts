@@ -26,8 +26,9 @@ export function rankFor(points: number, position: number | null = null) {
   const band = Math.max(0, Math.min(4, Math.floor(points / 300)));
   const tier = Math.floor((points % 300) / 100) + 1;
   const name = bands[band];
-  const difficulty: RankedDifficulty =
-    band === 0 ? "Facile" : band <= 2 ? "Intermédiaire" : "Difficile";
+  let difficulty: RankedDifficulty = "Difficile";
+  if (band === 0) difficulty = "Facile";
+  else if (band <= 2) difficulty = "Intermédiaire";
   return { name, label: `${name} ${tier}`, difficulty, progress: points % 100 };
 }
 

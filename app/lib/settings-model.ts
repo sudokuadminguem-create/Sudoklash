@@ -60,12 +60,10 @@ export function parseSettings(raw: unknown): Partial<Settings> {
   const kept: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(raw)) {
     if (!(key in defaultSettings)) continue;
-    const valid =
-      key === "fontScale"
-        ? fontScales.includes(value as FontScale)
-        : key === "oneHanded"
-          ? oneHandedModes.includes(value as OneHanded)
-          : typeof value === "boolean";
+    let valid: boolean;
+    if (key === "fontScale") valid = fontScales.includes(value as FontScale);
+    else if (key === "oneHanded") valid = oneHandedModes.includes(value as OneHanded);
+    else valid = typeof value === "boolean";
     if (valid) kept[key] = value;
   }
   return kept as Partial<Settings>;

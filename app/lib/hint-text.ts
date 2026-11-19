@@ -83,16 +83,17 @@ export function hintText(index: number, step: LogicalStep | null, t: Translate =
       techniques: [] as string[],
     };
   const techniques = [...new Set((step.patterns ?? []).map((p) => techniqueName(p, t)))];
-  const lead = step.pattern
-    ? `${
-        techniques.length > 1
-          ? t("hint.chain", {
-              list: techniques.join(t("hint.chainJoin")),
-              hardest: techniqueName(step.pattern, t),
-            })
-          : t("hint.single", { name: techniqueName(step.pattern, t) })
-      }${explain(step.pattern, t)} ${t("hint.then")}`
-    : t("hint.look");
+  let lead = t("hint.look");
+  if (step.pattern) {
+    const named =
+      techniques.length > 1
+        ? t("hint.chain", {
+            list: techniques.join(t("hint.chainJoin")),
+            hardest: techniqueName(step.pattern, t),
+          })
+        : t("hint.single", { name: techniqueName(step.pattern, t) });
+    lead = `${named}${explain(step.pattern, t)} ${t("hint.then")}`;
+  }
   if (step.technique === Technique.NakedSingle)
     return {
       title: t("hint.nakedSingleTitle"),

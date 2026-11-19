@@ -70,6 +70,16 @@ async function api<T>(
   return data;
 }
 
+function feedStatus(error: unknown, loaded: boolean) {
+  if (error) return "Tournois indisponibles";
+  return loaded ? "Pas de tournois en cours" : "Chargement des tournois…";
+}
+
+function linkLabel(phase: string | undefined) {
+  if (!phase) return "Tournois";
+  return phase === "playing" ? "Voir le classement" : "Voir le tournoi";
+}
+
 export function useTournaments() {
   const [list, setList] = useState<Tournament[] | null>(null),
     [error, setError] = useState(false),
@@ -141,13 +151,7 @@ export function TournamentBanner({
               : `Tournoi en cours · ${featured.difficulty}`}
           </span>
         ) : (
-          <span>
-            {feed.error
-              ? "Tournois indisponibles"
-              : feed.list
-                ? "Pas de tournois en cours"
-                : "Chargement des tournois…"}
-          </span>
+          <span>{feedStatus(feed.error, !!feed.list)}</span>
         )}
       </div>
       {featured && (
@@ -156,11 +160,7 @@ export function TournamentBanner({
         </button>
       )}
       <button type="button" className="tournament-link" onClick={() => onOpen(featured?.id)}>
-        {featured
-          ? featured.phase === "playing"
-            ? "Voir le classement"
-            : "Voir le tournoi"
-          : "Tournois"}
+        {linkLabel(featured?.phase)}
       </button>
     </aside>
   );

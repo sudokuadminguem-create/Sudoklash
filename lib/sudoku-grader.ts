@@ -51,7 +51,9 @@ const boxes = Array.from({ length: 9 }, (_, b) =>
 const units = [...rows, ...columns, ...boxes];
 /** Units are numbered rows 0-8, columns 9-17, boxes 18-26. */
 function unitOf(index: number): HintUnit {
-  const kind = index < 9 ? "row" : index < 18 ? "column" : "box";
+  let kind: HintUnit["kind"] = "box";
+  if (index < 9) kind = "row";
+  else if (index < 18) kind = "column";
   return { kind, number: (index % 9) + 1, cells: units[index] };
 }
 const boxOf = (cell: number) =>
