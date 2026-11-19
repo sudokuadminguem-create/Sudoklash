@@ -28,11 +28,11 @@ export function ProfileCardDisplay({
   username,
   stats,
   look,
-}: {
+}: Readonly<{
   username: string;
   stats: CardStats;
   look: ProfileLook;
-}) {
+}>) {
   const title = profileTitles.find((item) => item.id === look.profileTitleId);
   const best =
     stats.bestByDifficulty.find((item) => item.difficulty === "Intermédiaire") ??
@@ -82,12 +82,12 @@ export function ProfileCardStudio({
   stats,
   cosmetics,
   notify,
-}: {
+}: Readonly<{
   username: string;
   stats: CardStats;
   cosmetics: Cosmetics;
   notify: (message: string) => void;
-}) {
+}>) {
   const [busy, setBusy] = useState("");
   const selected = cosmetics.state!;
   const equip = async (action: "equip_profile_card" | "equip_profile_title", id: string) => {

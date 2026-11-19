@@ -13,8 +13,8 @@ it("shows earned XP and the correct level after crossing a level boundary", () =
   expect(container.textContent).toContain("Niveau 2 atteint !");
   expect(container.textContent).toContain("+40 XP");
   expect(container.textContent).toContain("20 / 300 XP vers le niveau 3");
-  const bar = container.querySelector("[role=progressbar]")!;
-  expect(bar.getAttribute("aria-valuenow")).toBe("20");
-  expect(bar.getAttribute("aria-valuemax")).toBe("300");
+  const bar = container.querySelector("progress")!;
+  expect(bar.value).toBe(20);
+  expect(bar.max).toBe(300);
   act(() => root.unmount());
 });

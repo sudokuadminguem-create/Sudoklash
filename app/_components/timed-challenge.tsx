@@ -104,12 +104,12 @@ export function TimedChallenge({
   openAuth,
   cosmetics,
   difficulty = "Facile",
-}: {
+}: Readonly<{
   kind: "daily" | "weekly";
   difficulty?: Difficulty;
   openAuth: () => void;
   cosmetics: Cosmetics;
-}) {
+}>) {
   const [data, setData] = useState<ChallengeData | null>(null),
     [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),

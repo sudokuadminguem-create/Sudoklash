@@ -65,14 +65,14 @@ export function AuthDialog({
   recovery = false,
   recoveryStatus = "checking",
   onRecovered,
-}: {
+}: Readonly<{
   account: Account;
   onClose: () => void;
   startSignup?: boolean;
   recovery?: boolean;
   recoveryStatus?: "checking" | "ready" | "expired";
   onRecovered?: () => void;
-}) {
+}>) {
   const [mode, setMode] = useState<Mode>(() => initialMode(recovery, startSignup));
   const usernameInput = useRef<HTMLInputElement>(null);
   const [email, setEmail] = useState(""),

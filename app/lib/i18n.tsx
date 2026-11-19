@@ -28,7 +28,7 @@ const Context = createContext<I18n>({
  * The language of the interface. The server always renders French; a visitor whose browser or
  * saved choice says otherwise gets their language right after hydration.
  */
-export function I18nProvider({ children }: { children: ReactNode }) {
+export function I18nProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [locale, setLocaleState] = useState<Locale>(defaultLocale);
   useEffect(() => {
     let saved: string | null = null;

@@ -59,12 +59,12 @@ export function RankedMatch({
   cosmetics,
   openAuth,
   renderGame,
-}: {
+}: Readonly<{
   account: AccountState;
   cosmetics: Cosmetics;
   openAuth: () => void;
   renderGame: (match: RankedState, refresh: () => Promise<void>) => React.ReactNode;
-}) {
+}>) {
   const [state, setState] = useState<RankedState | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),

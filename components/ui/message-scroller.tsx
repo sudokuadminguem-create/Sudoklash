@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 function MessageScrollerProvider(
-  props: React.ComponentProps<typeof MessageScrollerPrimitive.Provider>
+  props: Readonly<React.ComponentProps<typeof MessageScrollerPrimitive.Provider>>
 ) {
   return <MessageScrollerPrimitive.Provider {...props} />
 }

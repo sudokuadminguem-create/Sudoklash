@@ -34,11 +34,11 @@ export function SettingsPanel({
   notify,
   account,
   openAuth,
-}: {
+}: Readonly<{
   notify: (s: string) => void;
   account?: Account;
   openAuth?: () => void;
-}) {
+}>) {
   const [tab, setTab] = useState<"preferences" | "privacy">("preferences");
   const { settings, update } = useSettings();
   const { t, locale, setLocale } = useI18n();

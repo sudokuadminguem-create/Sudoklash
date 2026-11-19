@@ -14,7 +14,13 @@ type KeypadProps = {
 };
 
 /** The digit buttons. */
-export function Keypad({ size = 9, selectedValue, completed, disabled, onDigit }: KeypadProps) {
+export function Keypad({
+  size = 9,
+  selectedValue,
+  completed,
+  disabled,
+  onDigit,
+}: Readonly<KeypadProps>) {
   const { t } = useI18n();
   return (
     <div
@@ -57,7 +63,7 @@ type GameActionsProps = {
 };
 
 /** Notes, erase, undo, hint and abandon. */
-export function GameActions(props: GameActionsProps) {
+export function GameActions(props: Readonly<GameActionsProps>) {
   const { lost, hintsLeft } = props;
   const { t } = useI18n();
   const left = Math.max(0, hintsLeft);
@@ -118,7 +124,7 @@ export function GameActions(props: GameActionsProps) {
 type HintPanelProps = { hint: ShownHint; onReveal: () => void; onDismiss: () => void };
 
 /** Explains where to look, and gives the digit on request. */
-export function HintPanel({ hint, onReveal, onDismiss }: HintPanelProps) {
+export function HintPanel({ hint, onReveal, onDismiss }: Readonly<HintPanelProps>) {
   const { t } = useI18n();
   const text = hintText(hint.index, hint.step, t);
   return (

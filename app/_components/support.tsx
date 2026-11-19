@@ -37,7 +37,10 @@ export function SupportPodium() {
   );
 }
 
-export function SupportShop({ signedIn, openAuth }: { signedIn: boolean; openAuth: () => void }) {
+export function SupportShop({
+  signedIn,
+  openAuth,
+}: Readonly<{ signedIn: boolean; openAuth: () => void }>) {
   const [available, setAvailable] = useState<boolean | null>(null),
     [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false),

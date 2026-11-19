@@ -25,12 +25,12 @@ export function AccountOverview({
   openAuth,
   cosmetics,
   notify,
-}: {
+}: Readonly<{
   account: Account;
   openAuth: () => void;
   cosmetics: Cosmetics;
   notify: (message: string) => void;
-}) {
+}>) {
   const [stats, setStats] = useState<AccountStats | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(false);

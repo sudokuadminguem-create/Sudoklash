@@ -120,7 +120,7 @@ export function SudokuBoard({
   resume,
   onSnapshot,
   previousBest,
-}: SudokuBoardProps) {
+}: Readonly<SudokuBoardProps>) {
   const { settings } = useSettings();
   const { t } = useI18n();
   const replayable = !!onNewGame;

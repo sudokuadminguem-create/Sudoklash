@@ -11,7 +11,13 @@ type BoardHeaderProps = {
 };
 
 /** Title of the game with the lives left and the clock. */
-export function BoardHeader({ eyebrow, title, mistakes, time, showTimer }: BoardHeaderProps) {
+export function BoardHeader({
+  eyebrow,
+  title,
+  mistakes,
+  time,
+  showTimer,
+}: Readonly<BoardHeaderProps>) {
   const { t } = useI18n();
   const lives = MAX_MISTAKES - mistakes;
   return (
@@ -48,7 +54,7 @@ export function BoardHeader({ eyebrow, title, mistakes, time, showTimer }: Board
 type ReadyGateProps = { label: string; busy: boolean; onReady: () => void };
 
 /** Hides the grid of a timed challenge until the player says they are ready. */
-export function ReadyGate({ label, busy, onReady }: ReadyGateProps) {
+export function ReadyGate({ label, busy, onReady }: Readonly<ReadyGateProps>) {
   const { t } = useI18n();
   return (
     <div className="ready-gate">
@@ -73,7 +79,13 @@ type RaceBarProps = {
 };
 
 /** Progress of both players in a race. */
-export function RaceBar({ meName, opponentName, progress, opponentProgress, total }: RaceBarProps) {
+export function RaceBar({
+  meName,
+  opponentName,
+  progress,
+  opponentProgress,
+  total,
+}: Readonly<RaceBarProps>) {
   return (
     <div className="opponents">
       <span className="me">

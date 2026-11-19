@@ -20,11 +20,11 @@ export function ChallengeAnnouncer({
   account,
   cosmetics,
   onDiscover,
-}: {
+}: Readonly<{
   account: Account;
   cosmetics: Cosmetics;
   onDiscover: () => void;
-}) {
+}>) {
   const [queue, setQueue] = useState<Award[]>([]);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const checking = useRef(false);

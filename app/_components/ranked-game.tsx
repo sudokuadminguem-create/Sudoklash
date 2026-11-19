@@ -9,11 +9,11 @@ export function RankedGame({
   match,
   refresh,
   account,
-}: {
+}: Readonly<{
   match: RankedState;
   refresh: () => Promise<void>;
   account: Account;
-}) {
+}>) {
   const [forfeiting, setForfeiting] = useState(false),
     [error, setError] = useState(""),
     [pendingGrid, setPendingGrid] = useState<number[] | null>(null);

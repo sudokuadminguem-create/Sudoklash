@@ -17,12 +17,12 @@ export function RoomGame({
   players,
   account,
   notify,
-}: {
+}: Readonly<{
   room: Room;
   players: RoomPlayer[];
   account: Account;
   notify: (s: string) => void;
-}) {
+}>) {
   const [mountedAt] = useState(Date.now);
   const [completeWinner, setCompleteWinner] = useState<string | null>(null);
   const [pendingGrid, setPendingGrid] = useState<string | null>(null);

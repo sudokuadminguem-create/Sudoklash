@@ -101,14 +101,14 @@ export function FriendDuel({
   notify,
   target,
   onTargetUsed,
-}: {
+}: Readonly<{
   account: Account;
   openAuth: () => void;
   notify: (message: string) => void;
   /** A friend picked from the friends list, to challenge. */
   target?: Friend | null;
   onTargetUsed?: () => void;
-}) {
+}>) {
   const [state, setState] = useState<DuelState | null>(null),
     [friends, setFriends] = useState<Friend[]>([]),
     [picked, setPicked] = useState<Friend | null>(target ?? null),
@@ -386,13 +386,13 @@ function DuelGame({
   onForfeit,
   refresh,
   error,
-}: {
+}: Readonly<{
   duel: DuelView;
   account: Account;
   onForfeit: () => Promise<void>;
   refresh: () => Promise<void>;
   error: string;
-}) {
+}>) {
   const [confirming, setConfirming] = useState(false),
     [pendingGrid, setPendingGrid] = useState<number[] | null>(null),
     [completeError, setCompleteError] = useState("");

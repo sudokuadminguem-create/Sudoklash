@@ -21,12 +21,12 @@ export function AchievementBoard({
   cosmetics,
   openAuth,
   notify,
-}: {
+}: Readonly<{
   account: AccountState;
   cosmetics: Cosmetics;
   openAuth: () => void;
   notify: (message: string) => void;
-}) {
+}>) {
   const [data, setData] = useState<Payload | null>(null),
     [loading, setLoading] = useState(false),
     [error, setError] = useState(false);

@@ -113,7 +113,7 @@ function CellNotes({ notes, digits }: Readonly<{ notes: number[] | undefined; di
 }
 
 /** The grid: givens, entered digits, notes and the state of each cell. */
-export function SudokuGrid(props: SudokuGridProps) {
+export function SudokuGrid(props: Readonly<SudokuGridProps>) {
   const { cells, puzzle, notes, selected, selectedValue } = props;
   const { t } = useI18n();
   const geometry = props.geometry ?? CLASSIC;

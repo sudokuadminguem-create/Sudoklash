@@ -7,7 +7,7 @@ import MajesticCollection from "./majestic-collection";
 type Kind = "daily" | "weekly";
 type Config = { title: string; puzzle: string };
 
-export default function AdminPanel({ displayName }: { displayName: string }) {
+export default function AdminPanel({ displayName }: Readonly<{ displayName: string }>) {
   const [configs, setConfigs] = useState<Record<Kind, Config> | null>(null),
     [section, setSection] = useState<"grids" | "majestic">("grids"),
     [saving, setSaving] = useState<Kind | null>(null),

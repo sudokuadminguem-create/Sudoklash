@@ -40,12 +40,12 @@ export function WalletBalances({
   gems,
   locale,
   openShop,
-}: {
+}: Readonly<{
   coins?: number;
   gems?: number;
   locale: string;
   openShop: () => void;
-}) {
+}>) {
   const format = new Intl.NumberFormat(locale);
   const compact = new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 });
   return (
