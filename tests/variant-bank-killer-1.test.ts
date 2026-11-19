@@ -1,5 +1,8 @@
-import { describe } from "vitest";
-import { checkVariantBank } from "./support/variant-bank-check";
+import { describe, it } from "vitest";
+import { checkBankBatch, variantBankBatches } from "./support/variant-bank-check";
 
 // The Killer bank is the slowest to check: it is split across three files run in parallel.
-describe("variant bank (Killer, part 1 of 3)", () => checkVariantBank("killer", 1, 3));
+describe("variant bank (Killer, part 1 of 3)", () => {
+  for (const { name, entries } of variantBankBatches("killer", 1, 3))
+    it(name, () => checkBankBatch("killer", entries));
+});
