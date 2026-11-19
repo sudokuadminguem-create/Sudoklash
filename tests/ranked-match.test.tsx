@@ -95,7 +95,7 @@ describe("RankedMatch lobby", () => {
       rank: { label: "Bronze 3", difficulty: "Intermédiaire", progress: 0 },
     });
     expect(container.textContent).toContain("Recherche d’un adversaire…");
-    expect(container.querySelector("[role=status]")!.textContent).toContain("Grille Intermédiaire");
+    expect(container.querySelector("output")!.textContent).toContain("Grille Intermédiaire");
     await act(async () => container.querySelector<HTMLButtonElement>(".ranked-cancel")!.click());
     const [, init] = vi.mocked(fetch).mock.calls.at(-1)!;
     expect(JSON.parse(String(init!.body))).toEqual({ action: "cancel" });

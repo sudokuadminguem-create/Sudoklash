@@ -8,14 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 
-function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
+function InputGroup({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
-    <div
+    <fieldset
       data-slot="input-group"
-      role="group"
       className={cn(
         "group/input-group relative flex w-full items-center rounded-md border border-input shadow-xs transition-[color,box-shadow] outline-none dark:bg-input/30",
-        "h-9 min-w-0 has-[>textarea]:h-auto",
+        "m-0 h-9 min-w-0 p-0 has-[>textarea]:h-auto",
 
         // Variants based on alignment.
         "has-[>[data-align=inline-start]]:[&>input]:pl-2",

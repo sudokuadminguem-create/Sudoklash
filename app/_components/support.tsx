@@ -119,8 +119,16 @@ export function SupportShop({
         Les trois plus grands donateurs voient leur pseudo en néon à l’accueil. Le rang se calcule
         sur le total des dons confirmés. Les montants restent privés.
       </p>
-      {available === null && <p role="status">Vérification du paiement…</p>}
-      {available === false && <p role="status">Les dons ne sont pas encore activés.</p>}
+      {available === null && (
+        <p>
+          <output>Vérification du paiement…</output>
+        </p>
+      )}
+      {available === false && (
+        <p>
+          <output>Les dons ne sont pas encore activés.</output>
+        </p>
+      )}
       {available &&
         (signedIn ? (
           <>
@@ -151,7 +159,11 @@ export function SupportShop({
             Se connecter pour soutenir
           </button>
         ))}
-      {message && <p role="status">{message}</p>}
+      {message && (
+        <p>
+          <output>{message}</output>
+        </p>
+      )}
       <SupportPodium />
     </section>
   );

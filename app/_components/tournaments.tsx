@@ -234,8 +234,10 @@ function TournamentGame({
         onSolved={submit}
       />
       {retry && (
-        <div className="panel tournament-card" role="status">
-          <p>{error}</p>
+        <div className="panel tournament-card">
+          <p>
+            <output>{error}</output>
+          </p>
           <button className="primary" onClick={() => void submit(retry)}>
             Réessayer de valider le résultat
           </button>
@@ -500,7 +502,9 @@ export function Tournaments({
             ← Tous les tournois
           </button>
           {!current ? (
-            <p role="status">{error ? "Tournoi indisponible." : "Chargement du tournoi…"}</p>
+            <p>
+              <output>{error ? "Tournoi indisponible." : "Chargement du tournoi…"}</output>
+            </p>
           ) : (
             <>
               <TournamentSummary

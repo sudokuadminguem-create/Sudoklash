@@ -104,9 +104,9 @@ export function ChallengeAnnouncer({
     majestic: "MAJESTUEUX",
   }[award.rarity];
   return (
-    <div
+    <dialog
+      open
       className="challenge-reveal"
-      role="dialog"
       aria-modal="true"
       aria-labelledby="challenge-award-title"
     >
@@ -156,6 +156,6 @@ export function ChallengeAnnouncer({
           </button>
         )}
       </div>
-    </div>
+    </dialog>
   );
 }

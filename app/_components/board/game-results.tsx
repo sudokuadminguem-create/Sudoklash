@@ -60,12 +60,12 @@ export function BoardNotices(
 export function LossResult({ onNewGame }: Readonly<{ onNewGame?: () => void }>) {
   const { t } = useI18n();
   return (
-    <div className="loss-result" role="status">
+    <output className="loss-result">
       <X />
       <h3>{t("loss.title")}</h3>
       <p>{t("loss.copy")}</p>
       {onNewGame && <button onClick={onNewGame}>{t("loss.newGrid")}</button>}
-    </div>
+    </output>
   );
 }
 

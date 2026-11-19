@@ -34,9 +34,9 @@ export function PwaStatus() {
   }, []);
   if (!offline) return null;
   return (
-    <div className="offline-banner" role="status">
+    <output className="offline-banner">
       <WifiOff aria-hidden="true" />
       Hors ligne : les parties d’entraînement solo restent disponibles, sans XP.
-    </div>
+    </output>
   );
 }

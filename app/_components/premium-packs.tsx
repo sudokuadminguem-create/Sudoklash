@@ -98,8 +98,8 @@ export function PremiumPacks({
         Clash. Elles servent à débloquer des cosmétiques et ne donnent aucun avantage en partie.
       </p>
       {available === false && (
-        <p className="premium-unavailable" role="status">
-          Les packs sont prêts. Les paiements ne sont pas encore activés.
+        <p className="premium-unavailable">
+          <output>Les packs sont prêts. Les paiements ne sont pas encore activés.</output>
         </p>
       )}
       <div className="premium-packs">
@@ -122,7 +122,11 @@ export function PremiumPacks({
       <p>
         Paiement unique. Aucun abonnement. Crédit sur ton compte après confirmation du paiement.
       </p>
-      {message && <p role="status">{message}</p>}
+      {message && (
+        <p>
+          <output>{message}</output>
+        </p>
+      )}
     </section>
   );
 }
