@@ -6,8 +6,6 @@ import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
 import { variantIds, variantInfo, type VariantId } from "@/lib/variants";
 import {
   roomRequest,
-  type Room,
-  type RoomPlayer,
   type RoomSnapshot,
 } from "@/app/lib/private-rooms";
 import { usePlayerAppearances } from "@/app/lib/use-player-appearances";
