@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     name: Build and analyze
+    # Dependabot ne reçoit pas les secrets Actions (SONAR_TOKEN, SONAR_HOST_URL) : sans eux le
+    # scanner échoue (« URI with undefined scheme »). L'analyse a lieu sur main après la fusion.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
 
     steps:
