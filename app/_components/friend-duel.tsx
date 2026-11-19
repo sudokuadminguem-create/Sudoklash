@@ -81,18 +81,15 @@ async function loadFriends(): Promise<Friend[]> {
     .map((row) => ({ id: row.otherUserId, username: row.username }));
 }
 
-const reasonText = (duel: DuelView, won: boolean) =>
-  duel.finishReason === "three_mistakes"
-    ? won
-      ? `${duel.opponent.username} a fait trois erreurs`
-      : "Fin après trois erreurs"
-    : duel.finishReason === "forfeit"
-      ? won
-        ? `${duel.opponent.username} a abandonné`
-        : "Partie abandonnée"
-      : won
-        ? "Grille terminée la première"
-        : `${duel.opponent.username} a terminé la grille avant toi`;
+const reasonText = (duel: DuelView, won: boolean) => {
+  if (duel.finishReason === "three_mistakes")
+    return won ? `${duel.opponent.username} a fait trois erreurs` : "Fin après trois erreurs";
+  if (duel.finishReason === "forfeit")
+    return won ? `${duel.opponent.username} a abandonné` : "Partie abandonnée";
+  return won
+    ? "Grille terminée la première"
+    : `${duel.opponent.username} a terminé la grille avant toi`;
+};
 
 /** Duels between friends: challenge, answer, play and rematch. */
 export function FriendDuel({
@@ -306,7 +303,7 @@ export function FriendDuel({
         </div>
       ))}
 
-      {state?.outgoing ? (
+      {state?.outgoing && (
         <div className="duel-card waiting" role="status">
           <span className="ranked-spinner" />
           {avatar(state.outgoing.to.id)}
@@ -322,7 +319,8 @@ export function FriendDuel({
             Annuler
           </button>
         </div>
-      ) : picked ? (
+      )}
+      {!state?.outgoing && picked && (
         <div className="duel-card composing">
           {avatar(picked.id)}
           <div>
@@ -352,7 +350,8 @@ export function FriendDuel({
             Annuler
           </button>
         </div>
-      ) : (
+      )}
+      {!state?.outgoing && !picked && (
         <div className="duel-friends">
           <h3>Tes amis</h3>
           {friends.length === 0 ? (

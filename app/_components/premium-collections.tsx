@@ -22,6 +22,16 @@ const equipActions: Record<Exclude<PremiumKind, "bundle">, CosmeticAction> = {
   card: "equip_profile_card",
   effect: "equip_effect",
 };
+export function buyLabel(active: boolean, owned: boolean) {
+  if (active) return "Équipé";
+  return owned ? "Équiper" : "Acheter";
+}
+export function bundleHint(complete: boolean, price: number) {
+  if (complete) return "Les trois éléments sont dans ton inventaire.";
+  return price === 190
+    ? "190 au lieu de 240 Sudogemmes pour les trois éléments."
+    : "Prix réduit : seuls les éléments manquants sont facturés.";
+}
 export function PremiumCollections({
   cosmetics,
   signedIn,
@@ -134,12 +144,12 @@ export function PremiumCollections({
                   const id = collectionItemId(c.id, kind),
                     has = owned.includes(id),
                     active =
-                      data &&
-                      (kind === "frame"
-                        ? data.frameSelection
-                        : kind === "card"
-                          ? data.profileCardId
-                          : data.victoryEffectId) === id;
+                      !!data &&
+                      {
+                        frame: data.frameSelection,
+                        card: data.profileCardId,
+                        effect: data.victoryEffectId,
+                      }[kind] === id;
                   return (
                     <div key={id}>
                       <span>
@@ -174,7 +184,7 @@ export function PremiumCollections({
                             });
                         }}
                       >
-                        {active ? "Équipé" : has ? "Équiper" : "Acheter"}
+                        {buyLabel(active, has)}
                       </button>
                     </div>
                   );
@@ -196,13 +206,7 @@ export function PremiumCollections({
               >
                 {complete ? "Équiper toute la collection" : `Collection · ${price} Sudogemmes`}
               </button>
-              <small>
-                {complete
-                  ? "Les trois éléments sont dans ton inventaire."
-                  : price === 190
-                    ? "190 au lieu de 240 Sudogemmes pour les trois éléments."
-                    : "Prix réduit : seuls les éléments manquants sont facturés."}
-              </small>
+              <small>{bundleHint(complete, price)}</small>
               {data && !complete && data.gems < price && (
                 <small>Il te manque {price - data.gems} Sudogemmes pour le pack.</small>
               )}

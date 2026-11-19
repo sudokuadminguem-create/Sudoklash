@@ -3,6 +3,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { parseCollectionItem } from "@/lib/premium-collections";
 import "../premium-collections.css";
 const EffectContext = createContext("none");
+const particleSymbols: Record<string, string> = { samurai: "❀", pirate: "◆" };
+
 export function PremiumEffectProvider({
   effectId,
   children,
@@ -27,6 +29,7 @@ export function VictoryEffect({ won, previewId }: Readonly<{ won: boolean; previ
     return () => clearTimeout(timer);
   }, [won, id]);
   if (!show || product?.kind !== "effect") return null;
+  const particle = particleSymbols[product.collection.id] ?? "✦";
   return (
     <div className={`premium-victory premium-victory-${product.collection.id}`} aria-hidden="true">
       <span className="premium-victory-emblem">{product.collection.symbol}</span>
@@ -41,11 +44,7 @@ export function VictoryEffect({ won, previewId }: Readonly<{ won: boolean; previ
             } as React.CSSProperties
           }
         >
-          {product.collection.id === "samurai"
-            ? "❀"
-            : product.collection.id === "pirate"
-              ? "◆"
-              : "✦"}
+          {particle}
         </span>
       ))}
     </div>

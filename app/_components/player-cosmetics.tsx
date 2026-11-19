@@ -29,6 +29,28 @@ function avatarClass(size: string, frameId: string, ranked: boolean, achievement
   return `player-avatar ${size}${ranked ? " ranked-avatar" : ""}${achievement ? " achievement-frame" : ""}${(achievement && rarityClasses[achievement.rarity]) ?? ""}${frameId === "none" ? " frameless-avatar" : ""}`;
 }
 
+const rarityNames: Record<string, string> = {
+  simple: "Thématique",
+  epic: "Épique",
+  majestic: "Majestueux",
+};
+
+/** Caption under a cosmetic: equipped, available to pick, or how to get it. */
+export function pickLabel(
+  equipped: boolean,
+  available: boolean,
+  availableLabel: string,
+  lockedLabel: string,
+) {
+  if (equipped) return "Équipé";
+  return available ? availableLabel : lockedLabel;
+}
+
+export function uploadLabel(sending: boolean, hasImage: boolean) {
+  if (sending) return "Envoi en cours…";
+  return hasImage ? "Changer mon image" : "Importer une image";
+}
+
 /** How the frame is named to screen readers. */
 function frameLabel(
   frameId: string,
@@ -231,13 +253,7 @@ function CustomAvatarUpload({
           </span>
         )}
         <span>
-          <b>
-            {busy === "custom"
-              ? "Envoi en cours…"
-              : data.customAvatar
-                ? "Changer mon image"
-                : "Importer une image"}
-          </b>
+          <b>{uploadLabel(busy === "custom", !!data.customAvatar)}</b>
           <small>PNG, JPEG, WebP ou GIF · recadrée en carré</small>
         </span>
       </label>
@@ -345,13 +361,12 @@ export function CosmeticCloset({
               <PlayerAvatar avatarId={a.id} frameId={selected ? data.frameId : "starter"} />
               <b>{a.name}</b>
               <small>
-                {selected
-                  ? "Équipé"
-                  : owned
-                    ? "Choisir"
-                    : achievement
-                      ? achievement.requirement
-                      : `${product?.price} Sudokoins`}
+                {pickLabel(
+                  selected,
+                  owned,
+                  "Choisir",
+                  achievement ? achievement.requirement : `${product?.price} Sudokoins`,
+                )}
               </small>
             </button>
           );
@@ -421,11 +436,12 @@ export function CosmeticCloset({
             <span>
               <b>{f.name}</b>
               <small>
-                {data.unlockedFrames.includes(f.id)
-                  ? data.frameSelection === f.id
-                    ? "Équipé"
-                    : "Choisir"
-                  : `Niveau ${f.level}`}
+                {pickLabel(
+                  data.unlockedFrames.includes(f.id) && data.frameSelection === f.id,
+                  data.unlockedFrames.includes(f.id),
+                  "Choisir",
+                  `Niveau ${f.level}`,
+                )}
               </small>
             </span>
           </button>
@@ -494,15 +510,7 @@ export function CosmeticCloset({
             <span>
               <b>{f.name}</b>
               <small>
-                {data.frameSelection === f.id
-                  ? "Équipé"
-                  : f.rarity === "simple"
-                    ? "Thématique"
-                    : f.rarity === "epic"
-                      ? "Épique"
-                      : f.rarity === "majestic"
-                        ? "Majestueux"
-                        : "Légendaire"}
+                {data.frameSelection === f.id ? "Équipé" : (rarityNames[f.rarity] ?? "Légendaire")}
               </small>
             </span>
           </button>
@@ -575,11 +583,12 @@ export function AvatarShop({
             <PlayerAvatar avatarId={a.id} />
             <b>{a.name}</b>
             <small>
-              {data.avatarId === a.id
-                ? "Équipé"
-                : data.ownedAvatars.includes(a.id)
-                  ? "Équiper"
-                  : `${a.price} Sudokoins`}
+              {pickLabel(
+                data.avatarId === a.id,
+                data.ownedAvatars.includes(a.id),
+                "Équiper",
+                `${a.price} Sudokoins`,
+              )}
             </small>
           </button>
         ))}

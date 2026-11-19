@@ -53,8 +53,11 @@ const mine = (db: D1Database, id: string, user: string) =>
     .prepare("SELECT * FROM tournament_entries WHERE tournament_id=? AND user_id=?")
     .bind(id, user)
     .first<Entry>();
-const phase = (t: Tournament, now: number) =>
-  t.settled ?? (now < t.starts_at ? "open" : now < t.ends_at ? "playing" : "closing");
+const phase = (t: Tournament, now: number) => {
+  if (t.settled != null) return t.settled;
+  if (now < t.starts_at) return "open";
+  return now < t.ends_at ? "playing" : "closing";
+};
 
 export async function GET(request: Request) {
   const db = env.DB;

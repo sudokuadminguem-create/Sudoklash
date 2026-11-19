@@ -161,14 +161,18 @@ export function PrivacySettings({
     <div className="privacy-settings">
       <section className="settings-group">
         <h3>{text.title}</h3>
-        {error ? (
+        {error && (
           <p role="alert">
             {text.error}{" "}
             <button onClick={() => setReload((value) => value + 1)}>{text.retry}</button>
           </p>
-        ) : !data ? (
-          <p role="status">{text.loading}</p>
-        ) : (
+        )}
+        {!error && !data && (
+          <p>
+            <output>{text.loading}</output>
+          </p>
+        )}
+        {!error && data && (
           <dl className="privacy-connection">
             <div>
               <dt>{text.email}</dt>

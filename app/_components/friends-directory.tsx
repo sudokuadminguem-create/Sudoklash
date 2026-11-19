@@ -146,13 +146,10 @@ export default function FriendsDirectory({
         };
         throw new Error(message[result.error ?? ""] ?? "Action impossible. Réessayez.");
       }
-      notify(
-        body.action === "send"
-          ? "Demande d’ami envoyée"
-          : body.action === "accept"
-            ? "Ami ajouté"
-            : "Demande refusée",
-      );
+      let message = "Demande refusée";
+      if (body.action === "send") message = "Demande d’ami envoyée";
+      else if (body.action === "accept") message = "Ami ajouté";
+      notify(message);
       await load();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Action impossible.");
@@ -163,20 +160,19 @@ export default function FriendsDirectory({
 
   const playerRow = (player: Player) => {
     const relation = relationFor(player.id);
+    let relationLabel = "Joueur Sudoku Clash";
+    if (relation?.status === "accepted") relationLabel = "Déjà ami";
+    else if (relation?.status === "pending")
+      relationLabel =
+        relation.requester_id === account.user?.id
+          ? "Demande envoyée"
+          : "Vous a envoyé une demande";
     return (
       <div className="friend player-entry" key={player.id}>
         {avatar({ ...player, image: player.image ?? relation?.image })}
         <div>
           <b>{player.username}</b>
-          <small>
-            {relation?.status === "accepted"
-              ? "Déjà ami"
-              : relation?.status === "pending"
-                ? relation.requester_id === account.user?.id
-                  ? "Demande envoyée"
-                  : "Vous a envoyé une demande"
-                : "Joueur Sudoku Clash"}
-          </small>
+          <small>{relationLabel}</small>
         </div>
         {(!relation || relation.status === "declined") && (
           <button

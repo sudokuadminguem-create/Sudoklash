@@ -54,6 +54,8 @@ export async function rankedRequest(action?: string, fields: Record<string, unkn
   return response.json() as Promise<RankedState>;
 }
 
+const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
+
 export function RankedMatch({
   account,
   cosmetics,
@@ -206,9 +208,7 @@ function RankedSummary({
         <span>
           {state.rank?.label ?? "Bronze 1"} · {state.points ?? 0} points
         </span>
-        <strong>
-          {change == null ? "Calcul des points…" : `${change > 0 ? "+" : ""}${change} points`}
-        </strong>
+        <strong>{change == null ? "Calcul des points…" : `${signed(change)} points`}</strong>
       </div>
       {reward && reward.matchId === state.id && (
         <ExperienceProgress gained={won ? 120 : 40} totalXp={reward.totalXp} />

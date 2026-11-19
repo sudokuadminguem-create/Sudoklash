@@ -12,19 +12,38 @@ export async function GET(request: Request) {
     const rating = await env.DB.prepare("SELECT points FROM ranked_ratings WHERE user_id=?")
       .bind(user.userId)
       .first<{ points: number }>();
-    const {progress,ids:earned,newAwards,visibleCount,epicCount}=await playerAchievements(env.DB,user.userId,rating?.points??0);
+    const {
+      progress,
+      ids: earned,
+      newAwards,
+      visibleCount,
+      epicCount,
+    } = await playerAchievements(env.DB, user.userId, rating?.points ?? 0);
+    const achievementProgress = (a: (typeof achievementFrames)[number]) => {
+      if (a.metric === "frames") return visibleCount;
+      if (a.metric === "epicFrames") return epicCount;
+      if (a.metric === "otherFrames") {
+        const others = [...earned].filter(
+          (id) => !id.startsWith("challenge-m-") && id !== "challenge-l-026",
+        ).length;
+        return others - (earned.has(a.id) ? 1 : 0);
+      }
+      return progress[a.metric];
+    };
     return Response.json(
       {
         achievements: achievementFrames
           .filter((a) => a.rarity !== "majestic")
           .map((a) => ({
             ...a,
-            progress:a.metric==="frames"?visibleCount:a.metric==="epicFrames"?epicCount:a.metric==="otherFrames"?[...earned].filter(id=>!id.startsWith("challenge-m-")&&id!=="challenge-l-026").length-(earned.has(a.id)?1:0):progress[a.metric],
+            progress: achievementProgress(a),
             unlocked: earned.has(a.id),
           })),
         visibleTotal: 100,
-        secretUnlocked: [...earned].filter((id) => id.startsWith("challenge-e-") || id.startsWith("challenge-l-")).length,
-        newlyUnlocked:newAwards,
+        secretUnlocked: [...earned].filter(
+          (id) => id.startsWith("challenge-e-") || id.startsWith("challenge-l-"),
+        ).length,
+        newlyUnlocked: newAwards,
       },
       { headers: { "Cache-Control": "private, no-store" } },
     );

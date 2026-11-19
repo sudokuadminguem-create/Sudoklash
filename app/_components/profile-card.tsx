@@ -77,6 +77,17 @@ export function ProfileCardDisplay({
   );
 }
 
+/** Caption under a reward: equipped, ready to equip, or how to unlock it. */
+export function rewardLabel(
+  active: boolean,
+  owned: boolean,
+  equippedLabel: string,
+  requirement: string,
+) {
+  if (active) return equippedLabel;
+  return owned ? "Équiper" : requirement;
+}
+
 export function ProfileCardStudio({
   username,
   stats,
@@ -142,7 +153,7 @@ export function ProfileCardStudio({
                     aria-hidden="true"
                   />
                   <b>{card.name}</b>
-                  <small>{active ? "Équipée" : owned ? "Équiper" : card.requirement}</small>
+                  <small>{rewardLabel(active, owned, "Équipée", card.requirement)}</small>
                 </button>
               );
             })}
@@ -164,7 +175,7 @@ export function ProfileCardStudio({
                   onClick={() => void equip("equip_profile_title", reward.id)}
                 >
                   <b>{reward.name}</b>
-                  <small>{active ? "Équipé" : owned ? "Équiper" : reward.requirement}</small>
+                  <small>{rewardLabel(active, owned, "Équipé", reward.requirement)}</small>
                 </button>
               );
             })}

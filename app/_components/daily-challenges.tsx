@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Trophy, Play } from "lucide-react";
 import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
 import { authHeaders } from "@/app/lib/auth-headers";
@@ -56,6 +56,46 @@ function DailyRanking({
       clearInterval(timer);
     };
   }, [difficulty, retry]);
+  let ranking: ReactNode;
+  if (auth)
+    ranking = (
+      <button className="primary" onClick={openAuth}>
+        Se connecter pour voir le classement
+      </button>
+    );
+  else if (error)
+    ranking = (
+      <div role="status">
+        <p>Classement momentanément indisponible.</p>
+        <button onClick={() => setRetry((n) => n + 1)}>Réessayer</button>
+      </div>
+    );
+  else if (players === null)
+    ranking = (
+      <p>
+        <output>Chargement du classement…</output>
+      </p>
+    );
+  else if (!players.length)
+    ranking = <p>Aucune grille terminée dans cette difficulté aujourd’hui. Soyez le premier !</p>;
+  else
+    ranking = (
+      <ol className="daily-ranking-list">
+        {players.map((p) => (
+          <li key={p.userId}>
+            <b className="daily-position">{p.position}</b>
+            <PlayerAvatar avatarId={p.avatarId} frameId={p.frameId} image={p.image} size="small" />
+            <span className="daily-player">
+              <b>{p.username}</b>
+              <small>
+                {p.mistakes} erreur{p.mistakes !== 1 ? "s" : ""}
+              </small>
+            </span>
+            <strong>{formatDuration(p.seconds)}</strong>
+          </li>
+        ))}
+      </ol>
+    );
   return (
     <section className="panel daily-ranking" aria-label={`Classement quotidien ${difficulty}`}>
       <div className="panel-head">
@@ -63,41 +103,7 @@ function DailyRanking({
         <h2>{difficulty}</h2>
         <p>Les meilleurs temps sur cette grille. Classement renouvelé à minuit, heure de Paris.</p>
       </div>
-      {auth ? (
-        <button className="primary" onClick={openAuth}>
-          Se connecter pour voir le classement
-        </button>
-      ) : error ? (
-        <div role="status">
-          <p>Classement momentanément indisponible.</p>
-          <button onClick={() => setRetry((n) => n + 1)}>Réessayer</button>
-        </div>
-      ) : players === null ? (
-        <p role="status">Chargement du classement…</p>
-      ) : !players.length ? (
-        <p>Aucune grille terminée dans cette difficulté aujourd’hui. Soyez le premier !</p>
-      ) : (
-        <ol className="daily-ranking-list">
-          {players.map((p) => (
-            <li key={p.userId}>
-              <b className="daily-position">{p.position}</b>
-              <PlayerAvatar
-                avatarId={p.avatarId}
-                frameId={p.frameId}
-                image={p.image}
-                size="small"
-              />
-              <span className="daily-player">
-                <b>{p.username}</b>
-                <small>
-                  {p.mistakes} erreur{p.mistakes !== 1 ? "s" : ""}
-                </small>
-              </span>
-              <strong>{formatDuration(p.seconds)}</strong>
-            </li>
-          ))}
-        </ol>
-      )}
+      {ranking}
     </section>
   );
 }

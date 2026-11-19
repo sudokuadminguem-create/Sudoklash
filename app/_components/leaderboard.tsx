@@ -38,6 +38,7 @@ export function Leaderboard() {
       live = false;
     };
   }, []);
+  const ready = !loading && !error;
   return (
     <div className="panel">
       <div className="panel-head">
@@ -48,11 +49,9 @@ export function Leaderboard() {
           place dans ce top 100.
         </p>
       </div>
-      {loading ? (
-        <p>Chargement du classement…</p>
-      ) : error ? (
-        <p>Classement momentanément indisponible.</p>
-      ) : players.length ? (
+      {loading && <p>Chargement du classement…</p>}
+      {!loading && error && <p>Classement momentanément indisponible.</p>}
+      {ready && players.length > 0 && (
         <>
           <div className="podium">
             {players.slice(0, 3).map((r, i) => (
@@ -94,7 +93,8 @@ export function Leaderboard() {
             ))}
           </div>
         </>
-      ) : (
+      )}
+      {ready && players.length === 0 && (
         <p>Le classement s’affichera dès les premières parties classées.</p>
       )}
     </div>
