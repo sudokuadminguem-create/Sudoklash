@@ -33,7 +33,7 @@ function readChunks(cookiePrefix: string): string | null {
   const count = Number(readCookie(`${cookiePrefix}count`));
   if (!Number.isInteger(count) || count < 1 || count > 20) return null;
   const pieces = Array.from({ length: count }, (_, index) => readCookie(`${cookiePrefix}${index}`));
-  if (pieces.some((piece) => piece === null)) return null;
+  if (pieces.includes(null)) return null;
   try {
     return decodeURIComponent(pieces.join(""));
   } catch {
@@ -58,8 +58,8 @@ export const authCookieStorage = {
     } catch {
       // Use the existing cookie fallback if browser storage is blocked.
     }
-    const previous = readChunks(scope(key)) ??
-      (key.endsWith("-auth-token") ? readChunks(prefix) : null);
+    const previous =
+      readChunks(scope(key)) ?? (key.endsWith("-auth-token") ? readChunks(prefix) : null);
     if (previous !== null) this.setItem(key, previous);
     return previous;
   },
@@ -76,7 +76,9 @@ export const authCookieStorage = {
     const cookiePrefix = scope(key);
     clearCookies(scopedCookies(cookiePrefix));
     const encoded = encodeURIComponent(value);
-    const pieces = encoded.match(new RegExp(`.{1,${chunkSize}}`, "g")) ?? [];
+    const pieces = Array.from({ length: Math.ceil(encoded.length / chunkSize) }, (_, index) =>
+      encoded.slice(index * chunkSize, (index + 1) * chunkSize),
+    );
     if (pieces.length > 20) throw new Error("Session trop volumineuse");
     pieces.forEach((piece, index) => {
       document.cookie = `${cookiePrefix}${index}=${piece}${cookieOptions(lifetime)}`;
@@ -87,6 +89,10 @@ export const authCookieStorage = {
     if (typeof document === "undefined") return;
     clearCookies(scopedCookies(scope(key)));
     if (key.endsWith("-auth-token")) clearCookies(legacyCookies());
-    try { window.localStorage.removeItem(key); } catch { /* browser storage blocked */ }
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      /* browser storage blocked */
+    }
   },
 };

@@ -30,6 +30,12 @@ export async function getChallengeConfig(kind: ChallengeKind) {
   return (await storedChallenge(kind)) ?? challengeDefaults[kind];
 }
 
+/** Seed of a period's bank puzzle; a difficulty other than the kind's default gets its own. */
+function periodKey(kind: ChallengeKind, periodId: string, difficulty?: Difficulty) {
+  const key = `${kind}:${periodId}`;
+  return difficulty && difficulty !== bankDifficulty[kind] ? `${key}:${difficulty}` : key;
+}
+
 /**
  * Grid of a period: the admin's grid when one is set, otherwise a new bank puzzle for each
  * period. Either way it is shuffled by symmetry for the period.
@@ -44,9 +50,6 @@ export async function getPeriodChallenge(
   const title = stored?.title ?? challengeDefaults[kind].title;
   const base =
     stored?.puzzle ??
-    puzzleForPeriod(
-      difficulty ?? bankDifficulty[kind],
-      `${kind}:${periodId}${difficulty && difficulty !== bankDifficulty[kind] ? `:${difficulty}` : ""}`,
-    );
+    puzzleForPeriod(difficulty ?? bankDifficulty[kind], periodKey(kind, periodId, difficulty));
   return { title, puzzle: periodPuzzle(base, kind, periodId) };
 }

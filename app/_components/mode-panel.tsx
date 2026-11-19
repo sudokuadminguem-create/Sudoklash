@@ -5,7 +5,7 @@ import { useI18n } from "@/app/lib/i18n";
 import { levelName, type MessageKey } from "@/app/lib/i18n-core";
 import { formatClock } from "@/app/lib/format-time";
 import { useSettings } from "@/app/lib/settings";
-import { loadSoloSave, saveProgress, type SoloLevel, type SoloSave } from "@/app/lib/solo-save";
+import { loadSoloSave, saveProgress, type SoloSave } from "@/app/lib/solo-save";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
@@ -14,7 +14,6 @@ import { soloDifficulties } from "@/lib/difficulties";
 import { variantIds, variantInfo } from "@/lib/variants";
 import { soloXpFor } from "@/lib/cosmetics";
 import { PrivateLobby } from "./private-lobby";
-import { RoomGame } from "./room-game";
 import { SoloGame } from "./solo-game";
 import { NearChallenges } from "./near-challenges";
 import { DailyChallenges } from "./daily-challenges";
@@ -35,14 +34,14 @@ export function ModePanel({
   cosmetics: Cosmetics;
   openAuth: () => void;
 }>) {
-  const [chosen, setChosen] = useState<SoloLevel | null>(null),
+  const [chosen, setChosen] = useState<string | null>(null),
     [resuming, setResuming] = useState<SoloSave | undefined>(),
     [saved, setSaved] = useState<SoloSave | null>(null),
-    [replacing, setReplacing] = useState<SoloLevel | null>(null);
+    [replacing, setReplacing] = useState<string | null>(null);
   const practice = useOffline();
   const { settings } = useSettings();
   const { t } = useI18n();
-  const pick = (d: SoloLevel) => {
+  const pick = (d: string) => {
     setChosen(d);
     notify(t("solo.loaded", { level: levelName(t, d) }));
   };
@@ -181,9 +180,6 @@ export function ModePanel({
       account={account}
       notify={notify}
       openAuth={openAuth}
-      onRace={(room, players) => (
-        <RoomGame key={room.id} room={room} players={players} account={account} notify={notify} />
-      )}
     />
   );
 }

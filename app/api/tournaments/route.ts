@@ -140,7 +140,7 @@ const ACTIVE_SQL =
 async function createTournament(db: D1Database, uid: string, b: Body, now: number, earned: number) {
   const difficulty = b.difficulty,
     delay = b.delay;
-  if (!isSoloDifficulty(difficulty) || !delays.some((d) => d === delay))
+  if (!isSoloDifficulty(difficulty) || !(delays as readonly unknown[]).includes(delay))
     return fail("Réglages invalides.");
   const id = crypto.randomUUID(),
     start = Date.now() + Number(delay) * 60000,

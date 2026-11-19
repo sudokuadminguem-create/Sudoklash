@@ -29,7 +29,7 @@ const Context = createContext<I18n>({
  * saved choice says otherwise gets their language right after hydration.
  */
 export function I18nProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const [locale, setLocaleState] = useState<Locale>(defaultLocale);
+  const [locale, setLocale] = useState<Locale>(defaultLocale);
   useEffect(() => {
     let saved: string | null = null;
     try {
@@ -38,20 +38,23 @@ export function I18nProvider({ children }: Readonly<{ children: ReactNode }>) {
       // Unreadable storage: the browser language decides.
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocaleState(detectLocale(saved, navigator.language));
+    setLocale(detectLocale(saved, navigator.language));
   }, []);
   useEffect(() => {
     document.documentElement.lang = locale;
   }, [locale]);
-  const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next);
+  const chooseLocale = useCallback((next: Locale) => {
+    setLocale(next);
     try {
       window.localStorage.setItem(LOCALE_KEY, next);
     } catch {
       // Not saved, but still applied for this visit.
     }
   }, []);
-  const value = useMemo(() => ({ locale, setLocale, t: translator(locale) }), [locale, setLocale]);
+  const value = useMemo(
+    () => ({ locale, setLocale: chooseLocale, t: translator(locale) }),
+    [locale, chooseLocale],
+  );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 

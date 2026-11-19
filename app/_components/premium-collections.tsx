@@ -63,8 +63,14 @@ export function PremiumCollections({
   const equip = async (collection: string, kind: PremiumKind) => {
     setBusy(collectionItemId(collection, kind));
     try {
-      for (const part of kind === "bundle" ? (["frame", "card", "effect"] as const) : [kind])
-        await cosmetics.action(equipActions[part], collectionItemId(collection, part));
+      const parts = kind === "bundle" ? (["frame", "card", "effect"] as const) : [kind];
+      // Equipped together; the state is then read back once, so no reply can override another.
+      await Promise.all(
+        parts.map((part) =>
+          cosmetics.action(equipActions[part], collectionItemId(collection, part)),
+        ),
+      );
+      if (parts.length > 1) await cosmetics.refresh();
       notify("Collection mise à jour sur ton compte.");
     } catch {
       notify("Impossible de tout équiper. Tes achats restent dans ton inventaire.");

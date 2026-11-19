@@ -17,7 +17,7 @@ export default function AdminPanel({ displayName }: Readonly<{ displayName: stri
     authHeaders()
       .then((headers) => fetch("/api/admin/challenges", { cache: "no-store", headers }))
       .then(async (response) => {
-        if (!response.ok) throw new Error();
+        if (!response.ok) throw new Error(`Réglages indisponibles (${response.status})`);
         return response.json() as Promise<Record<Kind, Config>>;
       })
       .then(setConfigs)
@@ -132,7 +132,7 @@ export default function AdminPanel({ displayName }: Readonly<{ displayName: stri
                         maxLength={81}
                         spellCheck={false}
                         onChange={(event) =>
-                          update(kind, "puzzle", event.target.value.replace(/[^0-9]/g, ""))
+                          update(kind, "puzzle", event.target.value.replace(/\D/g, ""))
                         }
                       />
                       <small>

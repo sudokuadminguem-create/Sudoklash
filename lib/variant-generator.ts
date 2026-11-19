@@ -54,7 +54,7 @@ export function makeCages(size: number, solution: readonly number[], random: Ran
       cageOf[next] = cages.length;
     }
     cages.push({
-      cells: cells.sort((a, b) => a - b),
+      cells: cells.toSorted((a, b) => a - b),
       sum: cells.reduce((s, c) => s + solution[c], 0),
     });
   }

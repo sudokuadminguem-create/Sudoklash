@@ -28,15 +28,9 @@ type PlayerRow = {
   points: number | null;
 };
 
-async function appearance(
-  db: D1Database,
-  userId: string,
-  frameId: string | null,
-  points: number | null,
-) {
+async function appearance(db: D1Database, userId: string, frameId: string | null, points: number) {
   if (frameId && frameId !== "rank_auto") return frameId;
-  const value = points ?? 0;
-  return `rank-${rankFor(value, await rankedPosition(db, userId, value)).name}`;
+  return `rank-${rankFor(points, await rankedPosition(db, userId, points)).name}`;
 }
 
 export async function GET(request: Request) {
@@ -70,7 +64,7 @@ export async function GET(request: Request) {
         id: row.id,
         username: row.username,
         avatarId: row.avatar_id ?? "nova",
-        frameId: await appearance(db, row.id, row.frame_id, row.points),
+        frameId: await appearance(db, row.id, row.frame_id, row.points ?? 0),
         image:
           row.avatar_id === "custom" && row.image_owner
             ? `/api/players/avatar?id=${encodeURIComponent(row.id)}`
@@ -86,7 +80,7 @@ export async function GET(request: Request) {
         username: row.username,
         otherUserId: row.other_user_id,
         avatarId: row.avatar_id ?? "nova",
-        frameId: await appearance(db, row.other_user_id, row.frame_id, row.points),
+        frameId: await appearance(db, row.other_user_id, row.frame_id, row.points ?? 0),
         image: row.image_data,
       })),
     );

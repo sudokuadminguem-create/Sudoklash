@@ -96,7 +96,8 @@ button {
 }
 .side nav button:hover,
 .side nav button.active {
-  background: linear-gradient(90deg, #3178ff2b, transparent);
+  /* #0f1f40 is #3178ff2b laid over the sidebar: the same tint, with a contrast that can be checked. */
+  background: linear-gradient(90deg, #0f1f40, transparent);
   color: #fff;
 }
 .side nav button.active:before {
@@ -1151,10 +1152,37 @@ header h1 {
   margin-left: auto;
 }
 
-.daily-invite { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 20px; padding: 16px; margin-block: 0 16px; }
-.daily-invite h3, .daily-invite p { margin: 0; }
-.daily-invite p { margin-top: 5px; color: var(--muted); }
-.daily-invite button { min-height: 44px; }
-.signup-benefits { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-block: 8px 14px; }
-.signup-benefits ul { margin: 8px 0 0; padding-inline-start: 1.25em; line-height: 1.45; }
-.signup-benefits li + li { margin-top: 4px; }
+.daily-invite {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 16px;
+  margin-block: 0 16px;
+}
+.daily-invite h3,
+.daily-invite p {
+  margin: 0;
+}
+.daily-invite p {
+  margin-top: 5px;
+  color: var(--muted);
+}
+.daily-invite button {
+  min-height: 44px;
+}
+.signup-benefits {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  margin-block: 8px 14px;
+}
+.signup-benefits ul {
+  margin: 8px 0 0;
+  padding-inline-start: 1.25em;
+  line-height: 1.45;
+}
+.signup-benefits li + li {
+  margin-top: 4px;
+}

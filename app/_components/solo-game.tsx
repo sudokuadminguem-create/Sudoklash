@@ -8,7 +8,6 @@ import {
   clearSoloSave,
   storeSoloSave,
   type BoardSnapshot,
-  type SoloLevel,
   type SoloSave,
   type StartedGame,
 } from "@/app/lib/solo-save";
@@ -48,7 +47,7 @@ export function SoloGame({
   resume,
   practice = false,
 }: Readonly<{
-  difficulty: SoloLevel;
+  difficulty: string;
   account: Account;
   cosmetics: Cosmetics;
   openAuth: () => void;

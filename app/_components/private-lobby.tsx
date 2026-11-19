@@ -13,6 +13,7 @@ import {
 import { usePlayerAppearances } from "@/app/lib/use-player-appearances";
 import { LockedPanel } from "./locked-panel";
 import { PlayerAvatar } from "./player-cosmetics";
+import { RoomGame } from "./room-game";
 import "../private-room.css";
 
 export function startLabel(playerCount: number, allReady: boolean) {
@@ -24,12 +25,10 @@ export function PrivateLobby({
   account,
   notify,
   openAuth,
-  onRace,
 }: Readonly<{
   account: Account;
   notify: (s: string) => void;
   openAuth: () => void;
-  onRace: (room: Room, players: RoomPlayer[]) => React.ReactNode;
 }>) {
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [code, setCode] = useState("");
@@ -93,7 +92,7 @@ export function PrivateLobby({
   if (room?.started_at)
     return (
       <>
-        {onRace(room, players)}
+        <RoomGame key={room.id} room={room} players={players} account={account} notify={notify} />
         {room.winner_id && (
           <button className="primary" onClick={() => setSnapshot(null)}>
             Retour aux salons privés

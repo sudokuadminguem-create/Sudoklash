@@ -40,24 +40,24 @@ export async function deletePlayerData(db: D1Database, userId: string) {
     "player_profiles",
   ].map((table) => db.prepare(`DELETE FROM ${table} WHERE user_id=?`).bind(userId));
   statements.push(
-    db.prepare("DELETE FROM private_room_players WHERE room_id IN (SELECT id FROM private_rooms WHERE host_id=?)").bind(userId),
+    db
+      .prepare(
+        "DELETE FROM private_room_players WHERE room_id IN (SELECT id FROM private_rooms WHERE host_id=?)",
+      )
+      .bind(userId),
     db.prepare("DELETE FROM private_rooms WHERE host_id=?").bind(userId),
-    db.prepare("UPDATE private_rooms SET winner_id=? WHERE winner_id=?").bind(anonymous,userId),
-    db.prepare("UPDATE tournament_entries SET user_id=? WHERE user_id=?").bind(anonymous,userId),
-    db.prepare("UPDATE tournaments SET host_id=? WHERE host_id=?").bind(anonymous,userId),
-    db.prepare("UPDATE premium_credits SET user_id=? WHERE user_id=?").bind(anonymous,userId),
+    db.prepare("UPDATE private_rooms SET winner_id=? WHERE winner_id=?").bind(anonymous, userId),
+    db.prepare("UPDATE tournament_entries SET user_id=? WHERE user_id=?").bind(anonymous, userId),
+    db.prepare("UPDATE tournaments SET host_id=? WHERE host_id=?").bind(anonymous, userId),
+    db.prepare("UPDATE premium_credits SET user_id=? WHERE user_id=?").bind(anonymous, userId),
     db
       .prepare("DELETE FROM friendships WHERE requester_id=? OR addressee_id=?")
       .bind(userId, userId),
-  );
-  statements.push(
     db
       .prepare(
         "UPDATE ranked_matches SET player1_id=CASE WHEN player1_id=?1 THEN ?2 ELSE player1_id END, player2_id=CASE WHEN player2_id=?1 THEN ?2 ELSE player2_id END, winner_id=CASE WHEN winner_id=?1 THEN ?2 ELSE winner_id END, status=CASE WHEN status='playing' THEN 'cancelled' ELSE status END WHERE player1_id=?1 OR player2_id=?1",
       )
       .bind(userId, anonymous),
-  );
-  statements.push(
     db
       .prepare(
         "UPDATE friend_duels SET challenger_id=CASE WHEN challenger_id=?1 THEN ?2 ELSE challenger_id END, opponent_id=CASE WHEN opponent_id=?1 THEN ?2 ELSE opponent_id END, winner_id=CASE WHEN winner_id=?1 THEN ?2 ELSE winner_id END, status=CASE WHEN status IN ('playing','pending') THEN 'cancelled' ELSE status END WHERE challenger_id=?1 OR opponent_id=?1",

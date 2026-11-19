@@ -1,6 +1,6 @@
 "use client";
 import { PremiumEffectProvider } from "./_components/premium-effects";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import {
   CalendarDays,
   Check,
