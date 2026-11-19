@@ -99,7 +99,10 @@ export function SoloGame({
   }, [difficulty, variant, practice]);
   useEffect(() => {
     // A resumed game is kept as long as it belongs to who is playing.
-    if (game && (game.guest === !signedIn || (game.guest && (offline || practice || !navigator.onLine))))
+    if (
+      game &&
+      (game.guest === !signedIn || (game.guest && (offline || practice || !navigator.onLine)))
+    )
       return;
     void start();
     // eslint-disable-next-line react-hooks/exhaustive-deps

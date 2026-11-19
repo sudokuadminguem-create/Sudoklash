@@ -111,20 +111,20 @@ export function ModePanel({
             {soloDifficulties.map((d, i) => {
               const Mark = difficultyMarks[i];
               return (
-              <button
-                // A new grid replaces the saved one: ask first.
-                onClick={() => (saved && settings.confirmNewGrid ? setReplacing(d) : pick(d))}
-                key={d}
-              >
-                <span className="difficulty-mark" aria-hidden="true">
-                  {Mark ? <Mark size={26} strokeWidth={1.8} /> : "🌱"}
-                </span>
-                <b>{levelName(t, d)}</b>
-                <small>{t(`levelHint.${d}` as MessageKey)}</small>
-                <span className="difficulty-xp">
-                  {practice ? t("solo.practice") : `+${soloXpFor(d)} XP`}
-                </span>
-              </button>
+                <button
+                  // A new grid replaces the saved one: ask first.
+                  onClick={() => (saved && settings.confirmNewGrid ? setReplacing(d) : pick(d))}
+                  key={d}
+                >
+                  <span className="difficulty-mark" aria-hidden="true">
+                    {Mark ? <Mark size={26} strokeWidth={1.8} /> : "🌱"}
+                  </span>
+                  <b>{levelName(t, d)}</b>
+                  <small>{t(`levelHint.${d}` as MessageKey)}</small>
+                  <span className="difficulty-xp">
+                    {practice ? t("solo.practice") : `+${soloXpFor(d)} XP`}
+                  </span>
+                </button>
               );
             })}
           </div>
@@ -172,8 +172,7 @@ export function ModePanel({
         </div>
       </div>
     );
-  if (mode === "daily")
-    return <DailyChallenges openAuth={openAuth} cosmetics={cosmetics} />;
+  if (mode === "daily") return <DailyChallenges openAuth={openAuth} cosmetics={cosmetics} />;
   if (mode === "hebdo")
     return <TimedChallenge kind="weekly" openAuth={openAuth} cosmetics={cosmetics} />;
   return (
