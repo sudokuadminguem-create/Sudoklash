@@ -70,7 +70,12 @@ function DailyRanking({
         <button onClick={() => setRetry((n) => n + 1)}>Réessayer</button>
       </div>
     );
-  else if (players === null) ranking = <p role="status">Chargement du classement…</p>;
+  else if (players === null)
+    ranking = (
+      <p>
+        <output>Chargement du classement…</output>
+      </p>
+    );
   else if (!players.length)
     ranking = <p>Aucune grille terminée dans cette difficulté aujourd’hui. Soyez le premier !</p>;
   else

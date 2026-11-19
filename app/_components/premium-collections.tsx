@@ -22,11 +22,11 @@ const equipActions: Record<Exclude<PremiumKind, "bundle">, CosmeticAction> = {
   card: "equip_profile_card",
   effect: "equip_effect",
 };
-function buyLabel(active: boolean, owned: boolean) {
+export function buyLabel(active: boolean, owned: boolean) {
   if (active) return "Équipé";
   return owned ? "Équiper" : "Acheter";
 }
-function bundleHint(complete: boolean, price: number) {
+export function bundleHint(complete: boolean, price: number) {
   if (complete) return "Les trois éléments sont dans ton inventaire.";
   return price === 190
     ? "190 au lieu de 240 Sudogemmes pour les trois éléments."

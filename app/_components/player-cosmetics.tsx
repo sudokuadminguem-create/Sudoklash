@@ -36,7 +36,7 @@ const rarityNames: Record<string, string> = {
 };
 
 /** Caption under a cosmetic: equipped, available to pick, or how to get it. */
-function pickLabel(
+export function pickLabel(
   equipped: boolean,
   available: boolean,
   availableLabel: string,
@@ -46,7 +46,7 @@ function pickLabel(
   return available ? availableLabel : lockedLabel;
 }
 
-function uploadLabel(sending: boolean, hasImage: boolean) {
+export function uploadLabel(sending: boolean, hasImage: boolean) {
   if (sending) return "Envoi en cours…";
   return hasImage ? "Changer mon image" : "Importer une image";
 }

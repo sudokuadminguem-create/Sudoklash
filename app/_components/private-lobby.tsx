@@ -15,7 +15,7 @@ import { LockedPanel } from "./locked-panel";
 import { PlayerAvatar } from "./player-cosmetics";
 import "../private-room.css";
 
-function startLabel(playerCount: number, allReady: boolean) {
+export function startLabel(playerCount: number, allReady: boolean) {
   if (playerCount < 2) return "En attente d’un adversaire";
   return allReady ? "Lancer la course" : "Tous les joueurs doivent être prêts";
 }

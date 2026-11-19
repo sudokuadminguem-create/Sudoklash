@@ -78,7 +78,12 @@ export function ProfileCardDisplay({
 }
 
 /** Caption under a reward: equipped, ready to equip, or how to unlock it. */
-function rewardLabel(active: boolean, owned: boolean, equippedLabel: string, requirement: string) {
+export function rewardLabel(
+  active: boolean,
+  owned: boolean,
+  equippedLabel: string,
+  requirement: string,
+) {
   if (active) return equippedLabel;
   return owned ? "Équiper" : requirement;
 }

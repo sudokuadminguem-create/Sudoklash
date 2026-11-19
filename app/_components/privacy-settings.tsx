@@ -167,7 +167,11 @@ export function PrivacySettings({
             <button onClick={() => setReload((value) => value + 1)}>{text.retry}</button>
           </p>
         )}
-        {!error && !data && <p role="status">{text.loading}</p>}
+        {!error && !data && (
+          <p>
+            <output>{text.loading}</output>
+          </p>
+        )}
         {!error && data && (
           <dl className="privacy-connection">
             <div>

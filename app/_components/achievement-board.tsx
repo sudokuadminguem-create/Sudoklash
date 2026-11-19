@@ -21,7 +21,7 @@ const rarityTitles: Partial<Record<Achievement["rarity"], string>> = {
   epic: "ÉPIQUE",
 };
 
-function emptyMessage(tab: "todo" | "done" | "frames", category: Category) {
+export function emptyMessage(tab: "todo" | "done" | "frames", category: Category) {
   if (tab === "todo") return "Tous les défis de cette catégorie sont terminés !";
   if (category === "epic") return "Aucun cadre épique découvert pour le moment.";
   if (category === "legendary") return "Aucun cadre légendaire découvert pour le moment.";

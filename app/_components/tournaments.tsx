@@ -70,12 +70,12 @@ async function api<T>(
   return data;
 }
 
-function feedStatus(error: unknown, loaded: boolean) {
+export function feedStatus(error: unknown, loaded: boolean) {
   if (error) return "Tournois indisponibles";
   return loaded ? "Pas de tournois en cours" : "Chargement des tournois…";
 }
 
-function linkLabel(phase: string | undefined) {
+export function linkLabel(phase: string | undefined) {
   if (!phase) return "Tournois";
   return phase === "playing" ? "Voir le classement" : "Voir le tournoi";
 }
