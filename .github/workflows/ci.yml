@@ -70,8 +70,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The browser is kept between runs for a given Playwright version: only the system
-      # libraries are checked (most are already on the runner), the download is skipped.
+      # The browser is kept between runs for a given Playwright version.
       - name: Playwright version
         id: playwright
         run: echo "version=$(pnpm exec playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
@@ -79,7 +78,10 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      - run: pnpm exec playwright install --with-deps chromium
+      # No --with-deps: the runner already has the libraries Chromium needs (Google Chrome is
+      # installed on it). --with-deps only added Asian fonts and minor updates through apt, and
+      # took up to 5 minutes whenever the Ubuntu mirror was slow. No test compares screenshots.
+      - run: pnpm exec playwright install chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()
