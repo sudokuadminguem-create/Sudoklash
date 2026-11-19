@@ -1,0 +1,76 @@
+# Vérifie que le titre de chaque demande de fusion respecte Conventional Commits
+# (https://www.conventionalcommits.org/fr/v1.0.0/).
+# Les fusions se font en « squash » : le titre devient le message du commit sur main,
+# c'est donc lui qui doit être conforme.
+#
+# pull_request_target permet de commenter aussi les demandes venant d'un fork.
+# Ce workflow ne récupère jamais le code de la demande de fusion : ne pas ajouter
+# d'étape actions/checkout ici.
+name: Titre de la demande de fusion
+
+on:
+  # Sans danger ici : aucun code de la demande de fusion n'est récupéré ni exécuté,
+  # seul son titre est lu.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+
+permissions: {}
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  conventional-commits:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write # lire le titre et laisser un commentaire d'aide
+    steps:
+      - uses: amannn/action-semantic-pull-request@2252a14e810aa9b85c2d560bd7070c802206ecf6 # v6.1.2
+        id: lint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Types de la convention Angular, reprise par commitlint (config-conventional).
+          types: |
+            feat
+            fix
+            perf
+            refactor
+            docs
+            style
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+
+      - name: Expliquer le format attendu
+        if: always() && steps.lint.outputs.error_message != null
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
+        with:
+          header: pr-title
+          message: |
+            Le titre de cette demande de fusion ne respecte pas [Conventional Commits](https://www.conventionalcommits.org/fr/v1.0.0/).
+
+            Format attendu : `type(portée facultative): description`, par exemple :
+            - `feat(tournois): ajoute le classement en direct`
+            - `fix(defis): corrige la date du défi quotidien`
+            - `feat!: supprime l'ancien mode de jeu` (le `!` signale un changement incompatible)
+
+            Types acceptés : `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `test`, `build`, `ci`, `chore`, `revert`.
+
+            Détail de l'erreur :
+            ```
+            ${{ steps.lint.outputs.error_message }}
+            ```
+
+      - name: Retirer le commentaire une fois le titre corrigé
+        if: steps.lint.outputs.error_message == null
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
+        with:
+          header: pr-title
+          delete: true
