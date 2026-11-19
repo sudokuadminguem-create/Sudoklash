@@ -58,10 +58,28 @@ dialog.account-dialog {
   margin: 0;
   color: inherit;
 }
-fieldset.challenge-categories {
+dialog.challenge-reveal {
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  color: inherit;
+}
+fieldset.challenge-categories,
+fieldset.challenge-tabs,
+fieldset.settings-tabs {
   min-width: 0;
   margin: 0;
   border: 0;
+}
+fieldset.challenge-tabs,
+fieldset.settings-tabs {
+  padding: 0;
+}
+output.loss-result {
+  display: block;
 }
 progress.admin-majestic-progress {
   display: block;

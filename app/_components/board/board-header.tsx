@@ -27,11 +27,7 @@ export function BoardHeader({
         <h2>{title}</h2>
       </div>
       <div className="game-status">
-        <div
-          className="lives"
-          role="status"
-          aria-label={t("header.lives", { count: Math.max(0, lives) })}
-        >
+        <output className="lives" aria-label={t("header.lives", { count: Math.max(0, lives) })}>
           {[0, 1, 2].map((i) => (
             <Heart
               key={i}
@@ -39,7 +35,7 @@ export function BoardHeader({
               fill={i < lives ? "currentColor" : "none"}
             />
           ))}
-        </div>
+        </output>
         {showTimer && (
           <div className="timer">
             <Timer />

@@ -55,7 +55,7 @@ function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 const fieldVariants = cva(
-  "group/field flex w-full gap-3 data-[invalid=true]:text-destructive",
+  "group/field m-0 flex w-full min-w-0 gap-3 border-0 p-0 data-[invalid=true]:text-destructive",
   {
     variants: {
       orientation: {
@@ -82,10 +82,9 @@ function Field({
   className,
   orientation = "vertical",
   ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof fieldVariants>) {
+}: React.ComponentProps<"fieldset"> & VariantProps<typeof fieldVariants>) {
   return (
-    <div
-      role="group"
+    <fieldset
       data-slot="field"
       data-orientation={orientation}
       className={cn(fieldVariants({ orientation }), className)}

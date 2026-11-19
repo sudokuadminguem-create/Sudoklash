@@ -65,8 +65,10 @@ function DailyRanking({
     );
   else if (error)
     ranking = (
-      <div role="status">
-        <p>Classement momentanément indisponible.</p>
+      <div>
+        <p>
+          <output>Classement momentanément indisponible.</output>
+        </p>
         <button onClick={() => setRetry((n) => n + 1)}>Réessayer</button>
       </div>
     );

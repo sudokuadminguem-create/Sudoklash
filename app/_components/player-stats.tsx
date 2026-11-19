@@ -185,15 +185,11 @@ export function ProgressionChart({
             )}
           </svg>
           {shown !== null && (
-            <div
-              className="plot-tooltip"
-              role="status"
-              style={{ left: `${(x(shown) / WIDTH) * 100}%` }}
-            >
+            <output className="plot-tooltip" style={{ left: `${(x(shown) / WIDTH) * 100}%` }}>
               <b>{formatClock(times[shown])}</b>
               <span>{new Date(results[shown].completed_at).toLocaleDateString("fr-FR")}</span>
               {shown === bestIndex && <span>Ton record</span>}
-            </div>
+            </output>
           )}
         </div>
       )}

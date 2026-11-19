@@ -33,7 +33,7 @@ function stubFetch(routes: { availability?: Reply; post?: Reply; podium?: Reply 
 const shop = (signedIn: boolean, openAuth = vi.fn()) =>
   act(async () => root.render(<SupportShop signedIn={signedIn} openAuth={openAuth} />));
 const status = () =>
-  [...container.querySelectorAll("[role='status']")].map((s) => s.textContent).join(" | ");
+  [...container.querySelectorAll("output")].map((s) => s.textContent).join(" | ");
 
 it("shows the podium of the biggest supporters", async () => {
   stubFetch({

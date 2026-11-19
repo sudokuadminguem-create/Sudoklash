@@ -122,7 +122,7 @@ export function AchievementBoard({
           <small>défis classiques terminés</small>
         </div>
       </section>
-      <div className="challenge-tabs" role="group" aria-label="Afficher les défis">
+      <fieldset className="challenge-tabs" aria-label="Afficher les défis">
         <button className={tab === "todo" ? "active" : ""} onClick={() => setTab("todo")}>
           À faire <span>{remaining.length}</span>
         </button>
@@ -132,7 +132,7 @@ export function AchievementBoard({
         <button className={tab === "frames" ? "active" : ""} onClick={() => setTab("frames")}>
           Mes cadres <span>{done.length}</span>
         </button>
-      </div>
+      </fieldset>
       <div className="challenge-filter">
         <strong>Filtrer par rareté</strong>
         <fieldset className="challenge-categories" aria-label="Filtrer les défis par rareté">

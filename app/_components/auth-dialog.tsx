@@ -295,8 +295,8 @@ export function AuthDialog({
           </p>
         )}
         {info && (
-          <p className="form-info" role="status">
-            {info}
+          <p className="form-info">
+            <output>{info}</output>
           </p>
         )}
       </dialog>

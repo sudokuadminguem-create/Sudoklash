@@ -245,10 +245,10 @@ function RankedLobby({
       </p>
       {waiting ? (
         <>
-          <div className="ranked-search" role="status">
+          <output className="ranked-search">
             <span className="ranked-spinner" />
             Dans la file d’attente · Grille {state.rank?.difficulty}
-          </div>
+          </output>
           <button className="ranked-cancel" disabled={busy} onClick={() => submit("cancel")}>
             Annuler la recherche
           </button>

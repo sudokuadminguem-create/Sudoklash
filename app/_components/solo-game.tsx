@@ -171,15 +171,15 @@ export function SoloGame({
     );
   if (!game || !judge)
     return (
-      <div className="game-card" role="status">
-        {t("solo.preparing", { level: levelName(t, difficulty) })}
+      <div className="game-card">
+        <output>{t("solo.preparing", { level: levelName(t, difficulty) })}</output>
       </div>
     );
   return (
     <>
       {offline && (
-        <p className="offline-note" role="status">
-          {t("solo.offlineNote")}
+        <p className="offline-note">
+          <output>{t("solo.offlineNote")}</output>
         </p>
       )}
       <SudokuBoard

@@ -89,9 +89,8 @@ export function SettingsPanel({
           </div>
         </section>
       )}
-      <div
+      <fieldset
         className="settings-tabs"
-        role="group"
         aria-label={locale === "fr" ? "Rubriques des paramètres" : "Settings sections"}
       >
         <button
@@ -108,7 +107,7 @@ export function SettingsPanel({
         >
           {locale === "fr" ? "Confidentialité" : "Privacy"}
         </button>
-      </div>
+      </fieldset>
       {tab === "privacy" ? (
         account && (
           <PrivacySettings

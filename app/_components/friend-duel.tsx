@@ -279,7 +279,7 @@ export function FriendDuel({
       )}
 
       {state?.incoming.map((invite) => (
-        <div className="duel-card incoming" key={invite.id} role="status">
+        <output className="duel-card incoming" key={invite.id}>
           <Swords />
           {avatar(invite.from.id)}
           <div>
@@ -300,11 +300,11 @@ export function FriendDuel({
           >
             Refuser
           </button>
-        </div>
+        </output>
       ))}
 
       {state?.outgoing && (
-        <div className="duel-card waiting" role="status">
+        <output className="duel-card waiting">
           <span className="ranked-spinner" />
           {avatar(state.outgoing.to.id)}
           <div>
@@ -318,7 +318,7 @@ export function FriendDuel({
           >
             Annuler
           </button>
-        </div>
+        </output>
       )}
       {!state?.outgoing && picked && (
         <div className="duel-card composing">
