@@ -4,12 +4,7 @@ import { Copy, Users } from "lucide-react";
 import type { Account } from "@/hooks/use-account";
 import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
 import { variantIds, variantInfo, type VariantId } from "@/lib/variants";
-import {
-  roomRequest,
-  type Room,
-  type RoomPlayer,
-  type RoomSnapshot,
-} from "@/app/lib/private-rooms";
+import { roomRequest, type RoomSnapshot } from "@/app/lib/private-rooms";
 import { usePlayerAppearances } from "@/app/lib/use-player-appearances";
 import { LockedPanel } from "./locked-panel";
 import { PlayerAvatar } from "./player-cosmetics";
