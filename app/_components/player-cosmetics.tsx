@@ -309,14 +309,13 @@ export function CosmeticCloset({
           size="large"
         />
       </div>
-      <div
-        className="level-track"
-        role="progressbar"
+      <progress
+        className="sr-only"
         aria-label="Progression vers le prochain niveau"
-        aria-valuenow={data.levelXp}
-        aria-valuemin={0}
-        aria-valuemax={data.nextLevelXp}
-      >
+        max={data.nextLevelXp}
+        value={data.levelXp}
+      />
+      <div className="level-track" aria-hidden="true">
         <span style={{ width: `${Math.min(100, (data.levelXp / data.nextLevelXp) * 100)}%` }} />
       </div>
       <small>
