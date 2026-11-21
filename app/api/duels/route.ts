@@ -85,13 +85,11 @@ const playingFor = (userId: string) =>
     .bind(userId)
     .first<Duel>();
 
-const nameOf = async (userId: string) =>
-  (
-    await env
-      .DB!.prepare("SELECT username FROM player_profiles WHERE user_id = ?")
-      .bind(userId)
-      .first<{ username: string }>()
-  )?.username ?? "Ami";
+const opponentProfile = async (userId: string) =>
+  await env
+    .DB!.prepare("SELECT username, username_color FROM player_profiles WHERE user_id = ?")
+    .bind(userId)
+    .first<{ username: string; username_color: string | null }>();
 
 const finish = (id: string, winnerId: string, reason: string) =>
   env
@@ -143,6 +141,7 @@ async function viewOf(duel: Duel, userId: string) {
   const side = sideOf(duel, userId);
   const rival = otherId(duel, userId);
   const mine = side === "challenger";
+  const profile = await opponentProfile(rival);
   return {
     id: duel.id,
     status: duel.status,
@@ -152,7 +151,11 @@ async function viewOf(duel: Duel, userId: string) {
     finishedAt: duel.finished_at,
     winnerId: duel.winner_id,
     finishReason: duel.finish_reason,
-    opponent: { id: rival, username: await nameOf(rival) },
+    opponent: {
+      id: rival,
+      username: profile?.username ?? "Ami",
+      ...(profile?.username_color ? { usernameColor: profile.username_color } : {}),
+    },
     myFilled: mine ? duel.challenger_progress : duel.opponent_progress,
     opponentFilled: mine ? duel.opponent_progress : duel.challenger_progress,
     totalToFill: totalToFill(duel),

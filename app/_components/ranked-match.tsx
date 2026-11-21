@@ -1,4 +1,5 @@
 "use client";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Search, Users, X, Trophy } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
@@ -18,6 +19,7 @@ export type RankedState = {
   winnerId?: string | null;
   finishReason?: string | null;
   opponentName?: string;
+  opponentColor?: string;
   opponentProgress?: number;
   myFilled?: number;
   opponentFilled?: number;
@@ -179,7 +181,8 @@ function RankedSummary({
       <span className="eyebrow">RÉSUMÉ DE PARTIE CLASSÉE</span>
       <h2>{won ? "Victoire !" : "Défaite"}</h2>
       <p>
-        Contre {state.opponentName} · Grille {state.difficulty}
+        Contre <span className={pseudonymClass(state.opponentColor)}>{state.opponentName}</span> ·
+        Grille {state.difficulty}
         {finishLabel(state.finishReason, won)}
       </p>
       <div className="ranked-summary">

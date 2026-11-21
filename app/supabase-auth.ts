@@ -10,6 +10,8 @@ export async function getSiteUser(request?: Request) {
       displayName: user.user_metadata?.full_name ?? user.email ?? "Joueur",
       email: user.email ?? "",
       fullName: user.user_metadata?.full_name ?? null,
+      signupInvite: user.user_metadata?.sudoklash_invite as unknown,
+      accountCreatedAt: Date.parse(user.created_at),
     };
   return getChatGPTUser();
 }

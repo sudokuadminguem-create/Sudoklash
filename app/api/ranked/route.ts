@@ -170,9 +170,9 @@ async function state(userId: string) {
   const first = match.player1_id === userId,
     opponentId = first ? match.player2_id : match.player1_id;
   const profile = await env
-    .DB!.prepare("SELECT username FROM player_profiles WHERE user_id = ?")
+    .DB!.prepare("SELECT username, username_color FROM player_profiles WHERE user_id = ?")
     .bind(opponentId)
-    .first<{ username: string }>();
+    .first<{ username: string; username_color: string | null }>();
   const updated = match.status === "finished" ? await rankState(userId) : ranked;
   const ownFilled = first ? match.player1_progress : match.player2_progress;
   const opponentFilled = first ? match.player2_progress : match.player1_progress;
@@ -186,6 +186,7 @@ async function state(userId: string) {
     winnerId: match.winner_id,
     finishReason: match.finish_reason,
     opponentName: profile?.username ?? "Adversaire",
+    ...(profile?.username_color ? { opponentColor: profile.username_color } : {}),
     opponentProgress: opponentFilled,
     myFilled: ownFilled,
     opponentFilled,

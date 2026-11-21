@@ -1,6 +1,7 @@
 "use client";
 import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { useI18n } from "@/app/lib/i18n";
 import { FriendDuel } from "./friend-duel";
 import { ModePanel } from "./mode-panel";
@@ -42,7 +43,9 @@ export function HomeAccountButton({
             ? t("home.level", { level: cosmetics.state?.level ?? 1 })
             : t("home.notConnected")}
         </small>
-        <b>{account.profile?.username || t("home.chooseAvatar")}</b>
+        <b className={pseudonymClass(account.profile?.usernameColor)}>
+          {account.profile?.username || t("home.chooseAvatar")}
+        </b>
         <span>{signedIn ? t("home.viewProfile") : t("home.signInToCustomize")}</span>
       </span>
     </button>

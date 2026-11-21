@@ -1,4 +1,5 @@
 "use client";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Handshake, Swords, Trophy, X } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
@@ -21,7 +22,7 @@ export type DuelView = {
   finishedAt: number | null;
   winnerId: string | null;
   finishReason: "completed" | "three_mistakes" | "forfeit" | null;
-  opponent: { id: string; username: string };
+  opponent: { id: string; username: string; usernameColor?: string };
   myFilled: number;
   opponentFilled: number;
   totalToFill: number;
@@ -210,7 +211,11 @@ export function FriendDuel({
         <span className="eyebrow">DUEL ENTRE AMIS</span>
         <h2>{won ? "Victoire !" : "Défaite"}</h2>
         <p>
-          Contre {duel.opponent.username} · Grille {duel.difficulty} · {reasonText(duel, won)}
+          Contre{" "}
+          <span className={pseudonymClass(duel.opponent.usernameColor)}>
+            {duel.opponent.username}
+          </span>{" "}
+          · Grille {duel.difficulty} · {reasonText(duel, won)}
         </p>
         {avatar(duel.opponent.id)}
         <div className="ranked-summary">
@@ -430,7 +435,11 @@ function DuelGame({
     <div className="ranked-game duel-game">
       <div className="solo-bar">
         <b>
-          Duel contre {duel.opponent.username} · Grille {duel.difficulty}
+          Duel contre{" "}
+          <span className={pseudonymClass(duel.opponent.usernameColor)}>
+            {duel.opponent.username}
+          </span>{" "}
+          · Grille {duel.difficulty}
         </b>
         <span>
           Bilan : {duel.record.wins} – {duel.record.losses}
@@ -463,6 +472,7 @@ function DuelGame({
         race={{
           meName: account.profile?.username || "Toi",
           opponentName: duel.opponent.username,
+          opponentColor: duel.opponent.usernameColor,
           opponentProgress: duel.opponentFilled,
           totalToFill: duel.totalToFill,
         }}

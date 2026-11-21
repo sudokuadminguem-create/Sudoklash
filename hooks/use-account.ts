@@ -7,6 +7,7 @@ import { supabase } from "@/app/lib/supabase";
 export type Profile = {
   id: string;
   username: string | null;
+  usernameColor?: string | null;
   display_name: string;
   avatar_url: string | null;
   last_seen: string;

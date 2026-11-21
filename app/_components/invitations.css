@@ -1,0 +1,162 @@
+.invite-teaser {
+  flex-basis: 100%;
+}
+.invite-cta {
+  background: #283156;
+}
+.invite-teaser .invite-teaser-copy {
+  margin: 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #f3d787;
+  font-size: 0.88rem;
+}
+.invite-teaser-copy svg,
+.invite-share svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+.invite-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  align-items: flex-start;
+}
+.invite-home-actions .invite-teaser {
+  flex: 1 0 190px;
+}
+.invitation-dialog {
+  width: min(37rem, calc(100% - 2rem));
+  max-height: min(90dvh, calc(100% - 2rem));
+}
+.invitation-dialog p {
+  font-size: 1rem;
+  margin: 8px 0 14px;
+}
+.invite-share {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.invite-url {
+  display: block;
+  width: 100%;
+  min-height: 42px;
+  margin-top: 8px;
+  border-radius: 8px;
+  padding: 8px;
+  background: #0c1628;
+  color: #edf5ff;
+  border: 1px solid #6885ab;
+}
+.invite-preview {
+  margin: 14px 0;
+  padding: 12px;
+  background: #0a1428;
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+.invite-tiers {
+  display: grid;
+  gap: 10px;
+}
+.invite-tiers section {
+  padding: 10px;
+  border: 1px solid #42536f;
+  border-radius: 10px;
+}
+.invite-tiers h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px;
+}
+.invite-tiers h3 small {
+  color: #c2cee8;
+  font-size: 0.875rem;
+}
+.invite-swatches,
+.invite-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.invite-swatches button[aria-pressed="true"] {
+  outline: 2px solid #94dcff;
+  outline-offset: -2px;
+}
+.invite-actions {
+  margin-top: 14px;
+}
+.invite-name-electric {
+  color: #88c9ff !important;
+}
+.invite-name-mint {
+  color: #a1f4ca !important;
+}
+.invite-name-coral {
+  color: #ffa799 !important;
+}
+.invite-name-turquoise {
+  color: #75e9ec !important;
+}
+.invite-name-amethyst {
+  color: #d2b8ff !important;
+}
+.invite-name-fuchsia {
+  color: #ffabea !important;
+}
+.invite-name-ice {
+  color: #b9e9ff !important;
+}
+.invite-name-emerald {
+  color: #7be5aa !important;
+}
+.invite-name-copper {
+  color: #ffc195 !important;
+}
+.invite-name-aurora {
+  --invite-gradient: linear-gradient(105deg, #9bd8ff, #dfb1ff);
+  color: #c4c7ff !important;
+}
+.invite-name-sunset {
+  --invite-gradient: linear-gradient(105deg, #ffb098, #ffb2df);
+  color: #ffc1c2 !important;
+}
+.invite-name-lagoon {
+  --invite-gradient: linear-gradient(105deg, #8ee7ff, #adf7c7);
+  color: #a1efdf !important;
+}
+.invite-name-gold {
+  --invite-gradient: linear-gradient(105deg, #ffcb59, #fff3b5 55%, #fbd275);
+  color: #ffdf8b !important;
+}
+.invite-name-rose-gold {
+  --invite-gradient: linear-gradient(105deg, #ffbfaa, #ffe1cd 55%, #ffbd95);
+  color: #ffc7ae !important;
+}
+.invite-name-solar-gold {
+  --invite-gradient: linear-gradient(105deg, #ffe26d, #fffaad 55%, #ffce5d);
+  color: #ffe878 !important;
+}
+@supports (background-clip: text) {
+  .invite-name:is(
+    .invite-name-aurora,
+    .invite-name-sunset,
+    .invite-name-lagoon,
+    .invite-name-gold,
+    .invite-name-rose-gold,
+    .invite-name-solar-gold
+  ) {
+    display: inline-block;
+    background-image: var(--invite-gradient);
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}

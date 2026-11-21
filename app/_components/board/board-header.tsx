@@ -1,3 +1,4 @@
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { Flame, Heart, Timer } from "lucide-react";
 import { MAX_MISTAKES } from "@/app/lib/board-logic";
 import { useI18n } from "@/app/lib/i18n";
@@ -69,6 +70,8 @@ export function ReadyGate({ label, busy, onReady }: Readonly<ReadyGateProps>) {
 type RaceBarProps = {
   meName: string;
   opponentName: string;
+  meColor?: string | null;
+  opponentColor?: string | null;
   progress: number;
   opponentProgress: number;
   total: number;
@@ -78,15 +81,17 @@ type RaceBarProps = {
 export function RaceBar({
   meName,
   opponentName,
+  meColor,
+  opponentColor,
   progress,
   opponentProgress,
   total,
-}: Readonly<RaceBarProps>) {
+}: RaceBarProps) {
   return (
     <div className="opponents">
       <span className="me">
         <i />
-        {meName}{" "}
+        <strong className={pseudonymClass(meColor)}>{meName}</strong>{" "}
         <b>
           {progress}/{total}
         </b>
@@ -96,7 +101,7 @@ export function RaceBar({
       </div>
       <span>
         <i />
-        {opponentName}{" "}
+        <strong className={pseudonymClass(opponentColor)}>{opponentName}</strong>{" "}
         <b>
           {opponentProgress}/{total}
         </b>

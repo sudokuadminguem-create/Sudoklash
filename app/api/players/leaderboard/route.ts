@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 type Row = {
   user_id: string;
   username: string;
+  username_color: string | null;
   points: number;
   wins: number;
   losses: number;
@@ -17,7 +18,7 @@ type Row = {
 export async function GET() {
   if (!env.DB) return Response.json({ error: "unavailable" }, { status: 503 });
   const rows = await env.DB.prepare(
-    "SELECT r.user_id,r.points,r.wins,r.losses,COALESCE(p.username,'Joueur') AS username,c.avatar_id,c.frame_id,i.user_id AS image_owner FROM ranked_ratings r LEFT JOIN player_profiles p ON p.user_id=r.user_id LEFT JOIN player_cosmetics c ON c.user_id=r.user_id LEFT JOIN player_avatar_images i ON i.user_id=r.user_id ORDER BY r.points DESC,r.user_id ASC LIMIT 100",
+    "SELECT r.user_id,r.points,r.wins,r.losses,COALESCE(p.username,'Joueur') AS username,p.username_color,c.avatar_id,c.frame_id,i.user_id AS image_owner FROM ranked_ratings r LEFT JOIN player_profiles p ON p.user_id=r.user_id LEFT JOIN player_cosmetics c ON c.user_id=r.user_id LEFT JOIN player_avatar_images i ON i.user_id=r.user_id ORDER BY r.points DESC,r.user_id ASC LIMIT 100",
   ).all<Row>();
   return Response.json(
     {
@@ -26,6 +27,7 @@ export async function GET() {
         return {
           position: index + 1,
           username: row.username,
+          ...(row.username_color ? { usernameColor: row.username_color } : {}),
           points: row.points,
           wins: row.wins,
           losses: row.losses,

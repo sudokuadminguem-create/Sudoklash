@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { Eye, Trophy } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import { formatClock } from "@/app/lib/format-time";
@@ -34,6 +35,7 @@ type Detail = {
   ranking: {
     place: number;
     name: string;
+    usernameColor?: string;
     seconds: number;
     mistakes: number;
     payout: number;
@@ -350,7 +352,7 @@ function TournamentRanking({ current }: Readonly<{ current: Detail }>) {
           {current.ranking.map((row) => (
             <li key={row.place}>
               <b>
-                {row.place}. {row.name}
+                {row.place}. <span className={pseudonymClass(row.usernameColor)}>{row.name}</span>
                 {row.self ? " (toi)" : ""}
               </b>
               <span>

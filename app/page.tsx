@@ -37,6 +37,9 @@ import { TournamentBanner, useTournaments } from "./_components/tournaments";
 import { GuestDailyInvite, HomeAccountButton, PlayModeContent } from "./_components/home-play";
 import { RealFriends } from "./_components/real-friends";
 import { useDuelInvites } from "./lib/use-duel-invites";
+import { InvitationDialog, InviteTeaser, useInvitations } from "./_components/invitations";
+import { pendingInvitationKey } from "./lib/invite-link";
+import { isInviteCode } from "@/lib/invitations";
 import { InstallGuide } from "./_components/install-guide";
 import { PwaStatus } from "./_components/pwa-status";
 import { SettingsPanel } from "./_components/settings-panel";
@@ -118,6 +121,8 @@ function HomeContent() {
     // A friend picked in the friends list, waiting to be challenged on the duel screen.
     [duelTarget, setDuelTarget] = useState<{ id: string; username: string } | null>(null),
     [authOpen, setAuthOpen] = useState(false),
+    [invitationOpen, setInvitationOpen] = useState(false),
+    [signupInvitation, setSignupInvitation] = useState<string | undefined>(),
     [startSignup, setStartSignup] = useState(false),
     [editPhoto, setEditPhoto] = useState(false),
     [friendRequestFocus, setFriendRequestFocus] = useState(0),
@@ -134,6 +139,30 @@ function HomeContent() {
       setView("boutique");
   }, []);
   const account = useAccount();
+  const invitations = useInvitations(account.user?.id, !!account.profile?.username);
+  useEffect(() => {
+    if (account.loading) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("reset") === "1") return;
+    const code = url.searchParams.get("invitation");
+    if (isInviteCode(code)) {
+      if (!account.user) {
+        try {
+          sessionStorage.setItem(pendingInvitationKey, code);
+        } catch {}
+        setSignupInvitation(code);
+        setStartSignup(true);
+        setAuthOpen(true);
+      }
+      url.searchParams.delete("invitation");
+      window.history.replaceState(window.history.state, "", url);
+    } else if (!account.user) {
+      try {
+        const saved = sessionStorage.getItem(pendingInvitationKey);
+        if (isInviteCode(saved)) setSignupInvitation(saved);
+      } catch {}
+    }
+  }, [account.loading, account.user]);
   const cosmetics = useCosmetics(account);
   useEffect(() => {
     if (!editPhoto || view !== "compte" || !cosmetics.state) return;
@@ -367,16 +396,19 @@ function HomeContent() {
                       </span>
                       <h2>{t("home.title")}</h2>
                       <p>{t("home.lead")}</p>
-                      {installPlatform && (
-                        <button
-                          className="install-cta"
-                          type="button"
-                          onClick={() => void openInstall()}
-                        >
-                          <Smartphone aria-hidden="true" />
-                          {t("install.label")}
-                        </button>
-                      )}
+                      <div className="invite-home-actions">
+                        {installPlatform && (
+                          <button
+                            className="install-cta"
+                            type="button"
+                            onClick={() => void openInstall()}
+                          >
+                            <Smartphone aria-hidden="true" />
+                            {t("install.label")}
+                          </button>
+                        )}
+                        <InviteTeaser session={invitations} open={() => setInvitationOpen(true)} />
+                      </div>
                     </div>
                     <HomeAccountButton
                       account={account}
@@ -441,6 +473,7 @@ function HomeContent() {
                   cosmetics={cosmetics}
                   notify={notify}
                   openAuth={() => setAuthOpen(true)}
+                  openInvitations={() => setInvitationOpen(true)}
                 />
               )}
               {view === "defis" && (
@@ -497,10 +530,24 @@ function HomeContent() {
               </button>
             </div>
           )}
+          {invitationOpen && (
+            <InvitationDialog
+              session={invitations}
+              username={account.profile?.username}
+              close={() => setInvitationOpen(false)}
+              signIn={() => {
+                setInvitationOpen(false);
+                setAuthOpen(true);
+              }}
+              onEquip={account.refresh}
+            />
+          )}
           {authOpen && (
             <AuthDialog
               account={account}
               startSignup={startSignup}
+              signupInvitation={signupInvitation}
+              onSignupComplete={() => setSignupInvitation(undefined)}
               recovery={recovery}
               recoveryStatus={recoveryStatus}
               onRecovered={() => {

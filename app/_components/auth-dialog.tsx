@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, ShieldCheck, X } from "lucide-react";
+import { pendingInvitationKey } from "@/app/lib/invite-link";
 import { authHeaders } from "@/app/lib/auth-headers";
 import { friendlyError } from "@/app/lib/auth-messages";
 import { supabase } from "@/app/lib/supabase";
@@ -44,10 +45,18 @@ async function saveNewPassword(password: string) {
 }
 
 /** Signs in or up and returns the session, if e-mail confirmation is not pending. */
-async function signInOrUp(signup: boolean, email: string, password: string) {
+async function signInOrUp(
+  signup: boolean,
+  email: string,
+  password: string,
+  signupInvitation?: string,
+) {
   const credentials = { email: email.trim(), password };
   const result = signup
-    ? await supabase.auth.signUp(credentials)
+    ? await supabase.auth.signUp({
+        ...credentials,
+        ...(signupInvitation ? { options: { data: { sudoklash_invite: signupInvitation } } } : {}),
+      })
     : await supabase.auth.signInWithPassword(credentials);
   if (result.error) throw result.error;
   return result.data.session;
@@ -63,6 +72,8 @@ export function AuthDialog({
   onClose,
   onAuthenticated,
   startSignup = false,
+  signupInvitation,
+  onSignupComplete,
   recovery = false,
   recoveryStatus = "checking",
   onRecovered,
@@ -71,6 +82,8 @@ export function AuthDialog({
   onClose: () => void;
   onAuthenticated?: () => void;
   startSignup?: boolean;
+  signupInvitation?: string;
+  onSignupComplete?: () => void;
   recovery?: boolean;
   recoveryStatus?: "checking" | "ready" | "expired";
   onRecovered?: () => void;
@@ -117,10 +130,16 @@ export function AuthDialog({
         setPassword("");
         onRecovered?.();
       } else {
-        const session = await signInOrUp(mode === "signup", email, password);
+        const session = await signInOrUp(mode === "signup", email, password, signupInvitation);
         if (mode === "signin" && session) onAuthenticated?.();
-        if (mode === "signup" && !session)
-          setInfo("Compte créé. Ouvrez l’e-mail de confirmation, puis connectez-vous.");
+        if (mode === "signup") {
+          try {
+            sessionStorage.removeItem(pendingInvitationKey);
+          } catch {}
+          onSignupComplete?.();
+          if (!session)
+            setInfo("Compte créé. Ouvrez l’e-mail de confirmation, puis connectez-vous.");
+        }
       }
     } catch (e) {
       setError(friendlyError(e instanceof Error ? e.message : "Connexion impossible"));
@@ -285,6 +304,7 @@ export function AuthDialog({
         <h2 id="account-title">{needsUsername ? "Choisissez votre pseudo" : titles[mode]}</h2>
         {mode === "signup" && !needsUsername && (
           <div className="signup-benefits">
+            {signupInvitation && <p>Tu as été invité à jouer à Sudoklash !</p>}
             <b>Ce que ton compte gratuit débloque</b>
             <ul>
               <li>Les grilles du jour et de la semaine, avec leurs classements.</li>

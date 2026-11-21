@@ -5,6 +5,7 @@ export type LiveTournament =
       ranking: {
         place: number;
         name: string;
+        usernameColor?: string;
         correct: number;
         status: "playing" | "finished" | "eliminated";
       }[];

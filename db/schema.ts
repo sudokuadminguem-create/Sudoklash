@@ -1,4 +1,11 @@
-import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export const weeklyAttempts = sqliteTable(
   "weekly_attempts",
@@ -53,12 +60,33 @@ export const challengeSettings = sqliteTable("challenge_settings", {
   updatedAt: integer("updated_at").notNull(),
 });
 
-export const playerProfiles = sqliteTable("player_profiles", {
-  userId: text("user_id").primaryKey(),
-  username: text("username").notNull().unique(),
-  usernameKey: text("username_key").notNull().unique(),
-  createdAt: integer("created_at").notNull(),
-});
+export const playerProfiles = sqliteTable(
+  "player_profiles",
+  {
+    userId: text("user_id").primaryKey(),
+    username: text("username").notNull().unique(),
+    usernameKey: text("username_key").notNull().unique(),
+    createdAt: integer("created_at").notNull(),
+    inviteCode: text("invite_code"),
+    inviteCodeAt: integer("invite_code_at"),
+    invitedBy: text("invited_by"),
+    usernameColor: text("username_color"),
+  },
+  (table) => [
+    uniqueIndex("idx_player_profiles_invite_code").on(table.inviteCode),
+    index("idx_player_profiles_invited_by").on(table.invitedBy),
+  ],
+);
+
+export const invitationRewards = sqliteTable(
+  "invitation_rewards",
+  {
+    userId: text("user_id").notNull(),
+    tier: integer("tier").notNull(),
+    color: text("color").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.tier] })],
+);
 
 export const playerCosmetics = sqliteTable("player_cosmetics", {
   userId: text("user_id").primaryKey(),

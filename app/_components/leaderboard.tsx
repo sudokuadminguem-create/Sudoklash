@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { Crown } from "lucide-react";
 import { PlayerAvatar } from "./player-cosmetics";
 
@@ -7,6 +8,7 @@ export function Leaderboard() {
   type Row = {
     position: number;
     username: string;
+    usernameColor?: string;
     points: number;
     wins: number;
     losses: number;
@@ -60,7 +62,7 @@ export function Leaderboard() {
                   <PlayerAvatar avatarId={r.avatarId} frameId={r.frameId} image={r.image} />
                   {i === 0 && <Crown className="pod-crown" aria-hidden="true" />}
                 </div>
-                <b>{r.username}</b>
+                <b className={pseudonymClass(r.usernameColor)}>{r.username}</b>
                 <span>{r.rank.label}</span>
                 <strong>{r.points} points</strong>
               </div>
@@ -84,7 +86,7 @@ export function Leaderboard() {
                     image={r.image}
                     size="small"
                   />
-                  {r.username}
+                  <span className={pseudonymClass(r.usernameColor)}>{r.username}</span>
                 </span>
                 <span>{r.rank.label}</span>
                 <strong>{r.points}</strong>

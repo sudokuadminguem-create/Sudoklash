@@ -37,9 +37,11 @@ export async function deletePlayerData(db: D1Database, userId: string) {
     "player_cosmetics",
     "ranked_queue",
     "ranked_ratings",
+    "invitation_rewards",
     "player_profiles",
   ].map((table) => db.prepare(`DELETE FROM ${table} WHERE user_id=?`).bind(userId));
   statements.push(
+    db.prepare("UPDATE player_profiles SET invited_by=NULL WHERE invited_by=?").bind(userId),
     db
       .prepare(
         "DELETE FROM private_room_players WHERE room_id IN (SELECT id FROM private_rooms WHERE host_id=?)",

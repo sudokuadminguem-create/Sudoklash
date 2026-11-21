@@ -65,7 +65,14 @@ type SudokuBoardProps = {
   onReady?: () => void;
   readyBusy?: boolean;
   challengeLabel?: string;
-  race?: { meName: string; opponentName: string; opponentProgress: number; totalToFill?: number };
+  race?: {
+    meName: string;
+    opponentName: string;
+    meColor?: string | null;
+    opponentColor?: string | null;
+    opponentProgress: number;
+    totalToFill?: number;
+  };
   storageKey?: string;
   hintsAllowed?: number;
   soloExperience?: boolean;
@@ -519,6 +526,8 @@ export function SudokuBoard({
         <RaceBar
           meName={race.meName}
           opponentName={race.opponentName}
+          meColor={race.meColor}
+          opponentColor={race.opponentColor}
           progress={raceProgress}
           opponentProgress={race.opponentProgress}
           total={raceTotal}

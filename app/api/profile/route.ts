@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isInviteCode } from "@/lib/invitations";
 import { getSiteUser } from "@/app/supabase-auth";
 
 export const dynamic = "force-dynamic";
@@ -8,9 +9,11 @@ export async function GET(request: Request) {
   if (!user) return Response.json({ error: "authentication_required" }, { status: 401 });
   try {
     const row = await env
-      .DB!.prepare("SELECT user_id, username FROM player_profiles WHERE user_id = ?")
+      .DB!.prepare(
+        "SELECT user_id, username, username_color FROM player_profiles WHERE user_id = ?",
+      )
       .bind(user.userId)
-      .first<{ user_id: string; username: string }>();
+      .first<{ user_id: string; username: string; username_color: string | null }>();
     return Response.json(
       {
         profile: row
@@ -18,6 +21,7 @@ export async function GET(request: Request) {
               id: row.user_id,
               username: row.username,
               display_name: row.username,
+              usernameColor: row.username_color,
               avatar_url: null,
               last_seen: new Date().toISOString(),
             }
@@ -38,22 +42,35 @@ export async function POST(request: Request) {
   if (!/^\w{3,20}$/.test(username))
     return Response.json({ error: "invalid_username" }, { status: 400 });
   try {
+    const code =
+      "signupInvite" in user && isInviteCode(user.signupInvite) ? user.signupInvite : null;
+    const created =
+      "accountCreatedAt" in user &&
+      typeof user.accountCreatedAt === "number" &&
+      Number.isFinite(user.accountCreatedAt)
+        ? user.accountCreatedAt
+        : 0;
     await env
       .DB!.prepare(
-        "INSERT OR IGNORE INTO player_profiles (user_id, username, username_key, created_at) VALUES (?, ?, ?, ?)",
+        `INSERT OR IGNORE INTO player_profiles (user_id, username, username_key, created_at, invited_by)
+       VALUES (?, ?, ?, ?, (SELECT user_id FROM player_profiles
+                             WHERE invite_code = ? AND user_id <> ? AND invite_code_at <= ?))`,
       )
-      .bind(user.userId, username, username.toLowerCase(), Date.now())
+      .bind(user.userId, username, username.toLowerCase(), Date.now(), code, user.userId, created)
       .run();
     const row = await env
-      .DB!.prepare("SELECT user_id, username FROM player_profiles WHERE user_id = ?")
+      .DB!.prepare(
+        "SELECT user_id, username, username_color FROM player_profiles WHERE user_id = ?",
+      )
       .bind(user.userId)
-      .first<{ user_id: string; username: string }>();
+      .first<{ user_id: string; username: string; username_color: string | null }>();
     if (!row) return Response.json({ error: "username_unavailable" }, { status: 409 });
     return Response.json({
       profile: {
         id: row.user_id,
         username: row.username,
         display_name: row.username,
+        usernameColor: row.username_color,
         avatar_url: null,
         last_seen: new Date().toISOString(),
       },

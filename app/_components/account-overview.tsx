@@ -7,6 +7,7 @@ import type { Account } from "@/hooks/use-account";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
 import { CosmeticCloset, PlayerAvatar } from "./player-cosmetics";
 import { PlayerStats, type SoloStats } from "./player-stats";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { ProfileCardStudio } from "./profile-card";
 import "../player-stats.css";
 
@@ -23,11 +24,13 @@ type AccountStats = SoloStats & {
 export function AccountOverview({
   account,
   openAuth,
+  openInvitations,
   cosmetics,
   notify,
 }: Readonly<{
   account: Account;
   openAuth: () => void;
+  openInvitations?: () => void;
   cosmetics: Cosmetics;
   notify: (message: string) => void;
 }>) {
@@ -71,6 +74,11 @@ export function AccountOverview({
   const joined = stats?.profile?.created_at ?? Date.parse(account.user.created_at);
   return (
     <div className="account-overview">
+      {openInvitations && (
+        <button type="button" className="tournament-link" onClick={openInvitations}>
+          Invitations et couleurs de pseudo
+        </button>
+      )}
       {(!stats || !cosmetics.state) && (
         <section className="panel account-identity">
           <PlayerAvatar
@@ -81,7 +89,9 @@ export function AccountOverview({
           />
           <div>
             <span className="eyebrow">MON COMPTE</span>
-            <h2>{stats?.profile?.username ?? account.profile?.username ?? "Pseudo à choisir"}</h2>
+            <h2 className={pseudonymClass(account.profile?.usernameColor)}>
+              {stats?.profile?.username ?? account.profile?.username ?? "Pseudo à choisir"}
+            </h2>
             <p>{account.user.email}</p>
             <small>Inscrit depuis le {new Date(joined).toLocaleDateString("fr-FR")}</small>
           </div>
@@ -90,6 +100,7 @@ export function AccountOverview({
       {stats && cosmetics.state && (
         <ProfileCardStudio
           username={stats.profile?.username ?? account.profile?.username ?? "Joueur"}
+          usernameColor={account.profile?.usernameColor}
           stats={stats}
           cosmetics={cosmetics}
           notify={notify}

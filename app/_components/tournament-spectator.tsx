@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { Eye } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import type { LiveTournament } from "@/lib/tournament-spectator";
@@ -83,7 +84,12 @@ export function TournamentSpectator({ id, onClose }: { id: string; onClose: () =
         <div className="tournament-spectator-content">
           {view.leader && (
             <div className="tournament-leader">
-              <h4>Grille en tête · {view.ranking[0].name}</h4>
+              <h4>
+                Grille en tête ·{" "}
+                <span className={pseudonymClass(view.ranking[0].usernameColor)}>
+                  {view.ranking[0].name}
+                </span>
+              </h4>
               <p>
                 <strong>
                   {view.ranking[0].correct} / {view.total}
@@ -127,7 +133,8 @@ export function TournamentSpectator({ id, onClose }: { id: string; onClose: () =
               {view.ranking.map((row) => (
                 <li key={row.place}>
                   <b>
-                    {row.place}. {row.name}
+                    {row.place}.{" "}
+                    <span className={pseudonymClass(row.usernameColor)}>{row.name}</span>
                   </b>
                   <span>
                     {row.correct} / {view.total} · {playerStatus[row.status]}

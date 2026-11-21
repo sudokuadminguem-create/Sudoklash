@@ -1,5 +1,6 @@
 "use client";
 
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { premiumCollections, collectionItemId } from "@/lib/premium-collections";
 import { useState } from "react";
 import type { Cosmetics } from "@/hooks/use-cosmetics";
@@ -26,10 +27,12 @@ export type ProfileLook = {
 
 export function ProfileCardDisplay({
   username,
+  usernameColor,
   stats,
   look,
 }: Readonly<{
   username: string;
+  usernameColor?: string | null;
   stats: CardStats;
   look: ProfileLook;
 }>) {
@@ -48,7 +51,7 @@ export function ProfileCardDisplay({
           size="large"
         />
         <div className="profile-card-identity">
-          <strong>{username}</strong>
+          <strong className={pseudonymClass(usernameColor)}>{username}</strong>
           {title?.id !== "none" && <span className="profile-subtitle">{title?.name}</span>}
           <small>
             {stats.ranked.rank} · {stats.ranked.points} points
@@ -90,11 +93,13 @@ export function rewardLabel(
 
 export function ProfileCardStudio({
   username,
+  usernameColor,
   stats,
   cosmetics,
   notify,
 }: Readonly<{
   username: string;
+  usernameColor?: string | null;
   stats: CardStats;
   cosmetics: Cosmetics;
   notify: (message: string) => void;
@@ -121,7 +126,12 @@ export function ProfileCardStudio({
           <h3>Une identité à gagner, à afficher</h3>
         </div>
       </div>
-      <ProfileCardDisplay username={username} stats={stats} look={selected} />
+      <ProfileCardDisplay
+        username={username}
+        usernameColor={usernameColor}
+        stats={stats}
+        look={selected}
+      />
       <div className="profile-rewards">
         <div>
           <h4>Styles de carte</h4>

@@ -1,4 +1,5 @@
 "use client";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { useMemo, useState } from "react";
 import type { Judge } from "@/app/lib/judge";
 import type { Account } from "@/hooks/use-account";
@@ -59,7 +60,10 @@ export function RankedGame({
         <b>
           {match.rank?.label ?? "Partie classée"} · Grille {match.difficulty}
         </b>
-        <span>Adversaire trouvé : {match.opponentName}</span>
+        <span>
+          Adversaire trouvé :{" "}
+          <strong className={pseudonymClass(match.opponentColor)}>{match.opponentName}</strong>
+        </span>
         <button className="ranked-forfeit" disabled={forfeiting} onClick={() => void forfeit()}>
           Abandonner
         </button>
@@ -82,6 +86,8 @@ export function RankedGame({
         race={{
           meName: account.profile?.username || "Vous",
           opponentName: match.opponentName ?? "Adversaire",
+          opponentColor: match.opponentColor,
+          meColor: account.profile?.usernameColor,
           opponentProgress: match.opponentProgress ?? 0,
           totalToFill: match.totalToFill,
         }}

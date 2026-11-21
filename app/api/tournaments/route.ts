@@ -44,6 +44,7 @@ type Tournament = {
 type Entry = {
   user_id: string;
   username: string | null;
+  username_color: string | null;
   finished_at: number | null;
   mistakes: number;
   payout: number;
@@ -74,7 +75,7 @@ async function spectate(db: D1Database, request: Request, id: string | null) {
   const total = t.puzzle.split("0").length - 1;
   const { results } = await db
     .prepare(
-      `SELECT p.username,e.finished_at,e.mistakes,e.correct_cells,
+      `SELECT p.username,p.username_color,e.finished_at,e.mistakes,e.correct_cells,
         CASE WHEN e.finished_at IS NOT NULL THEN ?
              ELSE LENGTH(REPLACE(COALESCE(e.correct_cells,''),'0','')) END AS correct
       FROM tournament_entries e LEFT JOIN player_profiles p ON p.user_id=e.user_id
@@ -85,6 +86,7 @@ async function spectate(db: D1Database, request: Request, id: string | null) {
     .bind(total, id)
     .all<{
       username: string | null;
+      username_color: string | null;
       finished_at: number | null;
       mistakes: number;
       correct_cells: string | null;
@@ -99,6 +101,7 @@ async function spectate(db: D1Database, request: Request, id: string | null) {
     ranking: results.map((player, i) => ({
       place: i + 1,
       name: player.username ?? `Joueur ${i + 1}`,
+      ...(player.username_color ? { usernameColor: player.username_color } : {}),
       correct: player.correct,
       status:
         player.finished_at !== null ? "finished" : player.mistakes >= 3 ? "eliminated" : "playing",
@@ -145,7 +148,7 @@ export async function GET(request: Request) {
   const players = (
     await db
       .prepare(
-        `SELECT e.user_id,e.finished_at,e.mistakes,e.payout,p.username
+        `SELECT e.user_id,e.finished_at,e.mistakes,e.payout,p.username,p.username_color
     FROM tournament_entries e LEFT JOIN player_profiles p ON p.user_id=e.user_id WHERE e.tournament_id=?
     ORDER BY e.finished_at IS NULL,e.finished_at,e.mistakes,e.joined_at,e.user_id`,
       )
@@ -180,6 +183,7 @@ export async function GET(request: Request) {
       .map((p, i) => ({
         place: i + 1,
         name: p.username ?? "Joueur",
+        ...(p.username_color ? { usernameColor: p.username_color } : {}),
         seconds: (p.finished_at! - t.starts_at) / 1000,
         mistakes: p.mistakes,
         payout: p.payout,

@@ -162,6 +162,13 @@
       "when": 1795079231993,
       "tag": "0022_tournament_spectators",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1795267077582,
+      "tag": "0023_invitation_rewards",
+      "breakpoints": true
     }
   ]
 }
