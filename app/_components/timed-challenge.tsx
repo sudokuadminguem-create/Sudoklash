@@ -257,7 +257,7 @@ export function TimedChallenge({
         <span className="eyebrow">TENTATIVE PROTÉGÉE</span>
         <h2>Connectez-vous avant de jouer</h2>
         <p>
-          Votre compte Sudoku Clash enregistre votre départ, votre temps et votre participation du{" "}
+          Votre compte Sudoklash enregistre votre départ, votre temps et votre participation du{" "}
           {frequency}.
         </p>
         <button className="primary" onClick={openAuth}>

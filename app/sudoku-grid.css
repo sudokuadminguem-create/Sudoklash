@@ -2269,9 +2269,6 @@ button {
   .header-actions .profile.signin.account-orb .avatar {
     display: grid;
   }
-  .page-title .crumb {
-    display: none;
-  }
 }
 
 .player-avatar > span.avatar-image {

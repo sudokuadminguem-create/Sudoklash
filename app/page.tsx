@@ -1,6 +1,6 @@
 "use client";
 import { PremiumEffectProvider } from "./_components/premium-effects";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   CalendarDays,
   Check,
@@ -12,6 +12,7 @@ import {
   LockKeyhole,
   Menu,
   Settings,
+  Smartphone,
   Swords,
   Trophy,
   UserRound,
@@ -36,12 +37,14 @@ import { TournamentBanner, useTournaments } from "./_components/tournaments";
 import { GuestDailyInvite, HomeAccountButton, PlayModeContent } from "./_components/home-play";
 import { RealFriends } from "./_components/real-friends";
 import { useDuelInvites } from "./lib/use-duel-invites";
+import { InstallGuide } from "./_components/install-guide";
 import { PwaStatus } from "./_components/pwa-status";
 import { SettingsPanel } from "./_components/settings-panel";
 import { Shop } from "./_components/shop";
 import { authHeaders } from "./lib/auth-headers";
 import { I18nProvider, useI18n } from "./lib/i18n";
 import type { MessageKey } from "./lib/i18n-core";
+import { useInstall } from "./lib/pwa";
 import { SettingsProvider } from "./lib/settings";
 import { supabase } from "./lib/supabase";
 import { useAccount } from "@/hooks/use-account";
@@ -88,6 +91,13 @@ export default function Home() {
 
 function HomeContent() {
   const { t, locale } = useI18n();
+  const { platform: installPlatform, requestInstall } = useInstall();
+  const installGuide = useRef<HTMLDialogElement>(null);
+  const openInstall = async () => {
+    if (!(await requestInstall()) && installGuide.current && !installGuide.current.open) {
+      installGuide.current.showModal();
+    }
+  };
   const onlineCount = useLivePresence();
   const tournamentFeed = useTournaments();
   const [tournamentId, setTournamentId] = useState<string | null>(null);
@@ -198,6 +208,19 @@ function HomeContent() {
       return () => clearTimeout(timer);
     }
   }, [account.user, account.loading, account.profile?.username, recovery]);
+  const closeAuth = () => {
+    setStartSignup(false);
+    setAuthOpen(false);
+  };
+  const returnHomeAfterSignIn = () => {
+    closeAuth();
+    setView("jouer");
+    setMode("solo");
+    setTournamentId(null);
+    setDuelTarget(null);
+    setMobile(false);
+    window.scrollTo(0, 0);
+  };
   const notify = (s: string) => {
       setToast(s);
       setTimeout(() => setToast(""), 2400);
@@ -220,6 +243,7 @@ function HomeContent() {
           }
         >
           <PwaStatus />
+          {installPlatform && <InstallGuide dialog={installGuide} platform={installPlatform} />}
           <ChallengeAnnouncer
             account={account}
             cosmetics={cosmetics}
@@ -233,10 +257,16 @@ function HomeContent() {
           </a>
           <aside id="main-menu" className={mobile ? "side open" : "side"}>
             <div className="brand">
-              <div className="brandmark">9</div>
-              <div>
-                SUDOKU <b>CLASH</b>
-              </div>
+              {/* The wordmark alongside this decorative image provides the accessible name. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="brandmark"
+                src="/icons/case-decisive-192.png"
+                alt=""
+                width={40}
+                height={40}
+              />
+              <span className="brand-name">Sudoklash</span>
               <button
                 className="close"
                 aria-label={t("shell.menuClose")}
@@ -293,7 +323,7 @@ function HomeContent() {
                 <Menu />
               </button>
               <div className="page-title">
-                <span className="crumb">SUDOKU CLASH /</span>
+                <span className="crumb">Sudoklash</span>
                 <h1>{title}</h1>
               </div>
               <div className="header-actions">
@@ -337,6 +367,16 @@ function HomeContent() {
                       </span>
                       <h2>{t("home.title")}</h2>
                       <p>{t("home.lead")}</p>
+                      {installPlatform && (
+                        <button
+                          className="install-cta"
+                          type="button"
+                          onClick={() => void openInstall()}
+                        >
+                          <Smartphone aria-hidden="true" />
+                          {t("install.label")}
+                        </button>
+                      )}
                     </div>
                     <HomeAccountButton
                       account={account}
@@ -430,6 +470,7 @@ function HomeContent() {
                   notify={notify}
                   account={account}
                   openAuth={() => setAuthOpen(true)}
+                  openInstall={installPlatform ? openInstall : undefined}
                 />
               )}
               {view === "boutique" && (
@@ -468,10 +509,8 @@ function HomeContent() {
                 setAuthOpen(false);
                 notify("Mot de passe mis à jour");
               }}
-              onClose={() => {
-                setStartSignup(false);
-                setAuthOpen(false);
-              }}
+              onAuthenticated={returnHomeAfterSignIn}
+              onClose={closeAuth}
             />
           )}
         </main>

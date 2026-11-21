@@ -4,7 +4,6 @@ import { supabase } from "@/app/lib/supabase";
 import { useState } from "react";
 import type { Account } from "@/hooks/use-account";
 import { PrivacySettings } from "./privacy-settings";
-import { useInstall } from "@/app/lib/pwa";
 import { locales, type MessageKey } from "@/app/lib/i18n-core";
 import {
   defaultSettings,
@@ -34,15 +33,16 @@ export function SettingsPanel({
   notify,
   account,
   openAuth,
+  openInstall,
 }: Readonly<{
   notify: (s: string) => void;
   account?: Account;
   openAuth?: () => void;
+  openInstall?: () => Promise<void>;
 }>) {
   const [tab, setTab] = useState<"preferences" | "privacy">("preferences");
   const { settings, update } = useSettings();
   const { t, locale, setLocale } = useI18n();
-  const install = useInstall();
   const [signingOut, setSigningOut] = useState(false);
   const fr = locale === "fr";
   let signOutLabel = fr ? "Déconnexion" : "Sign out";
@@ -214,7 +214,7 @@ export function SettingsPanel({
               </div>
             </div>
           </section>
-          {install && (
+          {openInstall && (
             <section className="settings-group">
               <h3>{t("install.title")}</h3>
               <div className="setting-row">
@@ -222,7 +222,7 @@ export function SettingsPanel({
                   <b>{t("install.label")}</b>
                   <small>{t("install.help")}</small>
                 </span>
-                <button className="primary" onClick={() => void install()}>
+                <button className="primary" type="button" onClick={() => void openInstall()}>
                   {t("install.button")}
                 </button>
               </div>

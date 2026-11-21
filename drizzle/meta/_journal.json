@@ -155,6 +155,13 @@
       "when": 1795015513967,
       "tag": "0021_skinny_whizzer",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1795079231993,
+      "tag": "0022_tournament_spectators",
+      "breakpoints": true
     }
   ]
 }

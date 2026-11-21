@@ -37,8 +37,9 @@ export const fr = {
 
   // Home
   "home.live": "BÊTA PUBLIQUE · COMPTES RÉELS",
-  "home.title": "Sudoku Clash — joue en ligne",
-  "home.lead": "Sudoklash : joue gratuitement en solo sans compte. Connecte-toi pour les défis et les duels classés.",
+  "home.title": "Sudoklash — joue en ligne",
+  "home.lead":
+    "Sudoklash : joue gratuitement en solo sans compte. Connecte-toi pour les défis et les duels classés.",
   "home.accountSignedIn": "Voir mon compte et personnaliser mon avatar",
   "home.accountSignedOut": "Se connecter au compte",
   "home.myAccount": "MON COMPTE",
@@ -134,6 +135,18 @@ export const fr = {
   "install.label": "Installer Sudoklash",
   "install.help": "Ajoute l’icône à l’écran d’accueil ; le solo fonctionne aussi hors ligne.",
   "install.button": "Installer",
+  "install.close": "Fermer",
+  "install.ios.1":
+    "Ouvre Sudoklash dans Safari, puis touche Partager (parfois dans le menu de la page).",
+  "install.ios.2": "Choisis « Sur l’écran d’accueil ».",
+  "install.ios.3": "Active « Ouvrir comme app web » si l’option apparaît, puis touche « Ajouter ».",
+  "install.android.1": "Ouvre Sudoklash dans Chrome, puis touche le menu ⋮.",
+  "install.android.2":
+    "Choisis « Ajouter à l’écran d’accueil », puis « Installer » si cette option apparaît.",
+  "install.desktop.1":
+    "Cherche l’icône d’installation dans la barre d’adresse ou l’option « Installer » dans le menu de ton navigateur.",
+  "install.desktop.2":
+    "Si tu joues sur téléphone, ouvre Sudoklash dans Safari sur iPhone ou dans Chrome sur Android.",
   "settings.group.game": "Partie",
   "settings.highlightUnits": "Surligner ligne, colonne et bloc",
   "settings.highlightUnits.help": "Met en évidence les cases liées à la case sélectionnée.",
@@ -226,7 +239,7 @@ export const fr = {
   "record.first": "Premier record établi",
   "record.new": "Nouveau record · −{delta}",
   "record.best": "Record : {time}",
-  "share.text": "Sudoku Clash · {title} {level}\n⏱ {time} {lives} 💡 {hints}",
+  "share.text": "Sudoklash · {title} {level}\n⏱ {time} {lives} 💡 {hints}",
   "abandon.title": "Abandonner cette grille ?",
   "abandon.message": "Ta progression sur la grille en cours sera perdue.",
   "abandon.confirm": "Abandonner et relancer",

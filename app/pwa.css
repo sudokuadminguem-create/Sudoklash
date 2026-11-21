@@ -25,3 +25,79 @@
   font-size: 13px;
   text-align: center;
 }
+
+.install-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 6px 14px;
+  border: 1px solid #5389b7;
+  border-radius: 12px;
+  background: #142b45;
+  color: #ecf7ff;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-align: start;
+}
+
+.install-cta:hover {
+  background: #21446a;
+}
+
+.install-cta svg,
+.install-guide-close svg {
+  flex: none;
+  width: 19px;
+  height: 19px;
+}
+
+.install-guide {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: min(29rem, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  margin: auto;
+  padding: 22px;
+  overflow: auto;
+  border: 1px solid #5389b7;
+  border-radius: 16px;
+  background: #101b31;
+  color: #f3f7ff;
+}
+
+.install-guide::backdrop {
+  background: rgb(4 8 18 / 80%);
+}
+
+.install-guide h2 {
+  margin: 0 50px 16px 0;
+  font-size: 1.375rem;
+}
+
+.install-guide ol {
+  margin: 0;
+  padding-inline-start: 1.4em;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.install-guide li + li {
+  margin-top: 10px;
+}
+
+.install-guide-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #5389b7;
+  border-radius: 10px;
+  background: #142b45;
+  color: inherit;
+}

@@ -69,7 +69,8 @@ describe("service worker", () => {
   it("precaches the shell, and installs even when a file is missing", async () => {
     const worker = boot(() => connected);
     await worker.lifecycle("install");
-    expect([...worker.stores.get("sudoklash-shell-v2")!.keys()]).toContain("https://app.test/");
+    const shell = [...worker.stores].find(([name]) => name.startsWith("sudoklash-shell-"))?.[1];
+    expect(shell?.has("https://app.test/")).toBe(true);
     connected = false;
     await expect(boot(() => connected).lifecycle("install")).resolves.toBeUndefined();
   });

@@ -43,14 +43,14 @@ async function saveNewPassword(password: string) {
   if (error) throw error;
 }
 
-/** Signs in or up; true when a new account still waits for its e-mail confirmation. */
+/** Signs in or up and returns the session, if e-mail confirmation is not pending. */
 async function signInOrUp(signup: boolean, email: string, password: string) {
   const credentials = { email: email.trim(), password };
   const result = signup
     ? await supabase.auth.signUp(credentials)
     : await supabase.auth.signInWithPassword(credentials);
   if (result.error) throw result.error;
-  return signup && !result.data.session;
+  return result.data.session;
 }
 
 function initialMode(recovery: boolean, startSignup: boolean): Mode {
@@ -61,6 +61,7 @@ function initialMode(recovery: boolean, startSignup: boolean): Mode {
 export function AuthDialog({
   account,
   onClose,
+  onAuthenticated,
   startSignup = false,
   recovery = false,
   recoveryStatus = "checking",
@@ -68,6 +69,7 @@ export function AuthDialog({
 }: Readonly<{
   account: Account;
   onClose: () => void;
+  onAuthenticated?: () => void;
   startSignup?: boolean;
   recovery?: boolean;
   recoveryStatus?: "checking" | "ready" | "expired";
@@ -103,7 +105,7 @@ export function AuthDialog({
       if (needsUsername) {
         await saveUsername(username);
         await account.refresh();
-        onClose();
+        (onAuthenticated ?? onClose)();
       } else if (mode === "forgot") {
         await sendResetLink(email);
         setInfo(
@@ -114,8 +116,11 @@ export function AuthDialog({
         setInfo("Mot de passe modifié. Votre compte est connecté.");
         setPassword("");
         onRecovered?.();
-      } else if (await signInOrUp(mode === "signup", email, password)) {
-        setInfo("Compte créé. Ouvrez l’e-mail de confirmation, puis connectez-vous.");
+      } else {
+        const session = await signInOrUp(mode === "signup", email, password);
+        if (mode === "signin" && session) onAuthenticated?.();
+        if (mode === "signup" && !session)
+          setInfo("Compte créé. Ouvrez l’e-mail de confirmation, puis connectez-vous.");
       }
     } catch (e) {
       setError(friendlyError(e instanceof Error ? e.message : "Connexion impossible"));
@@ -276,7 +281,7 @@ export function AuthDialog({
         <div className="account-shield">
           <ShieldCheck />
         </div>
-        <span className="eyebrow">COMPTE SUDOKU CLASH</span>
+        <span className="eyebrow">COMPTE Sudoklash</span>
         <h2 id="account-title">{needsUsername ? "Choisissez votre pseudo" : titles[mode]}</h2>
         {mode === "signup" && !needsUsername && (
           <div className="signup-benefits">

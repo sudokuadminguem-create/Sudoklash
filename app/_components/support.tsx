@@ -114,7 +114,7 @@ export function SupportShop({
   return (
     <section className="premium-section support-shop">
       <span className="eyebrow">SOUTIEN AU DÉVELOPPEMENT</span>
-      <h2>Soutenir Sudoku Clash</h2>
+      <h2>Soutenir Sudoklash</h2>
       <p>
         Les trois plus grands donateurs voient leur pseudo en néon à l’accueil. Le rang se calcule
         sur le total des dons confirmés. Les montants restent privés.

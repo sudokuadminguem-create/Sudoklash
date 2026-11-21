@@ -24,8 +24,8 @@ async function openCheckout(userId: string, pack: Pack, support: boolean) {
     "line_items[0][price_data][currency]": "eur",
     "line_items[0][price_data][unit_amount]": String(pack.cents),
     "line_items[0][price_data][product_data][name]": support
-      ? "Soutien à Sudoku Clash"
-      : `${pack.gems} Sudogemmes — Sudoku Clash`,
+      ? "Soutien à Sudoklash"
+      : `${pack.gems} Sudogemmes — Sudoklash`,
   });
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",

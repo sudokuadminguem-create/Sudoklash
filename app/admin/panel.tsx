@@ -63,7 +63,7 @@ export default function AdminPanel({ displayName }: Readonly<{ displayName: stri
         </a>
         <div>
           <LockKeyhole />
-          <span>SUDOKU CLASH</span>
+          <span>Sudoklash</span>
           <b>Administration privée</b>
         </div>
         <small>{displayName}</small>

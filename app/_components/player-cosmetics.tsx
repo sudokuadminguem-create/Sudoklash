@@ -535,7 +535,7 @@ export function AvatarShop({
   if (!account.user)
     return (
       <section className="panel cosmetic-closet">
-        <h3>Avatars Sudoku Clash</h3>
+        <h3>Avatars Sudoklash</h3>
         <p>Connecte-toi pour enregistrer tes avatars et tes Sudokoins.</p>
         <button className="primary" onClick={openAuth}>
           Se connecter

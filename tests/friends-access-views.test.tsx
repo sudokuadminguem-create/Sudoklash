@@ -70,7 +70,7 @@ describe("Friends directory", () => {
 
   it("describes the relation with each player", async () => {
     await render();
-    expect(row("stranger").querySelector("small")?.textContent).toBe("Joueur Sudoku Clash");
+    expect(row("stranger").querySelector("small")?.textContent).toBe("Joueur Sudoklash");
     expect(row("friend").querySelector("small")?.textContent).toBe("Déjà ami");
     expect(row("asked").querySelector("small")?.textContent).toBe("Demande envoyée");
     expect(row("asking").querySelector("small")?.textContent).toBe("Vous a envoyé une demande");

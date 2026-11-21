@@ -160,7 +160,7 @@ export default function FriendsDirectory({
 
   const playerRow = (player: Player) => {
     const relation = relationFor(player.id);
-    let relationLabel = "Joueur Sudoku Clash";
+    let relationLabel = "Joueur Sudoklash";
     if (relation?.status === "accepted") relationLabel = "Déjà ami";
     else if (relation?.status === "pending")
       relationLabel =
@@ -298,7 +298,7 @@ export default function FriendsDirectory({
               {avatar(row)}
               <div>
                 <b>{row.username}</b>
-                <small>Ami Sudoku Clash</small>
+                <small>Ami Sudoklash</small>
               </div>
               <button onClick={() => void showProfile(row.otherUserId)}>Voir profil</button>
               <button

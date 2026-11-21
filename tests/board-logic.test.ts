@@ -153,7 +153,7 @@ describe("game summary", () => {
   it("writes the text to share", () => {
     expect(
       shareText({ title: "Arène", difficulty: "Facile", time: "03:20", mistakes: 1, hintsUsed: 2 }),
-    ).toBe("Sudoku Clash · Arène Facile\n⏱ 03:20 ❤️❤️🤍 💡 2");
+    ).toBe("Sudoklash · Arène Facile\n⏱ 03:20 ❤️❤️🤍 💡 2");
   });
 });
 

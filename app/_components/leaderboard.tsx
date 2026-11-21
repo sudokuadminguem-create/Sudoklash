@@ -43,7 +43,7 @@ export function Leaderboard() {
     <div className="panel">
       <div className="panel-head">
         <span className="eyebrow">PARTIES CLASSÉES</span>
-        <h2>Classement Sudoku Clash</h2>
+        <h2>Classement Sudoklash</h2>
         <p className="panel-copy">
           Les 100 meilleurs joueurs par points. Le rang Maître exige au moins 1 700 points et une
           place dans ce top 100.

@@ -89,7 +89,7 @@ describe("board text in English", () => {
         { title: "Arena", difficulty: "Easy", time: "03:20", mistakes: 1, hintsUsed: 2 },
         t,
       ),
-    ).toBe("Sudoku Clash · Arena Easy\n⏱ 03:20 ❤️❤️🤍 💡 2");
+    ).toBe("Sudoklash · Arena Easy\n⏱ 03:20 ❤️❤️🤍 💡 2");
   });
 
   it("explains hints in English without leftover French", () => {

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Trophy } from "lucide-react";
+import { Eye, Trophy } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
 import { formatClock } from "@/app/lib/format-time";
 import type { BoardSnapshot } from "@/app/lib/solo-save";
@@ -14,6 +14,7 @@ import {
 } from "@/lib/tournament-rules";
 import { ConfirmDialog } from "./confirm-dialog";
 import { SudokuBoard } from "./sudoku-board";
+import { TournamentSpectator } from "./tournament-spectator";
 import "../tournaments.css";
 
 type Tournament = {
@@ -252,11 +253,13 @@ function TournamentSummary({
   now,
   busy,
   onJoin,
+  onWatch,
 }: Readonly<{
   current: Detail;
   now: number;
   busy: boolean;
   onJoin: () => void;
+  onWatch?: () => void;
 }>) {
   const status = current.tournament.phase;
   return (
@@ -290,7 +293,16 @@ function TournamentSummary({
             Rejoindre · {entryFee} Sudokoins
           </button>
         ))}
-      {status === "playing" && !current.entry && <p>Les inscriptions sont fermées.</p>}
+      {status === "playing" && !current.entry && (
+        <>
+          <p>Les inscriptions sont fermées.</p>
+          {onWatch && (
+            <button className="primary tournament-watch" type="button" onClick={onWatch}>
+              <Eye aria-hidden="true" /> Regarder en spectateur
+            </button>
+          )}
+        </>
+      )}
       {status === "cancelled" && (
         <p>
           Pas assez de participants ou aucune grille validée.{" "}
@@ -332,7 +344,7 @@ function TournamentRanking({ current }: Readonly<{ current: Detail }>) {
   const status = current.tournament.phase;
   return (
     <section className="panel tournament-card">
-      <h3>Classement</h3>
+      <h3>Classement officiel</h3>
       {current.ranking.length ? (
         <ol className="tournament-ranking">
           {current.ranking.map((row) => (
@@ -411,6 +423,7 @@ export function Tournaments({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [detail, setDetail] = useState<Detail | null>(null),
+    [spectatingId, setSpectatingId] = useState<string | null>(null),
     [revision, setRevision] = useState(0);
   useEffect(() => {
     if (!id) return;
@@ -496,6 +509,7 @@ export function Tournaments({
             className="tournament-link"
             onClick={() => {
               setError("");
+              setSpectatingId(null);
               onOpen();
             }}
           >
@@ -512,7 +526,18 @@ export function Tournaments({
                 now={feed.now}
                 busy={busy}
                 onJoin={() => confirm("join")}
+                onWatch={
+                  spectatingId === id
+                    ? undefined
+                    : () => {
+                        if (!userId) openAuth();
+                        else setSpectatingId(id);
+                      }
+                }
               />
+              {spectatingId === id && status === "playing" && userId && !current.entry && (
+                <TournamentSpectator key={id} id={id} onClose={() => setSpectatingId(null)} />
+              )}
               {current.puzzle && userId && (
                 <TournamentGame
                   key={`${userId}:${id}`}

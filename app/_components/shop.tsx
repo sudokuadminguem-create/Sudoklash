@@ -543,7 +543,7 @@ export function Shop({
     <div className="shop-catalog">
       <header className="store-header">
         <div>
-          <span className="eyebrow">SUDOKU CLASH</span>
+          <span className="eyebrow">Sudoklash</span>
           <h2>Boutique</h2>
           <p>Personnalise ton avatar et tes grilles.</p>
         </div>

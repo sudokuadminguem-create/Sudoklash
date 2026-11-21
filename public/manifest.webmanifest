@@ -1,5 +1,5 @@
 {
-  "name": "Sudoku Clash",
+  "name": "Sudoklash",
   "short_name": "Sudoklash",
   "description": "Le Sudoku compétitif : grilles 9×9, défis quotidiens et duels.",
   "id": "/",
@@ -12,10 +12,20 @@
   "theme_color": "#070b16",
   "categories": ["games", "puzzle"],
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     {
-      "src": "/icons/maskable-512.png",
+      "src": "/icons/case-decisive-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/case-decisive-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/case-decisive-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -25,7 +35,7 @@
     {
       "name": "Partie solo",
       "url": "/",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icons/case-decisive-192.png", "sizes": "192x192" }]
     }
   ]
 }

@@ -61,7 +61,7 @@ export function AccountOverview({
     return (
       <div className="panel locked-real">
         <ShieldCheck />
-        <h2>Votre compte Sudoku Clash</h2>
+        <h2>Votre compte Sudoklash</h2>
         <p>Connectez-vous pour retrouver votre profil et vos résultats.</p>
         <button className="primary" onClick={openAuth}>
           Se connecter ou créer un compte

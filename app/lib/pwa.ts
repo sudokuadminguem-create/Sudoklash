@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /** The event Chromium fires when the app can be installed; not in the DOM typings. */
 type InstallPrompt = Event & {
@@ -40,27 +40,59 @@ export function useOffline() {
   return offline;
 }
 
-/** Install-to-home-screen support: `install` is defined only when the browser offers it. */
+export type InstallPlatform = "ios" | "android" | "desktop";
+
+/** Listen for the browser prompt as soon as the app shell mounts. */
 export function useInstall() {
-  const [prompt, setPrompt] = useState<InstallPrompt | null>(null);
+  const prompt = useRef<InstallPrompt | null>(null);
+  const prompting = useRef(false);
+  const [platform, setPlatform] = useState<InstallPlatform | null>(null);
+  const [standalone, setStandalone] = useState(false);
+  const [installed, setInstalled] = useState(false);
   useEffect(() => {
+    const device = navigator as Navigator & { standalone?: boolean };
+    const ua = device.userAgent;
+    const appleMobile =
+      /iPhone|iPad|iPod/i.test(ua) || (device.platform === "MacIntel" && device.maxTouchPoints > 1);
+    const displayMode = window.matchMedia("(display-mode: standalone)");
+    const updateMode = () => setStandalone(displayMode.matches || device.standalone === true);
     const onPrompt = (event: Event) => {
       event.preventDefault();
-      setPrompt(event as InstallPrompt);
+      prompt.current = event as InstallPrompt;
     };
-    const onInstalled = () => setPrompt(null);
+    const onInstalled = () => {
+      prompt.current = null;
+      setInstalled(true);
+    };
+
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
+    displayMode.addEventListener("change", updateMode);
+    updateMode();
+    setPlatform(appleMobile ? "ios" : /Android/i.test(ua) ? "android" : "desktop");
+
     return () => {
       window.removeEventListener("beforeinstallprompt", onPrompt);
       window.removeEventListener("appinstalled", onInstalled);
+      displayMode.removeEventListener("change", updateMode);
     };
   }, []);
-  const install = useCallback(async () => {
-    if (!prompt) return;
-    await prompt.prompt();
-    await prompt.userChoice;
-    setPrompt(null);
-  }, [prompt]);
-  return prompt ? install : undefined;
+  const requestInstall = useCallback(async () => {
+    if (prompting.current) return true;
+    const pending = prompt.current;
+    if (!pending) return false;
+    // Each browser prompt may be used once, directly from a click.
+    prompt.current = null;
+    prompting.current = true;
+    try {
+      await pending.prompt();
+      if ((await pending.userChoice).outcome === "accepted") setInstalled(true);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      prompting.current = false;
+    }
+  }, []);
+  return { platform: standalone || installed ? null : platform, requestInstall };
 }

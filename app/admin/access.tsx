@@ -41,8 +41,8 @@ export default function AdminAccess() {
     status = (
       <>
         <p>
-          Ce compte ne dispose pas des droits d’administration. Connectez-vous avec le compte Sudoku
-          Clash du propriétaire et confirmez son adresse e-mail.
+          Ce compte ne dispose pas des droits d’administration. Connectez-vous avec le compte
+          Sudoklash du propriétaire et confirmez son adresse e-mail.
         </p>
         <button className="admin-access-button" onClick={() => void supabase.auth.signOut()}>
           Changer de compte
@@ -52,7 +52,7 @@ export default function AdminAccess() {
   else
     status = (
       <>
-        <p>Connectez-vous avec le compte Sudoku Clash du propriétaire pour accéder au panneau.</p>
+        <p>Connectez-vous avec le compte Sudoklash du propriétaire pour accéder au panneau.</p>
         <button className="admin-access-button" onClick={() => setAuthOpen(true)}>
           Se connecter
         </button>
@@ -67,7 +67,7 @@ export default function AdminAccess() {
         </a>
         <div>
           <LockKeyhole />
-          <span>SUDOKU CLASH</span>
+          <span>Sudoklash</span>
           <b>Administration privée</b>
         </div>
       </header>

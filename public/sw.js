@@ -2,10 +2,15 @@
 // without a connection. Nothing from /api/ is ever cached here — game state and answers always
 // come from the server; offline grids are kept by the app itself (app/lib/offline-pack.ts).
 
-const VERSION = "v2";
+const VERSION = "v3";
 const SHELL = `sudoklash-shell-${VERSION}`;
 const ASSETS = `sudoklash-assets-${VERSION}`;
-const PRECACHE = ["/", "/manifest.webmanifest", "/favicon.svg", "/icons/icon-192.png"];
+const PRECACHE = [
+  "/",
+  "/manifest.webmanifest",
+  "/icons/case-decisive-48.png",
+  "/icons/case-decisive-192.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
