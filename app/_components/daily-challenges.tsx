@@ -1,4 +1,5 @@
 "use client";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Trophy, Play } from "lucide-react";
 import { soloDifficulties, type Difficulty } from "@/lib/difficulties";
@@ -13,6 +14,7 @@ type Player = {
   position: number;
   userId: string;
   username: string;
+  usernameColor?: string;
   seconds: number;
   mistakes: number;
   avatarId: string;
@@ -88,7 +90,7 @@ function DailyRanking({
             <b className="daily-position">{p.position}</b>
             <PlayerAvatar avatarId={p.avatarId} frameId={p.frameId} image={p.image} size="small" />
             <span className="daily-player">
-              <b>{p.username}</b>
+              <b className={pseudonymClass(p.usernameColor)}>{p.username}</b>
               <small>
                 {p.mistakes} erreur{p.mistakes !== 1 ? "s" : ""}
               </small>

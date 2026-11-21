@@ -1,4 +1,5 @@
 "use client";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { useEffect, useState } from "react";
 import { Copy, Users } from "lucide-react";
 import type { Account } from "@/hooks/use-account";
@@ -205,7 +206,7 @@ export function PrivateLobby({
               image={appearances[p.user_id]?.image}
             />
             <span>
-              <b>{p.username || "Joueur"}</b>
+              <b className={pseudonymClass(p.usernameColor)}>{p.username || "Joueur"}</b>
               <small>{p.user_id === room.host_id ? "Hôte" : "Invité"}</small>
             </span>
             <em className={p.is_ready ? "ready" : ""}>{p.is_ready ? "PRÊT" : "EN ATTENTE"}</em>

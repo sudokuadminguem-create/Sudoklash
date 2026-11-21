@@ -1,4 +1,5 @@
 "use client";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { useMemo, useState } from "react";
 import { Trophy } from "lucide-react";
 import type { Account } from "@/hooks/use-account";
@@ -60,8 +61,12 @@ export function RoomGame({
           <Trophy />
           <h3>{winner === account.user?.id ? "Victoire !" : "Course terminée"}</h3>
           <p>
-            {players.find((p) => p.user_id === winner)?.username ?? "Un joueur"} a terminé la grille
-            en premier.
+            <span
+              className={pseudonymClass(players.find((p) => p.user_id === winner)?.usernameColor)}
+            >
+              {players.find((p) => p.user_id === winner)?.username ?? "Un joueur"}
+            </span>{" "}
+            a terminé la grille en premier.
           </p>
         </div>
       ) : (
@@ -94,7 +99,9 @@ export function RoomGame({
         <h3>Progression des joueurs</h3>
         {players.map((p) => (
           <div key={p.user_id}>
-            <span>{p.username ?? (p.user_id === account.user?.id ? "Toi" : "Joueur")}</span>
+            <span className={pseudonymClass(p.usernameColor)}>
+              {p.username ?? (p.user_id === account.user?.id ? "Toi" : "Joueur")}
+            </span>
             <progress
               aria-label={`Progression de ${p.username ?? "joueur"}`}
               value={p.progress}

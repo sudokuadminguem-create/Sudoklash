@@ -31,11 +31,19 @@ export type DuelView = {
   record: { wins: number; losses: number };
 };
 export type DuelState = {
-  incoming: { id: string; from: { id: string; username: string }; difficulty: string }[];
-  outgoing: { id: string; to: { id: string; username: string }; difficulty: string } | null;
+  incoming: {
+    id: string;
+    from: { id: string; username: string; usernameColor?: string };
+    difficulty: string;
+  }[];
+  outgoing: {
+    id: string;
+    to: { id: string; username: string; usernameColor?: string };
+    difficulty: string;
+  } | null;
   duel: DuelView | null;
 };
-export type Friend = { id: string; username: string };
+export type Friend = { id: string; username: string; usernameColor?: string };
 
 /** Difficulties offered for a duel: the hardest levels are too long for a friendly game. */
 const duelDifficulties = soloDifficulties.slice(1, 5);
@@ -75,11 +83,20 @@ async function loadFriends(): Promise<Friend[]> {
   const response = await fetch("/api/friends", { cache: "no-store", headers: await authHeaders() });
   if (!response.ok) return [];
   const data = (await response.json()) as {
-    relationships: { status: string; otherUserId: string; username: string }[];
+    relationships: {
+      status: string;
+      otherUserId: string;
+      username: string;
+      usernameColor?: string;
+    }[];
   };
   return data.relationships
     .filter((row) => row.status === "accepted")
-    .map((row) => ({ id: row.otherUserId, username: row.username }));
+    .map((row) => ({
+      id: row.otherUserId,
+      username: row.username,
+      usernameColor: row.usernameColor,
+    }));
 }
 
 const reasonText = (duel: DuelView, won: boolean) => {
@@ -288,7 +305,12 @@ export function FriendDuel({
           <Swords />
           {avatar(invite.from.id)}
           <div>
-            <b>{invite.from.username} te défie !</b>
+            <b>
+              <span className={pseudonymClass(invite.from.usernameColor)}>
+                {invite.from.username}
+              </span>{" "}
+              te défie !
+            </b>
             <small>Grille {invite.difficulty}</small>
           </div>
           <button
@@ -313,7 +335,12 @@ export function FriendDuel({
           <span className="ranked-spinner" />
           {avatar(state.outgoing.to.id)}
           <div>
-            <b>En attente de {state.outgoing.to.username}</b>
+            <b>
+              En attente de{" "}
+              <span className={pseudonymClass(state.outgoing.to.usernameColor)}>
+                {state.outgoing.to.username}
+              </span>
+            </b>
             <small>Grille {state.outgoing.difficulty} · le défi expire dans 10 minutes</small>
           </div>
           <button
@@ -367,7 +394,7 @@ export function FriendDuel({
             friends.map((friend) => (
               <div className="duel-friend" key={friend.id}>
                 {avatar(friend.id)}
-                <b>{friend.username}</b>
+                <b className={pseudonymClass(friend.usernameColor)}>{friend.username}</b>
                 <button
                   disabled={busy || (state?.incoming.length ?? 0) > 0}
                   onClick={() => setPicked(friend)}
@@ -471,6 +498,7 @@ function DuelGame({
         onSolved={(grid) => void complete(grid)}
         race={{
           meName: account.profile?.username || "Toi",
+          meColor: account.profile?.usernameColor,
           opponentName: duel.opponent.username,
           opponentColor: duel.opponent.usernameColor,
           opponentProgress: duel.opponentFilled,

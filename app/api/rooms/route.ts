@@ -34,10 +34,16 @@ async function snapshot(db: D1Database, id: string, user: string) {
   if (!room) return fail("Salon introuvable ou expiré.", 404);
   const players = await db
     .prepare(
-      "SELECT m.user_id,m.is_ready,m.progress,p.username FROM private_room_players m LEFT JOIN player_profiles p ON p.user_id=m.user_id WHERE m.room_id=? ORDER BY m.user_id",
+      "SELECT m.user_id,m.is_ready,m.progress,p.username,p.username_color FROM private_room_players m LEFT JOIN player_profiles p ON p.user_id=m.user_id WHERE m.room_id=? ORDER BY m.user_id",
     )
     .bind(id)
-    .all();
+    .all<{
+      user_id: string;
+      is_ready: number;
+      progress: number;
+      username: string | null;
+      username_color: string | null;
+    }>();
   return json({
     room: {
       id: room.id,
@@ -51,7 +57,10 @@ async function snapshot(db: D1Database, id: string, user: string) {
       started_at: room.started_at,
       winner_id: room.winner_id,
     },
-    players: players.results,
+    players: players.results.map(({ username_color, ...player }) => ({
+      ...player,
+      ...(username_color ? { usernameColor: username_color } : {}),
+    })),
   });
 }
 

@@ -1,4 +1,5 @@
 "use client";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 
 import { useCallback, useEffect, useState } from "react";
 import { Check, Search, Swords, UserPlus, X } from "lucide-react";
@@ -13,6 +14,7 @@ type Relationship = {
   addressee_id: string;
   status: "pending" | "accepted" | "declined";
   username: string;
+  usernameColor?: string;
   otherUserId: string;
   avatarId: string;
   frameId: string;
@@ -21,11 +23,12 @@ type Relationship = {
 type Player = {
   id: string;
   username: string;
+  usernameColor?: string;
   avatarId: string;
   frameId: string;
   image: string | null;
 };
-type FriendProfile = CardStats & ProfileLook & { username: string };
+type FriendProfile = CardStats & ProfileLook & { username: string; usernameColor?: string };
 type FriendsData = { players: Player[]; nextOffset: number | null; relationships: Relationship[] };
 const emptyData: FriendsData = { players: [], nextOffset: null, relationships: [] };
 
@@ -119,6 +122,7 @@ export default function FriendsDirectory({
 
   const avatar = (person: {
     username: string;
+    usernameColor?: string;
     avatarId: string;
     frameId: string;
     image?: string | null;
@@ -171,7 +175,7 @@ export default function FriendsDirectory({
       <div className="friend player-entry" key={player.id}>
         {avatar({ ...player, image: player.image ?? relation?.image })}
         <div>
-          <b>{player.username}</b>
+          <b className={pseudonymClass(player.usernameColor)}>{player.username}</b>
           <small>{relationLabel}</small>
         </div>
         {(!relation || relation.status === "declined") && (
@@ -270,7 +274,12 @@ export default function FriendsDirectory({
               {selectedFriend && (
                 <>
                   <div className="friend-profile-heading">
-                    <h3>Profil de {selectedFriend.username}</h3>
+                    <h3>
+                      Profil de{" "}
+                      <span className={pseudonymClass(selectedFriend.usernameColor)}>
+                        {selectedFriend.username}
+                      </span>
+                    </h3>
                     <button
                       className="subtle"
                       onClick={() => setSelectedFriend(null)}
@@ -281,6 +290,7 @@ export default function FriendsDirectory({
                   </div>
                   <ProfileCardDisplay
                     username={selectedFriend.username}
+                    usernameColor={selectedFriend.usernameColor}
                     stats={selectedFriend}
                     look={selectedFriend}
                   />
@@ -297,7 +307,7 @@ export default function FriendsDirectory({
             <div className="friend player-entry" key={row.id}>
               {avatar(row)}
               <div>
-                <b>{row.username}</b>
+                <b className={pseudonymClass(row.usernameColor)}>{row.username}</b>
                 <small>Ami Sudoklash</small>
               </div>
               <button onClick={() => void showProfile(row.otherUserId)}>Voir profil</button>
@@ -324,7 +334,7 @@ export default function FriendsDirectory({
             <div className="friend player-entry" key={row.id}>
               {avatar(row)}
               <div>
-                <b>{row.username}</b>
+                <b className={pseudonymClass(row.usernameColor)}>{row.username}</b>
                 <small>Souhaite devenir votre ami</small>
               </div>
               <button
@@ -348,7 +358,7 @@ export default function FriendsDirectory({
             <div className="friend player-entry" key={row.id}>
               {avatar(row)}
               <div>
-                <b>{row.username}</b>
+                <b className={pseudonymClass(row.usernameColor)}>{row.username}</b>
                 <small>En attente de réponse</small>
               </div>
             </div>

@@ -16,6 +16,7 @@ export type Room = {
 export type RoomPlayer = {
   user_id: string;
   username: string | null;
+  usernameColor?: string;
   is_ready: number;
   progress: number;
 };

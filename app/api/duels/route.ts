@@ -191,7 +191,7 @@ async function state(userId: string) {
 
   const incoming = await db
     .prepare(
-      "SELECT d.id, d.challenger_id, d.difficulty, d.created_at, COALESCE(p.username, 'Ami') AS username FROM friend_duels d LEFT JOIN player_profiles p ON p.user_id = d.challenger_id WHERE d.status = 'pending' AND d.opponent_id = ? ORDER BY d.created_at",
+      "SELECT d.id, d.challenger_id, d.difficulty, d.created_at, COALESCE(p.username, 'Ami') AS username, p.username_color FROM friend_duels d LEFT JOIN player_profiles p ON p.user_id = d.challenger_id WHERE d.status = 'pending' AND d.opponent_id = ? ORDER BY d.created_at",
     )
     .bind(userId)
     .all<{
@@ -200,10 +200,11 @@ async function state(userId: string) {
       difficulty: string;
       created_at: number;
       username: string;
+      username_color: string | null;
     }>();
   const outgoing = await db
     .prepare(
-      "SELECT d.id, d.opponent_id, d.difficulty, d.created_at, COALESCE(p.username, 'Ami') AS username FROM friend_duels d LEFT JOIN player_profiles p ON p.user_id = d.opponent_id WHERE d.status = 'pending' AND d.challenger_id = ? LIMIT 1",
+      "SELECT d.id, d.opponent_id, d.difficulty, d.created_at, COALESCE(p.username, 'Ami') AS username, p.username_color FROM friend_duels d LEFT JOIN player_profiles p ON p.user_id = d.opponent_id WHERE d.status = 'pending' AND d.challenger_id = ? LIMIT 1",
     )
     .bind(userId)
     .first<{
@@ -212,19 +213,28 @@ async function state(userId: string) {
       difficulty: string;
       created_at: number;
       username: string;
+      username_color: string | null;
     }>();
 
   return {
     incoming: incoming.results.map((row) => ({
       id: row.id,
-      from: { id: row.challenger_id, username: row.username },
+      from: {
+        id: row.challenger_id,
+        username: row.username,
+        ...(row.username_color ? { usernameColor: row.username_color } : {}),
+      },
       difficulty: row.difficulty,
       createdAt: row.created_at,
     })),
     outgoing: outgoing
       ? {
           id: outgoing.id,
-          to: { id: outgoing.opponent_id, username: outgoing.username },
+          to: {
+            id: outgoing.opponent_id,
+            username: outgoing.username,
+            ...(outgoing.username_color ? { usernameColor: outgoing.username_color } : {}),
+          },
           difficulty: outgoing.difficulty,
           createdAt: outgoing.created_at,
         }

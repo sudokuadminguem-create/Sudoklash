@@ -12,6 +12,7 @@ type FriendRow = {
   addressee_id: string;
   status: string;
   username: string;
+  username_color: string | null;
   other_user_id: string;
   avatar_id: string | null;
   frame_id: string | null;
@@ -22,6 +23,7 @@ type FriendRow = {
 type PlayerRow = {
   id: string;
   username: string;
+  username_color: string | null;
   avatar_id: string | null;
   frame_id: string | null;
   image_owner: string | null;
@@ -48,13 +50,13 @@ export async function GET(request: Request) {
     const [profiles, relationships] = await Promise.all([
       db
         .prepare(
-          "SELECT p.user_id AS id, p.username, c.avatar_id, c.frame_id, i.user_id AS image_owner, r.points FROM player_profiles p LEFT JOIN player_cosmetics c ON c.user_id=p.user_id LEFT JOIN player_avatar_images i ON i.user_id=p.user_id LEFT JOIN ranked_ratings r ON r.user_id=p.user_id WHERE p.user_id != ? AND INSTR(p.username_key, ?) > 0 ORDER BY p.username_key LIMIT 51 OFFSET ?",
+          "SELECT p.user_id AS id, p.username, p.username_color, c.avatar_id, c.frame_id, i.user_id AS image_owner, r.points FROM player_profiles p LEFT JOIN player_cosmetics c ON c.user_id=p.user_id LEFT JOIN player_avatar_images i ON i.user_id=p.user_id LEFT JOIN ranked_ratings r ON r.user_id=p.user_id WHERE p.user_id != ? AND INSTR(p.username_key, ?) > 0 ORDER BY p.username_key LIMIT 51 OFFSET ?",
         )
         .bind(user.userId, search, offset)
         .all<PlayerRow>(),
       db
         .prepare(
-          "SELECT f.id, f.requester_id, f.addressee_id, f.status, p.user_id AS other_user_id, p.username, c.avatar_id, c.frame_id, i.image_data, r.points FROM friendships f JOIN player_profiles p ON p.user_id = CASE WHEN f.requester_id = ? THEN f.addressee_id ELSE f.requester_id END LEFT JOIN player_cosmetics c ON c.user_id=p.user_id LEFT JOIN player_avatar_images i ON i.user_id=p.user_id AND f.status='accepted' LEFT JOIN ranked_ratings r ON r.user_id=p.user_id WHERE f.requester_id = ? OR f.addressee_id = ? ORDER BY f.created_at DESC",
+          "SELECT f.id, f.requester_id, f.addressee_id, f.status, p.user_id AS other_user_id, p.username, p.username_color, c.avatar_id, c.frame_id, i.image_data, r.points FROM friendships f JOIN player_profiles p ON p.user_id = CASE WHEN f.requester_id = ? THEN f.addressee_id ELSE f.requester_id END LEFT JOIN player_cosmetics c ON c.user_id=p.user_id LEFT JOIN player_avatar_images i ON i.user_id=p.user_id AND f.status='accepted' LEFT JOIN ranked_ratings r ON r.user_id=p.user_id WHERE f.requester_id = ? OR f.addressee_id = ? ORDER BY f.created_at DESC",
         )
         .bind(user.userId, user.userId, user.userId)
         .all<FriendRow>(),
@@ -63,6 +65,7 @@ export async function GET(request: Request) {
       profiles.results.slice(0, 50).map(async (row) => ({
         id: row.id,
         username: row.username,
+        ...(row.username_color ? { usernameColor: row.username_color } : {}),
         avatarId: row.avatar_id ?? "nova",
         frameId: await appearance(db, row.id, row.frame_id, row.points ?? 0),
         image:
@@ -78,6 +81,7 @@ export async function GET(request: Request) {
         addressee_id: row.addressee_id,
         status: row.status,
         username: row.username,
+        ...(row.username_color ? { usernameColor: row.username_color } : {}),
         otherUserId: row.other_user_id,
         avatarId: row.avatar_id ?? "nova",
         frameId: await appearance(db, row.other_user_id, row.frame_id, row.points ?? 0),

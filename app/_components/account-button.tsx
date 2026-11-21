@@ -1,4 +1,5 @@
 "use client";
+import { pseudonymClass } from "@/app/lib/pseudonym";
 import { useEffect, useId, useRef, useState } from "react";
 import { Camera, LogOut, UserRound, UserPlus, Swords, Bell } from "lucide-react";
 import { authHeaders } from "@/app/lib/auth-headers";
@@ -10,18 +11,27 @@ import type { Cosmetics } from "@/hooks/use-cosmetics";
 import { PlayerAvatar } from "./player-cosmetics";
 import "../profile-menu.css";
 
-type Notice = { id: string; playerId: string; name: string; kind: "friend" | "duel" };
+type Notice = {
+  id: string;
+  playerId: string;
+  name: string;
+  usernameColor?: string;
+  kind: "friend" | "duel";
+};
 
 type FriendsResponse = {
   relationships: {
     id: string;
     otherUserId: string;
     username: string;
+    usernameColor?: string;
     status: string;
     addressee_id: string;
   }[];
 };
-type DuelsResponse = { incoming: { id: string; from: { id: string; username: string } }[] };
+type DuelsResponse = {
+  incoming: { id: string; from: { id: string; username: string; usernameColor?: string } }[];
+};
 
 /** Pending friend requests addressed to the player, then incoming duel invitations. */
 async function fetchNotices(userId: string): Promise<Notice[]> {
@@ -42,12 +52,14 @@ async function fetchNotices(userId: string): Promise<Notice[]> {
         id: row.id,
         playerId: row.otherUserId,
         name: row.username,
+        usernameColor: row.usernameColor,
         kind: "friend" as const,
       })),
     ...duels.incoming.map((row) => ({
       id: row.id,
       playerId: row.from.id,
       name: row.from.username,
+      usernameColor: row.from.usernameColor,
       kind: "duel" as const,
     })),
   ];
@@ -103,7 +115,7 @@ function NoticeList({
               size="small"
             />
             <span>
-              <b>{notice.name}</b>
+              <b className={pseudonymClass(notice.usernameColor)}>{notice.name}</b>
               <small>{noticeLabel(notice.kind, en)}</small>
             </span>
             {notice.kind === "friend" ? (

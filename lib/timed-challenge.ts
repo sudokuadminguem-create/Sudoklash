@@ -104,12 +104,13 @@ export function timedChallengeRoute({ kind, table, periodColumn }: TimedChalleng
     const periodId = kind === "daily" ? dailyAttemptKey(day, difficulty) : day;
     if (kind === "daily" && new URL(request.url).searchParams.get("view") === "leaderboard") {
       const rows = await env.DB.prepare(
-        `SELECT a.user_id, COALESCE(p.username,'Joueur') AS username, a.elapsed_seconds, a.mistakes, c.avatar_id, c.frame_id FROM daily_attempts a LEFT JOIN player_profiles p ON p.user_id=a.user_id LEFT JOIN player_cosmetics c ON c.user_id=a.user_id WHERE a.day_id=? AND a.completed_at IS NOT NULL ORDER BY a.elapsed_seconds ASC, a.completed_at ASC, a.user_id ASC LIMIT 100`,
+        `SELECT a.user_id, COALESCE(p.username,'Joueur') AS username, p.username_color, a.elapsed_seconds, a.mistakes, c.avatar_id, c.frame_id FROM daily_attempts a LEFT JOIN player_profiles p ON p.user_id=a.user_id LEFT JOIN player_cosmetics c ON c.user_id=a.user_id WHERE a.day_id=? AND a.completed_at IS NOT NULL ORDER BY a.elapsed_seconds ASC, a.completed_at ASC, a.user_id ASC LIMIT 100`,
       )
         .bind(periodId)
         .all<{
           user_id: string;
           username: string;
+          username_color: string | null;
           elapsed_seconds: number;
           mistakes: number;
           avatar_id: string | null;
@@ -124,6 +125,7 @@ export function timedChallengeRoute({ kind, table, periodColumn }: TimedChalleng
             position: i + 1,
             userId: r.user_id,
             username: r.username,
+            ...(r.username_color ? { usernameColor: r.username_color } : {}),
             seconds: r.elapsed_seconds,
             mistakes: r.mistakes,
             avatarId: r.avatar_id ?? "nova",
